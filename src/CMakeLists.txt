@@ -43,7 +43,7 @@ target_compile_features(triton-dali-backend PRIVATE cxx_std_14)
 target_compile_options(
         triton-dali-backend PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Wall -Wextra -Wno-unused-parameter -Werror -Wno-unused-function>
+        -Wall -Wextra -Wno-unused-parameter -Werror -Wno-unused-function -Wno-type-limits>
 )
 
 target_link_libraries(
