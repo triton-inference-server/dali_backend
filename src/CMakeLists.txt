@@ -54,9 +54,14 @@ target_link_libraries(
 )
 
 set_target_properties(
-        triton-dali-backend PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-        OUTPUT_NAME triton_dali
-        LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libtriton_dali.ldscript
-        LINK_FLAGS "-Wl,--version-script libtriton_dali.ldscript"
+        triton-dali-backend
+        PROPERTIES
+            POSITION_INDEPENDENT_CODE ON
+            OUTPUT_NAME triton_dali
+            LINK_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libtriton_dali.ldscript
+            LINK_FLAGS "-Wl,--version-script libtriton_dali.ldscript"
+            SKIP_BUILD_RPATH TRUE
+            BUILD_WITH_INSTALL_RPATH TRUE
+            INSTALL_RPATH_USE_LINK_PATH FALSE
+            INSTALL_RPATH "$\{ORIGIN\}/dali"
 )
