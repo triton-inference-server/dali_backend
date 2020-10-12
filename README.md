@@ -2,8 +2,22 @@
 
 This repository contains code for DALI Backend for Trition Inference Server.
 
+![alt text](https://developer.nvidia.com/sites/default/files/akamai/dali.png)
+
+**NVIDIA DALI (R)**, the Data Loading Library, is a collection of highly optimized building blocks, 
+and an execution engine, to accelerate the pre-processing of the input data for deep learning applications.
+DALI provides both the performance and the flexibility to accelerate different data pipelines as one library.
+This library can then be easily integrated into different deep learning training and inference applications,
+regardless of used deep learning framework.
+
+To find out more about DALI please refer to our [main page](https://developer.nvidia.com/DALI).
+[Getting started](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting%20started.html#Getting-started)
+and [Tutorials](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/index.html)
+will guide you through your first steps and [Supported operations](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/supported_ops.html)
+will help you put together GPU-powered data processing pipelines.
+
 ## See any bugs?
-Post an issue in this repository
+Feel free to post an issue here or in DALI's [github repository](https://github.com/NVIDIA/DALI)
 
 ## How to use?
 
