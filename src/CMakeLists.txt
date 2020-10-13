@@ -49,7 +49,8 @@ target_compile_options(
 target_link_libraries(
         triton-dali-backend
         PRIVATE
-        triton-backend-utils  # from repo-backend
+        triton-core-serverstub  # from repo-core
+        triton-backend-utils    # from repo-backend
         dali_executor
 )
 
