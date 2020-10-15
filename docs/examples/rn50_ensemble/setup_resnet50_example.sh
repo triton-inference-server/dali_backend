@@ -32,4 +32,4 @@ wget -O model_repository/resnet50_netdef/1/init_model.netdef \
 
 python rn50_pipeline.py model_repository/dali/1/model.dali
 
-echo "Model ready. Remember to include libtriton_dali.so lib (for now)."
+echo "RN50 ensemble model ready."

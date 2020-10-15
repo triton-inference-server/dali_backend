@@ -26,7 +26,7 @@ import argparse
 def main(filename):
     pipe = dali.pipeline.Pipeline(batch_size=3, num_threads=1, device_id=0)
     with pipe:
-        data = dali.fn.external_source(device="cpu", name="INPUT")
+        data = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
         pipe.set_outputs(data)
 
     pipe.serialize(filename=filename)
