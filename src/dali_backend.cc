@@ -26,7 +26,7 @@
 
 namespace triton { namespace backend { namespace dali {
 
- class DaliModel : public ::triton::backend::BackendModel {
+class DaliModel : public ::triton::backend::BackendModel {
  public:
   static TRITONSERVER_Error *Create(
           TRITONBACKEND_Model *triton_model, DaliModel **state);
@@ -67,7 +67,7 @@ namespace triton { namespace backend { namespace dali {
 
   std::string GetModelFilename() {
     std::string ret;
-    model_config_.MemberAsString("default_model_filename", &ret);
+    TRITON_CALL_GUARD(model_config_.MemberAsString("default_model_filename", &ret));
     return ret.empty() ? "model.dali" : ret;
   }
 
@@ -78,18 +78,16 @@ namespace triton { namespace backend { namespace dali {
 
 TRITONSERVER_Error *
 DaliModel::Create(TRITONBACKEND_Model *triton_model, DaliModel **state) {
+  TRITONSERVER_Error *error = nullptr;  // success
   try {
     *state = new DaliModel(triton_model);
-  }
-  catch (const BackendModelException &ex) {
-    RETURN_ERROR_IF_TRUE(
-            ex.err_ == nullptr, TRITONSERVER_ERROR_INTERNAL,
-            std::string("unexpected nullptr in BackendModelException"));
-    RETURN_IF_ERROR(ex.err_);
+  } catch (const std::exception &e) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ErrorCode::TRITONSERVER_ERROR_UNKNOWN,
+                                  make_string("DALI Backend error: ", e.what()).c_str());
   }
 
-
-  return nullptr;  // success
+  return error;
 }
 
 
@@ -117,6 +115,7 @@ TRITONSERVER_Error *
 DaliModelInstance::Create(
         DaliModel *model_state, TRITONBACKEND_ModelInstance *triton_model_instance,
         DaliModelInstance **state) {
+  TRITONSERVER_Error *error = nullptr;  // success
   const char *instance_name;
   RETURN_IF_ERROR(
           TRITONBACKEND_ModelInstanceName(triton_model_instance, &instance_name));
@@ -129,8 +128,15 @@ DaliModelInstance::Create(
   RETURN_IF_ERROR(
           TRITONBACKEND_ModelInstanceDeviceId(triton_model_instance, &instance_id));
 
-  *state = new DaliModelInstance(model_state, triton_model_instance);
-  return nullptr;  // success
+  try {
+    *state = new DaliModelInstance(model_state, triton_model_instance);
+  } catch (const std::exception &e) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ErrorCode::TRITONSERVER_ERROR_UNKNOWN,
+                                  make_string("DALI Backend error: ", e.what()).c_str());
+  }
+
+  return error;  // success
 }
 
 /////////////
