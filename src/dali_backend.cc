@@ -83,7 +83,7 @@ DaliModel::Create(TRITONBACKEND_Model *triton_model, DaliModel **state) {
     *state = new DaliModel(triton_model);
   } catch (const std::exception &e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    error = TRITONSERVER_ErrorNew(TRITONSERVER_ErrorCode::TRITONSERVER_ERROR_UNKNOWN,
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
                                   make_string("DALI Backend error: ", e.what()).c_str());
   }
 
@@ -132,7 +132,7 @@ DaliModelInstance::Create(
     *state = new DaliModelInstance(model_state, triton_model_instance);
   } catch (const std::exception &e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    error = TRITONSERVER_ErrorNew(TRITONSERVER_ErrorCode::TRITONSERVER_ERROR_UNKNOWN,
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
                                   make_string("DALI Backend error: ", e.what()).c_str());
   }
 
