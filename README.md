@@ -17,15 +17,18 @@ will guide you through your first steps and [Supported operations](https://docs.
 will help you put together GPU-powered data processing pipelines.
 
 ## See any bugs?
-Feel free to post an issue here or in DALI's [github repository](https://github.com/NVIDIA/DALI)
+Feel free to post an issue here or in DALI's [github repository](https://github.com/NVIDIA/DALI).
 
 ## How to use?
 
 1. DALI data pipeline is expressed within Triton as a
-[Model](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/models_and_schedulers.html#models-and-schedulers).
-To create such Model, you have to put together [DALI Pipeline](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/examples/getting%20started.html#Pipeline)
-in Python, and call [Pipeline.serialize](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/pipeline.html#nvidia.dali.pipeline.Pipeline.serialize)
-method to generate a Model file. As an example, we'll use simple resizing pipeline:
+[Model](https://github.com/triton-inference-server/server/blob/master/docs/architecture.md#models-and-schedulers).
+To create such Model, you have to put together a [DALI
+Pipeline](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/examples/getting%20started.html#Pipeline)
+in Python, and call the
+[Pipeline.serialize](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/pipeline.html#nvidia.dali.pipeline.Pipeline.serialize)
+method to generate a Model file. As an example, we'll use simple
+resizing pipeline:
 
         import nvidia.dali as dali
         
@@ -38,8 +41,9 @@ method to generate a Model file. As an example, we'll use simple resizing pipeli
             
         pipe.serialize(filename="/my/model/repository/path/dali/1/model.dali")
 
-1. Model file shall be incorporated in Triton's [Model Repository](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/model_repository.html).
-Here's the example: 
+1. Model file shall be incorporated in Triton's [Model
+Repository](https://github.com/triton-inference-server/server/blob/master/docs/model_repository.md).
+Here's the example:
     
         model_repository
         └── dali
