@@ -11,9 +11,10 @@ and GPU-accelerate them at the same time.
 ## The ensemble
 
 Triton uses model ensembling to put together multiple models into one
-bulk inferring. This example is such an ensemble, consisting of two models:
-DALI model for image preprocessing and Resnet50 model for actual inference.
-For more info on ensembling, refer to [Triton docs](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/models_and_schedulers.html#ensemble-models)
+bulk inferring. This example is such an ensemble, consisting of two
+models: DALI model for image preprocessing and Resnet50 model for
+actual inference.  For more info on ensembling, refer to [Triton
+docs](https://github.com/triton-inference-server/server/blob/master/docs/architecture.md#ensemble-models).
 
 ## Run the example
 
