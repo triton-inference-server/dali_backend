@@ -1,6 +1,6 @@
 # DALI TRITON Backend
 
-This repository contains code for DALI Backend for Trition Inference Server.
+This repository contains code for DALI Backend for Triton Inference Server.
 
 ![alt text](https://developer.nvidia.com/sites/default/files/akamai/dali.png)
 
