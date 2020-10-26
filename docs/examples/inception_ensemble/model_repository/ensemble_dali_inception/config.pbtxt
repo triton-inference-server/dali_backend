@@ -19,22 +19,48 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "resnet50_netdef"
-platform: "caffe2_netdef"
+name: "ensemble_dali_inception"
+platform: "ensemble"
 max_batch_size: 256
 input [
   {
-    name: "gpu_0/data"
-    data_type: TYPE_FP32
-    format: FORMAT_NCHW
-    dims: [ 3, 224, 224 ]
+    name: "INPUT"
+    data_type: TYPE_UINT8
+    dims: [ -1 ]
   }
 ]
 output [
   {
-    name: "gpu_0/softmax"
+    name: "OUTPUT"
     data_type: TYPE_FP32
-    dims: [ 1000 ]
-    label_filename: "resnet50_labels.txt"
+    dims: [ 1001 ]
   }
 ]
+ensemble_scheduling {
+  step [
+    {
+      model_name: "dali"
+      model_version: -1
+      input_map {
+        key: "DALI_INPUT_0"
+        value: "INPUT"
+      }
+      output_map {
+        key: "DALI_OUTPUT_0"
+        value: "preprocessed_image"
+      }
+    },
+    {
+      model_name: "inception_graphdef"
+      model_version: -1
+      input_map {
+        key: "gpu_0/data"
+        value: "preprocessed_image"
+      }
+      output_map {
+        key: "InceptionV3/Predictions/Softmax"
+        value: "OUTPUT"
+      }
+    }
+  ]
+}

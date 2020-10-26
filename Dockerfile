@@ -19,9 +19,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#TODO Change, when 20.09 is out
-#ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.08-py3
-ARG BASE_IMAGE=tritonserver:latest
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.09-py3
 FROM ${BASE_IMAGE} as builder
 
 RUN apt-get update && \

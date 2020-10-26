@@ -19,48 +19,21 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "ensemble_dali_resnet"
-platform: "ensemble"
+name: "dali"
+backend: "dali"
 max_batch_size: 256
 input [
   {
-    name: "INPUT"
+    name: "DALI_INPUT_0"
     data_type: TYPE_UINT8
     dims: [ -1 ]
   }
 ]
+
 output [
   {
-    name: "OUTPUT"
+    name: "DALI_OUTPUT_0"
     data_type: TYPE_FP32
-    dims: [ 1000 ]
+    dims: [ 299, 299, 3 ]
   }
 ]
-ensemble_scheduling {
-  step [
-    {
-      model_name: "dali"
-      model_version: -1
-      input_map {
-        key: "DALI_INPUT_0"
-        value: "INPUT"
-      }
-      output_map {
-        key: "DALI_OUTPUT_0"
-        value: "preprocessed_image"
-      }
-    },
-    {
-      model_name: "resnet50_netdef"
-      model_version: -1
-      input_map {
-        key: "gpu_0/data"
-        value: "preprocessed_image"
-      }
-      output_map {
-        key: "gpu_0/softmax"
-        value: "OUTPUT"
-      }
-    }
-  ]
-}

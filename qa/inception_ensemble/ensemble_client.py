@@ -43,7 +43,7 @@ def parse_args():
     img_group.add_argument('--img', type=str, required=False, default=None,
                            help='Run a img dali pipeline. Arg: path to the image.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches an infered. The directory must contain images only')
+                           help='Directory, with images that will be broken down into batches and inferred. The directory must contain images only')
     return parser.parse_args()
 
 
@@ -99,7 +99,7 @@ def batcher(dataset, batch_size, n_iterations=-1):
         yield dataset[i * batch_size:(i + 1) * batch_size]
 
 
-def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
+def save_byte_image(bytes, size_wh=(299, 299), name_suffix=0):
     """
     Utility function, that can be used to save byte array as an image
     """
@@ -152,7 +152,7 @@ def main():
         maxs = np.argmax(output0_data, axis=1)
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
-            if maxs[i] != 372:
+            if maxs[i] != 373:
                 sys.exit(1)
             else:
                 print("pass")

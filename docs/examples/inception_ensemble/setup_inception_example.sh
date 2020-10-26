@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2020 NVIDIA CORPORATION
@@ -19,21 +21,17 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali"
-backend: "dali"
-max_batch_size: 256
-input [
-  {
-    name: "DALI_INPUT_0"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  }
-]
+set -ex
 
-output [
-  {
-    name: "DALI_OUTPUT_0"
-    data_type: TYPE_FP32
-    dims: [ 3, 224, 224 ]
-  }
-]
+mkdir -p model_repository/inception_graphdef/1
+mkdir -p model_repository/dali/1
+mkdir -p model_repository/ensemble_dali_resnet/1
+
+wget -O /tmp/inception_v3_2016_08_28_frozen.pb.tar.gz \
+     https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz
+(cd /tmp && tar xzf inception_v3_2016_08_28_frozen.pb.tar.gz)
+mv /tmp/inception_v3_2016_08_28_frozen.pb model_repository/inception_graphdef/1/model.graphdef
+
+python inception_pipeline.py model_repository/dali/1/model.dali
+
+echo "InceptionV3 ensemble model ready."
