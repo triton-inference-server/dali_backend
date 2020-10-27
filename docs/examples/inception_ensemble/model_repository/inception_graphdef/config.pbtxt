@@ -1,5 +1,3 @@
-#!/bin/bash -e
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2020 NVIDIA CORPORATION
@@ -21,15 +19,22 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-mkdir -p model_repository/resnet50_netdef/1
-mkdir -p model_repository/dali/1
-mkdir -p model_repository/ensemble_dali_resnet/1
-
-wget -O model_repository/resnet50_netdef/1/model.netdef \
-  http://download.caffe2.ai.s3.amazonaws.com/models/resnet50/predict_net.pb
-wget -O model_repository/resnet50_netdef/1/init_model.netdef \
-  http://download.caffe2.ai.s3.amazonaws.com/models/resnet50/init_net.pb
-
-python rn50_pipeline.py model_repository/dali/1/model.dali
-
-echo "RN50 ensemble model ready."
+name: "inception_graphdef"
+platform: "tensorflow_graphdef"
+max_batch_size: 256
+input [
+  {
+    name: "input"
+    data_type: TYPE_FP32
+    format: FORMAT_NHWC
+    dims: [ 299, 299, 3 ]
+  }
+]
+output [
+  {
+    name: "InceptionV3/Predictions/Softmax"
+    data_type: TYPE_FP32
+    dims: [ 1001 ]
+    label_filename: "inception_labels.txt"
+  }
+]

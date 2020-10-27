@@ -79,6 +79,12 @@ add_executable(unittests ${DALI_EXECUTOR_TEST_SRCS})
 target_link_libraries(unittests Catch2::Catch2 dali_executor ${CMAKE_DL_LIBS})
 
 install(
+        FILES
+        ${DALI_LIB_DIR}/LICENSE
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
+)
+
+install(
         DIRECTORY
         ${DALI_LIB_DIR}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
