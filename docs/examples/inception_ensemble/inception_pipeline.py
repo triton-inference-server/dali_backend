@@ -29,12 +29,11 @@ def main(filename):
     with pipe:
         images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
         images = dali.fn.image_decoder(images, device="mixed", output_type=types.RGB)
-        images = dali.fn.resize(images, resize_x=299, resize_y=299, image_type=types.RGB)
+        images = dali.fn.resize(images, resize_x=299, resize_y=299)
         images = dali.fn.crop_mirror_normalize(images,
-                                               output_dtype=types.FLOAT,
+                                               dtype=types.FLOAT,
                                                output_layout="HWC",
                                                crop=(299, 299),
-                                               image_type=types.RGB,
                                                mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
         pipe.set_outputs(images)

@@ -24,7 +24,7 @@ platform: "tensorflow_graphdef"
 max_batch_size: 256
 input [
   {
-    name: "gpu_0/data"
+    name: "input"
     data_type: TYPE_FP32
     format: FORMAT_NHWC
     dims: [ 299, 299, 3 ]

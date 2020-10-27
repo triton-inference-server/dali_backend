@@ -43,7 +43,8 @@ def parse_args():
     img_group.add_argument('--img', type=str, required=False, default=None,
                            help='Run a img dali pipeline. Arg: path to the image.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches and inferred. The directory must contain images only')
+                           help='Directory, with images that will be broken down into batches and inferred. '
+                                'The directory must contain only images and single labels.txt file')
     return parser.parse_args()
 
 
@@ -62,15 +63,22 @@ def load_images(dir_path: str):
     Loads all files in given dir_path. Treats them as images
     """
     images = []
+    labels = []
+    labels_fname = 'labels.txt'
 
     # Traverses directory for files (not dirs) and returns full paths to them
     path_generator = (os.path.join(dir_path, f) for f in os.listdir(dir_path) if
-                      os.path.isfile(os.path.join(dir_path, f)))
-
+                      os.path.isfile(os.path.join(dir_path, f)) and f != labels_fname)
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
+
+    # File to dictionary
+    with open(os.path.join(dir_path, labels_fname)) as f:
+        labels_dict = {k: int(v) for line in f for (k, v) in [line.strip().split(None, 1)]}
+
     for img in img_paths:
         images.append(load_image(img))
-    return images
+        labels.append(labels_dict[os.path.basename(img)])
+    return images, labels
 
 
 def array_from_list(arrays):
@@ -120,7 +128,7 @@ def main():
 
     print("Loading images")
 
-    image_data = load_images(FLAGS.img_dir if FLAGS.img_dir is not None else FLAGS.img)
+    image_data, labels = load_images(FLAGS.img_dir if FLAGS.img_dir is not None else FLAGS.img)
     image_data = array_from_list(image_data)
 
     print("Images loaded, inferring")
@@ -135,6 +143,7 @@ def main():
     inputs.append(tritongrpcclient.InferInput(input_name, input_shape, "UINT8"))
     outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
 
+    img_idx = 0
     for batch in batcher(image_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
         # Initialize the data
@@ -152,10 +161,11 @@ def main():
         maxs = np.argmax(output0_data, axis=1)
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
-            if maxs[i] != 373:
+            if maxs[i] != labels[img_idx]:
                 sys.exit(1)
             else:
                 print("pass")
+            img_idx += 1
 
     statistics = triton_client.get_inference_statistics(model_name=model_name)
     if len(statistics.model_stats) != 1:

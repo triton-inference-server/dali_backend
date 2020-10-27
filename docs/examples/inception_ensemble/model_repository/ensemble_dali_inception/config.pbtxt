@@ -54,7 +54,7 @@ ensemble_scheduling {
       model_name: "inception_graphdef"
       model_version: -1
       input_map {
-        key: "gpu_0/data"
+        key: "input"
         value: "preprocessed_image"
       }
       output_map {

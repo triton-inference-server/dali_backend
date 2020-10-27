@@ -25,7 +25,7 @@ set -ex
 
 mkdir -p model_repository/inception_graphdef/1
 mkdir -p model_repository/dali/1
-mkdir -p model_repository/ensemble_dali_resnet/1
+mkdir -p model_repository/ensemble_dali_inception/1
 
 wget -O /tmp/inception_v3_2016_08_28_frozen.pb.tar.gz \
      https://storage.googleapis.com/download.tensorflow.org/models/inception_v3_2016_08_28_frozen.pb.tar.gz
