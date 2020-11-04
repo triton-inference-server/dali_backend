@@ -2,22 +2,23 @@
 //
 // Copyright (c) 2020 NVIDIA CORPORATION
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-// the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
@@ -27,11 +28,15 @@
 
 namespace triton { namespace backend { namespace dali {
 
-template<int ndims = -1>
-TensorShape<ndims> max(TensorListShape<ndims> tls) {
+template <int ndims = -1>
+TensorShape<ndims>
+max(TensorListShape<ndims> tls)
+{
   TensorShape<ndims> max = tls.tensor_shape(0);
   for (int i = 1; i < tls.num_samples(); i++) {
-    max = tls.tensor_shape(i).num_elements() > max.num_elements() ? tls.tensor_shape(i) : max;
+    max = tls.tensor_shape(i).num_elements() > max.num_elements()
+              ? tls.tensor_shape(i)
+              : max;
   }
   return max;
 }
@@ -41,8 +46,10 @@ TensorShape<ndims> max(TensorListShape<ndims> tls) {
  * Reformats TensorListShape, so that returned array has the form:
  * [ batch_size, max_volume(TensorListShape)... ]
  */
-template<int ndims = -1>
-std::vector<int64_t> array_shape(TensorListShape<ndims> tls) {
+template <int ndims = -1>
+std::vector<int64_t>
+array_shape(TensorListShape<ndims> tls)
+{
   std::vector<int64_t> ret(tls.sample_dim() + 1);
   auto max_ts = max(tls);
   ret[0] = tls.num_samples();
@@ -70,8 +77,9 @@ struct TimeRange {
   static const uint32_t kPantyPink = 0xBD8BC3;
 
 
-  TimeRange(std::string name, const uint32_t rgb = kPantyPink) {  // NOLINT
-    nvtxEventAttributes_t att={};
+  TimeRange(std::string name, const uint32_t rgb = kPantyPink)
+  {  // NOLINT
+    nvtxEventAttributes_t att = {};
     att.version = NVTX_VERSION;
     att.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
     att.colorType = NVTX_COLOR_ARGB;
@@ -87,7 +95,8 @@ struct TimeRange {
   ~TimeRange() { stop(); }
 
 
-  void stop() {
+  void stop()
+  {
     if (started) {
       started = false;
       nvtxRangePop();
