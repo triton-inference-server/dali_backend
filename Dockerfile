@@ -19,7 +19,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.09-py3
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.10-py3
 FROM ${BASE_IMAGE} as builder
 
 RUN apt-get update && \
@@ -37,10 +37,13 @@ RUN add-apt-repository ppa:deadsnakes/ppa && \
               python3.8        \
               python3-pip      \
               libboost-all-dev \
-              rapidjson-dev
+              rapidjson-dev    \
+              gdb
 
 # pip version in apt packages is ancient - we need to update it
 RUN pip3 install -U pip
+
+WORKDIR /opt
 
 # CMake
 RUN CMAKE_VERSION=3.17 && \
@@ -52,22 +55,17 @@ RUN CMAKE_VERSION=3.17 && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
     rm -rf /cmake-${CMAKE_BUILD}
 
-RUN pip download -d /dali_whl --extra-index-url https://developer.download.nvidia.com/compute/redist/nightly nvidia-dali-nightly-cuda110 && \
-    pip install --force-reinstall /dali_whl/nvidia_dali* && mkdir -p /dali && \
-    unzip /dali_whl/nvidia_dali* -d /dali
+RUN pip install --force-reinstall --extra-index-url https://developer.download.nvidia.com/compute/redist/nightly nvidia-dali-nightly-cuda110
 
-WORKDIR /dali_backend
+WORKDIR /dali
 
 COPY . .
 
 RUN mkdir build_in_ci && cd build_in_ci && \
-    cmake -D CMAKE_BUILD_TYPE=Release -D TRITON_DALI_SKIP_DOWNLOAD=ON .. && make -j"$(grep ^processor /proc/cpuinfo | wc -l)"
+    cmake                                          \
+      -D CMAKE_BUILD_TYPE=Release                  \
+      -D TRITON_DALI_SKIP_DOWNLOAD=ON ..           \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver && \
+    make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
-
-FROM ${BASE_IMAGE} as tritonserver_dali
-
-COPY --from=builder /dali/nvidia/dali/.libs /dali/.libs
-COPY --from=builder /dali/nvidia/dali/*.so /dali/
-COPY --from=builder /dali_backend/build_in_ci/src/libtriton_dali.so /
-
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/dali
+WORKDIR /opt/tritonserver

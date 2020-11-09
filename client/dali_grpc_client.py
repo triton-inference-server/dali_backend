@@ -23,7 +23,7 @@
 
 import argparse, os, sys
 import numpy as np
-import tritongrpcclient
+import tritonclient.grpc
 from PIL import Image
 
 
@@ -110,7 +110,7 @@ def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
 def main():
     FLAGS = parse_args()
     try:
-        triton_client = tritongrpcclient.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
+        triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit()
@@ -132,8 +132,8 @@ def main():
     output_name = "OUTPUT"
     input_shape = list(image_data.shape)
     input_shape[0] = FLAGS.batch_size
-    inputs.append(tritongrpcclient.InferInput(input_name, input_shape, "UINT8"))
-    outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
+    inputs.append(tritonclient.grpc.InferInput(input_name, input_shape, "UINT8"))
+    outputs.append(tritonclient.grpc.InferRequestedOutput(output_name))
 
     for batch in batcher(image_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
@@ -153,10 +153,11 @@ def main():
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
 
-    statistics = triton_client.get_inference_statistics(model_name=model_name)
+    statistics = triton_client.get_inference_statistics(model_name="dali")
     if len(statistics.model_stats) != 1:
         print("FAILED: Inference Statistics")
         sys.exit(1)
+    print(statistics)
 
     print('PASS: infer')
 
