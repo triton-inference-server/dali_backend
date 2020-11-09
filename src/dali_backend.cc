@@ -21,7 +21,9 @@
 // SOFTWARE.
 
 #include "src/dali_backend.h"
+
 #include <memory>
+
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
 
@@ -395,13 +397,13 @@ TRITONBACKEND_ModelInstanceExecute(
     TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** reqs,
     const uint32_t request_count)
 {
-  TRITONSERVER_Error *error = nullptr;  // success
+  TRITONSERVER_Error* error = nullptr;  // success
   uint64_t exec_start_ns, exec_end_ns;
-  DaliModelInstance *instance_state;
+  DaliModelInstance* instance_state;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(
-          instance, reinterpret_cast<void **>(&instance_state)));
-  std::vector<TRITONBACKEND_Request *> requests(reqs, reqs + request_count);
-  std::vector<TRITONBACKEND_Response *> responses(request_count);
+      instance, reinterpret_cast<void**>(&instance_state)));
+  std::vector<TRITONBACKEND_Request*> requests(reqs, reqs + request_count);
+  std::vector<TRITONBACKEND_Response*> responses(request_count);
 
   for (size_t i = 0; i < responses.size(); i++) {
     exec_start_ns = detail::capture_time();
@@ -411,8 +413,8 @@ TRITONBACKEND_ModelInstanceExecute(
     detail::RequestMeta request_meta;
 
     try {
-      request_meta = detail::ProcessRequest(responses[i], requests[i],
-                                            instance_state->GetDaliExecutor());
+      request_meta = detail::ProcessRequest(
+          responses[i], requests[i], instance_state->GetDaliExecutor());
     }
     catch (DaliBackendException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
@@ -429,29 +431,30 @@ TRITONBACKEND_ModelInstanceExecute(
     catch (std::runtime_error& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
       error = TRITONSERVER_ErrorNew(
-              TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-              make_string("runtime error: ", e.what()).c_str());
+          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+          make_string("runtime error: ", e.what()).c_str());
     }
     catch (...) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
       error = TRITONSERVER_ErrorNew(
-              TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-              "Unknown DALI Backend error");
+          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+          "Unknown DALI Backend error");
     }
 
     exec_end_ns = detail::capture_time();
 
     RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
-            instance, requests[i], !error, exec_start_ns, request_meta.compute_start_ns,
-            request_meta.compute_end_ns, exec_end_ns));
+        instance, requests[i], !error, exec_start_ns,
+        request_meta.compute_start_ns, request_meta.compute_end_ns,
+        exec_end_ns));
 
     RETURN_IF_ERROR(TRITONBACKEND_ResponseSend(
-            responses[i],
-            TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
-            error));
+        responses[i],
+        TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
+        error));
     RETURN_IF_ERROR(TRITONBACKEND_RequestRelease(
-            requests[i],
-            TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL));
+        requests[i],
+        TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL));
   }
   return nullptr;
 }

@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/pipeline_group.h"
 
@@ -63,8 +64,8 @@ struct PipelineDescr {
 namespace std {
 template <>
 struct hash<triton::backend::dali::PipelineDescr> {
-  size_t operator()(triton::backend::dali::PipelineDescr const& pk) const
-      noexcept
+  size_t operator()(
+      triton::backend::dali::PipelineDescr const& pk) const noexcept
   {
     return pk.serialized_pipeline_hash ^ static_cast<size_t>(pk.batch_size);
   }

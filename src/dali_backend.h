@@ -23,8 +23,9 @@
 #ifndef DALI_BACKEND_DALI_BACKEND_H
 #define DALI_BACKEND_DALI_BACKEND_H
 
-#include <numeric>
 #include <chrono>
+#include <numeric>
+
 #include "src/dali_executor/dali_executor.h"
 #include "src/error_handling.h"
 #include "src/model_provider/model_provider.h"
@@ -82,13 +83,16 @@ to_dali(TRITONSERVER_MemoryType t)
 }
 
 
-inline uint64_t capture_time() {
+inline uint64_t
+capture_time()
+{
   return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
 
 std::vector<InputDescriptor>
-GenerateInputs(TRITONBACKEND_Request *request) {
+GenerateInputs(TRITONBACKEND_Request* request)
+{
   uint32_t input_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(request, &input_cnt));
   std::vector<InputDescriptor> ret(input_cnt);
@@ -151,20 +155,20 @@ AllocateOutputs(
     auto output_shape = array_shape(snt.shape);
     TRITONBACKEND_Output* triton_output;
     TRITONBACKEND_ResponseOutput(
-            response, &triton_output, name, to_triton(snt.type),
-            output_shape.data(), output_shape.size());
-    void *buffer;
+        response, &triton_output, name, to_triton(snt.type),
+        output_shape.data(), output_shape.size());
+    void* buffer;
     TRITONSERVER_MemoryType memtype;
     int64_t memid;
     auto buffer_byte_size = std::accumulate(
-            output_shape.begin(), output_shape.end(), 1,
-            std::multiplies<int>()) *
+                                output_shape.begin(), output_shape.end(), 1,
+                                std::multiplies<int>()) *
                             TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
     TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(
-            triton_output, &buffer, buffer_byte_size, &memtype, &memid));
+        triton_output, &buffer, buffer_byte_size, &memtype, &memid));
     output_desc.device = to_dali(memtype);
     output_desc.buffer =
-            make_span(reinterpret_cast<char *>(buffer), buffer_byte_size);
+        make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
   }
   return ret;
 }
@@ -175,8 +179,11 @@ struct RequestMeta {
 };
 
 
-RequestMeta ProcessRequest(TRITONBACKEND_Response *response, TRITONBACKEND_Request *request,
-                           DaliExecutor &executor) {
+RequestMeta
+ProcessRequest(
+    TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
+    DaliExecutor& executor)
+{
   RequestMeta ret;
 
   auto dali_inputs = GenerateInputs(request);

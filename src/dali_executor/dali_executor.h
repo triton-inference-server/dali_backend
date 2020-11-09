@@ -26,6 +26,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "src/dali_executor/pipeline_group.h"
 #include "src/dali_executor/pipeline_pool.h"
 #include "src/dali_executor/utils/dali.h"

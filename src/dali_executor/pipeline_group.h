@@ -25,6 +25,7 @@
 
 #include <utility>
 #include <vector>
+
 #include "src/dali_executor/dali_pipeline.h"
 
 namespace triton { namespace backend { namespace dali {
