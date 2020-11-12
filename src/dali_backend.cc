@@ -397,13 +397,14 @@ TRITONBACKEND_ModelInstanceExecute(
     TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** reqs,
     const uint32_t request_count)
 {
-  TRITONSERVER_Error* error = nullptr;  // success
-  uint64_t exec_start_ns, exec_end_ns;
-  DaliModelInstance* instance_state;
+  TRITONSERVER_Error *error = nullptr;  // success
+  uint64_t exec_start_ns, exec_end_ns, batch_exec_start_ns = -1, batch_exec_end_ns = -1, batch_compute_start_ns = -1, batch_compute_end_ns = -1;
+  int total_batch_size = 0;
+  DaliModelInstance *instance_state;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(
-      instance, reinterpret_cast<void**>(&instance_state)));
-  std::vector<TRITONBACKEND_Request*> requests(reqs, reqs + request_count);
-  std::vector<TRITONBACKEND_Response*> responses(request_count);
+          instance, reinterpret_cast<void **>(&instance_state)));
+  std::vector<TRITONBACKEND_Request *> requests(reqs, reqs + request_count);
+  std::vector<TRITONBACKEND_Response *> responses(request_count);
 
   for (size_t i = 0; i < responses.size(); i++) {
     exec_start_ns = detail::capture_time();
@@ -444,18 +445,27 @@ TRITONBACKEND_ModelInstanceExecute(
     exec_end_ns = detail::capture_time();
 
     RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
-        instance, requests[i], !error, exec_start_ns,
-        request_meta.compute_start_ns, request_meta.compute_end_ns,
-        exec_end_ns));
+            instance, requests[i], !error, exec_start_ns,
+            request_meta.compute_start_ns, request_meta.compute_end_ns,
+            exec_end_ns));
 
     RETURN_IF_ERROR(TRITONBACKEND_ResponseSend(
-        responses[i],
-        TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
-        error));
+            responses[i],
+            TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
+            error));
     RETURN_IF_ERROR(TRITONBACKEND_RequestRelease(
-        requests[i],
-        TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL));
+            requests[i],
+            TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL));
+
+    total_batch_size += request_meta.batch_size;
+    batch_exec_end_ns = exec_end_ns;
+    batch_compute_end_ns = request_meta.compute_end_ns;
   }
+
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
+          instance, total_batch_size, batch_exec_start_ns, batch_compute_start_ns,
+          batch_compute_end_ns, batch_exec_end_ns));
+
   return nullptr;
 }
 
