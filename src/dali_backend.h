@@ -188,7 +188,9 @@ ProcessRequest(
   RequestMeta ret;
 
   auto dali_inputs = GenerateInputs(request);
-  ret.batch_size = dali_inputs[0].shape.num_samples();  // Batch size is expected to be the same in every input
+  ret.batch_size =
+      dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
+                                           // same in every input
 
   ret.compute_start_ns = capture_time();
   auto shapes_and_types = executor.Run(dali_inputs);
