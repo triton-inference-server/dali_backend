@@ -19,6 +19,12 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# -------------------------------------------------- #
+# This is a Docker image dedicated to develop
+# DALI Backend. If you don't want to build the
+# backend together with tritonserver, start from here
+# -------------------------------------------------- #
+
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.10-py3
 FROM ${BASE_IMAGE} as builder
 
