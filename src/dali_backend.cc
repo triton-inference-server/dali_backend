@@ -397,22 +397,25 @@ TRITONBACKEND_ModelInstanceExecute(
     TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** reqs,
     const uint32_t request_count)
 {
-  TRITONSERVER_Error* error = nullptr;  // success
-  uint64_t exec_start_ns, exec_end_ns,
-      batch_exec_start_ns = -1, batch_exec_end_ns = -1,
-      batch_compute_start_ns = -1, batch_compute_end_ns = -1;
-  int total_batch_size = 0;
   DaliModelInstance* instance_state;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(
       instance, reinterpret_cast<void**>(&instance_state)));
   std::vector<TRITONBACKEND_Request*> requests(reqs, reqs + request_count);
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
+  int total_batch_size = 0;
+  uint64_t exec_start_ns = 0, exec_end_ns = 0, batch_exec_start_ns = 0,
+           batch_exec_end_ns = 0, batch_compute_start_ns = 0,
+           batch_compute_end_ns = 0;
+  batch_exec_start_ns = detail::capture_time();
   for (size_t i = 0; i < responses.size(); i++) {
+    TRITONSERVER_Error* error = nullptr;  // success
     exec_start_ns = detail::capture_time();
     // TODO Do not process requests one by one, but gather all
     //     into one buffer and process it in DALI all together
-    RETURN_IF_ERROR(TRITONBACKEND_ResponseNew(&responses[i], requests[i]));
+    LOG_IF_ERROR(
+        TRITONBACKEND_ResponseNew(&responses[i], requests[i]),
+        make_string("Failed creating a response, idx: ", i));
     detail::RequestMeta request_meta;
 
     try {
@@ -445,28 +448,43 @@ TRITONBACKEND_ModelInstanceExecute(
     }
 
     exec_end_ns = detail::capture_time();
+    batch_compute_start_ns =
+        batch_compute_start_ns == 0
+            ? request_meta.compute_start_ns
+            : batch_compute_start_ns;  // Ternary to please the compiler
 
-    RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
-        instance, requests[i], !error, exec_start_ns,
-        request_meta.compute_start_ns, request_meta.compute_end_ns,
-        exec_end_ns));
+    LOG_IF_ERROR(
+        TRITONBACKEND_ModelInstanceReportStatistics(
+            instance, requests[i], !error, exec_start_ns,
+            request_meta.compute_start_ns, request_meta.compute_end_ns,
+            exec_end_ns),
+        make_string("Failed reporting statistics for response idx ", i));
 
-    RETURN_IF_ERROR(TRITONBACKEND_ResponseSend(
-        responses[i],
-        TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
-        error));
-    RETURN_IF_ERROR(TRITONBACKEND_RequestRelease(
-        requests[i],
-        TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL));
+    LOG_IF_ERROR(
+        TRITONBACKEND_ResponseSend(
+            responses[i],
+            TRITONSERVER_ResponseCompleteFlag::
+                TRITONSERVER_RESPONSE_COMPLETE_FINAL,
+            error),
+        make_string("Failed sending response, idx ", i));
+    LOG_IF_ERROR(
+        TRITONBACKEND_RequestRelease(
+            requests[i],
+            TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL),
+        make_string("Failed releasing request idx ", i));
 
     total_batch_size += request_meta.batch_size;
     batch_exec_end_ns = exec_end_ns;
     batch_compute_end_ns = request_meta.compute_end_ns;
   }
+  if (batch_exec_end_ns == 0)
+    batch_exec_end_ns = detail::capture_time();
 
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
-      instance, total_batch_size, batch_exec_start_ns, batch_compute_start_ns,
-      batch_compute_end_ns, batch_exec_end_ns));
+  LOG_IF_ERROR(
+      TRITONBACKEND_ModelInstanceReportBatchStatistics(
+          instance, total_batch_size, batch_exec_start_ns,
+          batch_compute_start_ns, batch_compute_end_ns, batch_exec_end_ns),
+      make_string("Failed reporting batch statistics"));
 
   return nullptr;
 }

@@ -23,6 +23,7 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
+#include <mutex>
 #include <string>
 #include <vector>
 
