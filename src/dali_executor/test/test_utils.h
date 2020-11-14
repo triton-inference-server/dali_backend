@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+
 #include "src/dali_executor/dali_executor.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {

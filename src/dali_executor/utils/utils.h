@@ -24,6 +24,7 @@
 #define DALI_BACKEND_UTILS_UTILS_H_
 
 #include <cuda_runtime_api.h>
+
 #include "nvtx3/nvToolsExt.h"
 
 namespace triton { namespace backend { namespace dali {

@@ -74,6 +74,8 @@ if (${TRITON_ENABLE_GPU})
     find_package(CUDAToolkit REQUIRED)
 endif ()  # TRITON_ENABLE_GPU
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(src)
 
 add_subdirectory(extern/Catch2)

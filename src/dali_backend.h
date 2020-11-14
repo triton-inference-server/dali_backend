@@ -23,7 +23,9 @@
 #ifndef DALI_BACKEND_DALI_BACKEND_H
 #define DALI_BACKEND_DALI_BACKEND_H
 
+#include <chrono>
 #include <numeric>
+
 #include "src/dali_executor/dali_executor.h"
 #include "src/error_handling.h"
 #include "src/model_provider/model_provider.h"
@@ -78,6 +80,13 @@ to_dali(TRITONSERVER_MemoryType t)
     default:
       throw std::invalid_argument("Unknown memory type");
   }
+}
+
+
+inline uint64_t
+capture_time()
+{
+  return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
 
@@ -164,20 +173,34 @@ AllocateOutputs(
   return ret;
 }
 
-void
+
+struct RequestMeta {
+  uint64_t compute_start_ns, compute_end_ns;
+  int batch_size;
+};
+
+
+RequestMeta
 ProcessRequest(
     TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
     DaliExecutor& executor)
 {
+  RequestMeta ret;
+
   auto dali_inputs = GenerateInputs(request);
+  ret.batch_size =
+      dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
+                                           // same in every input
 
+  ret.compute_start_ns = capture_time();
   auto shapes_and_types = executor.Run(dali_inputs);
-
+  ret.compute_end_ns = capture_time();
   // TODO verify shapes_and_types against what's provided in config.pbtxt
 
   auto dali_outputs = AllocateOutputs(request, response, shapes_and_types);
 
   executor.PutOutputs(dali_outputs);
+  return ret;
 }
 
 }}}}  // namespace triton::backend::dali::detail

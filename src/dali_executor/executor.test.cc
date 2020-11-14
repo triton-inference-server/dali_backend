@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <catch2/catch.hpp>
+
 #include "src/dali_executor/dali_executor.h"
 #include "src/dali_executor/serialized_pipelines.h"
 #include "src/dali_executor/test/test_utils.h"

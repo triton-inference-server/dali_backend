@@ -23,8 +23,10 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
+#include <mutex>
 #include <string>
 #include <vector>
+
 #include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
 #include "src/error_handling.h"

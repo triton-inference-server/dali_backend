@@ -21,7 +21,9 @@
 // SOFTWARE.
 
 #include "src/dali_executor/pipeline_group.h"
+
 #include <numeric>
+
 #include "src/dali_executor/utils/dali.h"
 
 namespace triton { namespace backend { namespace dali {
