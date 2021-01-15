@@ -32,12 +32,9 @@
 #include "src/dali_executor/pipeline_pool.h"
 
 
-
 namespace triton { namespace backend { namespace dali {
 
 std::vector<int> distribute_batch_size(int batch_size);
-
-
 
 
 struct shape_and_type_t {
@@ -48,8 +45,8 @@ struct shape_and_type_t {
 class DaliExecutor {
  public:
   DaliExecutor(std::string serialized_pipeline, int device_id)
-          : serialized_pipeline_(std::move(serialized_pipeline)),
-            device_id_(device_id)
+      : serialized_pipeline_(std::move(serialized_pipeline)),
+        device_id_(device_id)
   {
   }
 

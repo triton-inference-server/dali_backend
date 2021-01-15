@@ -94,50 +94,52 @@ GenerateInputs(TRITONBACKEND_Request* request)
 {
   uint32_t input_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(request, &input_cnt));
-  std::vector <InputDescriptor> ret;
+  std::vector<InputDescriptor> ret;
 
   for (size_t input_idx = 0; input_idx < input_cnt; input_idx++) {
-    const char *name;
+    const char* name;
     TRITON_CALL_GUARD(
-            TRITONBACKEND_RequestInputName(request, input_idx, &name));
-    TRITONBACKEND_Input *input;
+        TRITONBACKEND_RequestInputName(request, input_idx, &name));
+    TRITONBACKEND_Input* input;
     TRITON_CALL_GUARD(TRITONBACKEND_RequestInput(request, name, &input));
     TRITONSERVER_DataType input_datatype;
-    const int64_t *input_shape;
+    const int64_t* input_shape;
     uint32_t input_dims_count;
     uint64_t input_byte_size;
     uint32_t input_buffer_count;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(input, nullptr, &input_datatype, &input_shape,
-                                                    &input_dims_count, &input_byte_size,
-                                                    &input_buffer_count));
+    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(
+        input, nullptr, &input_datatype, &input_shape, &input_dims_count,
+        &input_byte_size, &input_buffer_count));
 
     assert(ret.size() == input_idx);
     ret.emplace_back(input_byte_size);
-    auto &input_desc = ret[input_idx];
+    auto& input_desc = ret[input_idx];
 
     input_desc.name = name;
     input_desc.type = to_dali(input_datatype);
     auto batch_size = input_shape[0];
     auto sample_shape =
-            TensorShape<>(input_shape + 1, input_shape + input_dims_count);
+        TensorShape<>(input_shape + 1, input_shape + input_dims_count);
     auto shape = TensorListShape<>::make_uniform(batch_size, sample_shape);
     input_desc.shape = shape;
 
-    const void *buffer;
+    const void* buffer;
     uint64_t buffer_byte_size;
     TRITONSERVER_MemoryType buffer_memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
     int64_t buffer_memory_type_id = 0;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(input, input_idx, &buffer, &buffer_byte_size,
-                                                &buffer_memory_type, &buffer_memory_type_id));
+    TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(
+        input, input_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
+        &buffer_memory_type_id));
     input_desc.device = to_dali(buffer_memory_type);
     input_desc.append((const char*)buffer, buffer_byte_size);
 
-    for (uint32_t buffer_idx = 1; buffer_idx < input_buffer_count; buffer_idx++) {
-      TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(input, input_idx, &buffer, &buffer_byte_size,
-                                                  &buffer_memory_type, &buffer_memory_type_id));
+    for (uint32_t buffer_idx = 1; buffer_idx < input_buffer_count;
+         buffer_idx++) {
+      TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(
+          input, input_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
+          &buffer_memory_type_id));
       assert(input_desc.device == to_dali(buffer_memory_type));
-      input_desc.append((const char*)
-      buffer, buffer_byte_size);
+      input_desc.append((const char*)buffer, buffer_byte_size);
     }
 
     assert(input_desc.owns_memory());
@@ -156,29 +158,29 @@ AllocateOutputs(
   assert(output_cnt == shapes_and_types.size());
   std::vector<OutputDescriptor> ret(output_cnt);
   for (size_t output_idx = 0; output_idx < output_cnt; output_idx++) {
-    auto &output_desc = ret[output_idx];
-    auto &snt = shapes_and_types[output_idx];
-    const char *name;
+    auto& output_desc = ret[output_idx];
+    auto& snt = shapes_and_types[output_idx];
+    const char* name;
     TRITONBACKEND_RequestOutputName(request, output_idx, &name);
     output_desc.name = name;
 
     auto output_shape = array_shape(snt.shape);
-    TRITONBACKEND_Output *triton_output;
-    TRITON_CALL_GUARD(
-            TRITONBACKEND_ResponseOutput(response, &triton_output, name, to_triton(snt.type),
-                                         output_shape.data(), output_shape.size()));
-    void *buffer;
+    TRITONBACKEND_Output* triton_output;
+    TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(
+        response, &triton_output, name, to_triton(snt.type),
+        output_shape.data(), output_shape.size()));
+    void* buffer;
     TRITONSERVER_MemoryType memtype;
     int64_t memid;
     auto buffer_byte_size = std::accumulate(
-            output_shape.begin(), output_shape.end(), 1,
-            std::multiplies<int>()) *
+                                output_shape.begin(), output_shape.end(), 1,
+                                std::multiplies<int>()) *
                             TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
     TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(
-            triton_output, &buffer, buffer_byte_size, &memtype, &memid));
+        triton_output, &buffer, buffer_byte_size, &memtype, &memid));
     output_desc.device = to_dali(memtype);
     output_desc.buffer =
-            make_span(reinterpret_cast<char *>(buffer), buffer_byte_size);
+        make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
     assert(!output_desc.owns_memory());
   }
   return ret;
