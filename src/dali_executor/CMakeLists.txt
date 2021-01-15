@@ -30,6 +30,7 @@ set(
     DALI_EXECUTOR_TEST_SRCS
         main.test.cc
         executor.test.cc
+        io_descriptor.test.cc
 )
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)

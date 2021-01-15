@@ -27,9 +27,10 @@
 #include <utility>
 #include <vector>
 
+#include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/pipeline_group.h"
 #include "src/dali_executor/pipeline_pool.h"
-#include "src/dali_executor/utils/dali.h"
+
 
 
 namespace triton { namespace backend { namespace dali {
@@ -37,17 +38,7 @@ namespace triton { namespace backend { namespace dali {
 std::vector<int> distribute_batch_size(int batch_size);
 
 
-template <typename T>
-struct IODescriptor {
-  std::string name;
-  dali_data_type_t type;
-  device_type_t device;
-  TensorListShape<> shape;
-  span<T> buffer;
-};
 
-using InputDescriptor = IODescriptor<const char>;
-using OutputDescriptor = IODescriptor<char>;
 
 struct shape_and_type_t {
   TensorListShape<> shape;
@@ -57,8 +48,8 @@ struct shape_and_type_t {
 class DaliExecutor {
  public:
   DaliExecutor(std::string serialized_pipeline, int device_id)
-      : serialized_pipeline_(std::move(serialized_pipeline)),
-        device_id_(device_id)
+          : serialized_pipeline_(std::move(serialized_pipeline)),
+            device_id_(device_id)
   {
   }
 

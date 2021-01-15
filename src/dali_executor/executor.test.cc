@@ -54,7 +54,9 @@ TEST_CASE("Scaling Pipeline")
     std::vector<float> input_buffer;
     auto input = RandomInput(
         input_buffer, inp_name, shape, [&]() { return dist(rand); });
-    auto output = executor.Run({input});
+    std::vector<InputDescriptor> input_vec;
+    input_vec.emplace(std::move(input));
+    auto output = executor.Run(input_vec);
     REQUIRE(shape == output[0].shape);
     std::vector<float> output_buffer(input_buffer.size());
     OutputDescriptor outdesc;
@@ -62,7 +64,7 @@ TEST_CASE("Scaling Pipeline")
     outdesc.buffer = make_span(
         reinterpret_cast<char*>(output_buffer.data()),
         output_buffer.size() * sizeof(decltype(output_buffer)::size_type));
-    executor.PutOutputs({outdesc});
+    executor.PutOutputs({std::move(outdesc)});
     for (size_t i = 0; i < input_buffer.size(); ++i) {
       REQUIRE(output_buffer[i] == input_buffer[i] * 2);
     }
