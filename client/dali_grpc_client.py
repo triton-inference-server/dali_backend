@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2020-2021 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -153,7 +153,13 @@ def main():
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
 
-    statistics = triton_client.get_inference_statistics(model_name="dali")
+    # statistics = triton_client.get_inference_statistics(model_name="dali")
+    # if len(statistics.model_stats) != 1:
+    #     print("FAILED: Inference Statistics")
+    #     sys.exit(1)
+    # print(statistics)
+
+    statistics = triton_client.get_inference_statistics(model_name="ensemble_dali_inception")
     if len(statistics.model_stats) != 1:
         print("FAILED: Inference Statistics")
         sys.exit(1)

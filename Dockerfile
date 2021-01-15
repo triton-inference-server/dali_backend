@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2020-2021 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -25,7 +25,7 @@
 # backend together with tritonserver, start from here
 # -------------------------------------------------- #
 
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.10-py3
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.12-py3
 FROM ${BASE_IMAGE} as builder
 
 RUN apt-get update && \
@@ -69,7 +69,7 @@ COPY . .
 
 RUN mkdir build_in_ci && cd build_in_ci && \
     cmake                                          \
-      -D CMAKE_BUILD_TYPE=Release                  \
+      -D CMAKE_BUILD_TYPE=Debug                    \
       -D TRITON_DALI_SKIP_DOWNLOAD=ON ..           \
       -D CMAKE_INSTALL_PREFIX=/opt/tritonserver && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
