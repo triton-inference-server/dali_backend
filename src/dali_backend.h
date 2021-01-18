@@ -89,12 +89,12 @@ capture_time()
 }
 
 
-std::vector<InputDescriptor>
+std::vector<IODescr<true>>
 GenerateInputs(TRITONBACKEND_Request* request)
 {
   uint32_t input_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(request, &input_cnt));
-  std::vector<InputDescriptor> ret;
+  std::vector<IODescr<true>> ret;
 
   for (size_t input_idx = 0; input_idx < input_cnt; input_idx++) {
     const char* name;
@@ -141,14 +141,12 @@ GenerateInputs(TRITONBACKEND_Request* request)
       assert(input_desc.device == to_dali(buffer_memory_type));
       input_desc.append((const char*)buffer, buffer_byte_size);
     }
-
-    assert(input_desc.owns_memory());
   }
   return ret;
 }
 
 
-std::vector<OutputDescriptor>
+std::vector<IODescr<false>>
 AllocateOutputs(
     TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
     const std::vector<shape_and_type_t>& shapes_and_types)
@@ -156,7 +154,7 @@ AllocateOutputs(
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
   assert(output_cnt == shapes_and_types.size());
-  std::vector<OutputDescriptor> ret(output_cnt);
+  std::vector<IODescr<false>> ret(output_cnt);
   for (size_t output_idx = 0; output_idx < output_cnt; output_idx++) {
     auto& output_desc = ret[output_idx];
     auto& snt = shapes_and_types[output_idx];
@@ -181,7 +179,6 @@ AllocateOutputs(
     output_desc.device = to_dali(memtype);
     output_desc.buffer =
         make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
-    assert(!output_desc.owns_memory());
   }
   return ret;
 }

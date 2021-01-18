@@ -45,8 +45,8 @@ TEST_CASE("IODescriptor owning memory")
   for (const auto& buf : buffers) {
     stitched_buffer_size += buf.size();
   }
-  InputDescriptor desc(stitched_buffer_size);
-  REQUIRE(desc.owns_memory);
+  IODescr<true> desc(stitched_buffer_size);
+  REQUIRE(desc.capacity() == stitched_buffer_size);
 
   for (const auto& buf : buffers) {
     desc.append(make_span(buf));

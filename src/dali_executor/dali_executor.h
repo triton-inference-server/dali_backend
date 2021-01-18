@@ -50,14 +50,20 @@ class DaliExecutor {
   {
   }
 
-  std::vector<shape_and_type_t> Run(const std::vector<InputDescriptor>& inputs);
+  template <bool owns>
+  std::vector<shape_and_type_t> Run(const std::vector<IODescr<owns>>& inputs);
 
-  void PutOutputs(const std::vector<OutputDescriptor>& outputs);
+
+  template <bool owns>
+  void PutOutputs(const std::vector<IODescr<owns>>& outputs);
+
 
   size_t NumCreatedPipelines() { return pipeline_pool_.NumCreatedPipelines(); }
 
  private:
-  PipelineGroup SetupInputs(const std::vector<InputDescriptor>& inputs);
+  template <bool owns>
+  PipelineGroup SetupInputs(const std::vector<IODescr<owns>>& inputs);
+
 
   std::string serialized_pipeline_;
   int device_id_;

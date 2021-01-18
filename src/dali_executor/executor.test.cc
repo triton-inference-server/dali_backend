@@ -54,21 +54,23 @@ TEST_CASE("Scaling Pipeline")
     std::vector<float> input_buffer;
     auto input = RandomInput(
         input_buffer, inp_name, shape, [&]() { return dist(rand); });
-    std::vector<InputDescriptor> input_vec;
-    input_vec.emplace(std::move(input));
+    std::vector<IODescr<false>> input_vec;
+    input_vec.emplace_back(std::move(input));
     auto output = executor.Run(input_vec);
     REQUIRE(shape == output[0].shape);
     std::vector<float> output_buffer(input_buffer.size());
-    OutputDescriptor outdesc;
+    std::vector<IODescr<false>>output_vec(1);
+    auto& outdesc=output_vec[0];
     outdesc.device = device_type_t::CPU;
     outdesc.buffer = make_span(
         reinterpret_cast<char*>(output_buffer.data()),
         output_buffer.size() * sizeof(decltype(output_buffer)::size_type));
-    executor.PutOutputs({std::move(outdesc)});
+    executor.PutOutputs(output_vec);
     for (size_t i = 0; i < input_buffer.size(); ++i) {
       REQUIRE(output_buffer[i] == input_buffer[i] * 2);
     }
   };
+
   SECTION("Simple execute")
   {
     scaling_test(2);
