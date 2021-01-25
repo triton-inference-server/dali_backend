@@ -23,7 +23,7 @@
 
 import argparse, os, sys
 import numpy as np
-import tritongrpcclient
+import tritonclient.grpc
 from PIL import Image
 import math
 
@@ -38,7 +38,7 @@ def parse_args():
                         help='Batch size')
     parser.add_argument('--n_iter', type=int, required=False, default=-1,
                         help='Number of iterations , with `batch_size` size')
-    parser.add_argument('--model_name', type=str, required=False, default="dali_identity",
+    parser.add_argument('--model_name', type=str, required=False, default="dali_multi_input",
                         help='Model name')
     return parser.parse_args()
 
@@ -72,7 +72,7 @@ def batcher(dataset, batch_size, n_iterations=-1):
 def main():
     FLAGS = parse_args()
     try:
-        triton_client = tritongrpcclient.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
+        triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit(1)
@@ -87,17 +87,20 @@ def main():
     # Infer
     inputs = []
     outputs = []
-    input_name = "DALI_INPUT_0"
-    output_name = "DALI_OUTPUT_0"
+    input_names = ["DALI_X_INPUT", "DALI_Y_INPUT"]
+    output_names = ["DALI_OUTPUT_X", "DALI_OUTPUT_Y"]
     input_shape = list(input_data.shape)
     input_shape[0] = FLAGS.batch_size
-    inputs.append(tritongrpcclient.InferInput(input_name, input_shape, "UINT8"))
-    outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
+    for iname in input_names:
+        inputs.append(tritonclient.grpc.InferInput(iname, input_shape, "UINT8"))
+    for oname in output_names:
+        outputs.append(tritonclient.grpc.InferRequestedOutput(oname))
 
     for batch in batcher(input_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
         # Initialize the data
-        inputs[0].set_data_from_numpy(batch)
+        inputs[0].set_data_from_numpy(np.copy(batch))
+        inputs[1].set_data_from_numpy(np.copy(batch))
 
         # Test with outputs
         results = triton_client.infer(model_name=model_name,
@@ -105,14 +108,15 @@ def main():
                                       outputs=outputs)
 
         # Get the output arrays from the results
-        output0_data = results.as_numpy(output_name)
-        print("Output mean after backend processing:", np.mean(output0_data))
-        print("Output shape: ", np.shape(output0_data))
-        if not math.isclose(np.mean(output0_data), np.mean(batch)):
-            print("Pre/post average does not match")
-            sys.exit(1)
-        else:
-            print("pass")
+        for oname in output_names:
+            output0_data = results.as_numpy(oname)
+            print("Output mean after backend processing:", np.mean(output0_data))
+            print("Output shape: ", np.shape(output0_data))
+            if not math.isclose(np.mean(output0_data), np.mean(batch)):
+                print("Pre/post average does not match")
+                sys.exit(1)
+            else:
+                print("pass")
 
     statistics = triton_client.get_inference_statistics(model_name=model_name)
     if len(statistics.model_stats) != 1:
