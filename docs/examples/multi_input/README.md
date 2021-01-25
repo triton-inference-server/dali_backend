@@ -1,6 +1,6 @@
 # Multi input model for DALI Backend
 
-This is a multi input model, for DALI preprocessing.
+This is a multi input model for DALI preprocessing.
 It passes multiple inputs through DALI and returns them unchanged.
 The inputs are both CPU and GPU, see the `device` parameter in `dali.fn.external_source` operator.
 
