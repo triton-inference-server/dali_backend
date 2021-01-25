@@ -92,11 +92,15 @@ DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs)
 
 
 // Handful of explicit instantiations to make the development less painful
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<true>>&);
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<false>>&);
+template std::vector<shape_and_type_t> DaliExecutor::Run(
+    const std::vector<IODescr<true>>&);
+template std::vector<shape_and_type_t> DaliExecutor::Run(
+    const std::vector<IODescr<false>>&);
 template void DaliExecutor::PutOutputs(const std::vector<IODescr<true>>&);
 template void DaliExecutor::PutOutputs(const std::vector<IODescr<false>>&);
-template PipelineGroup DaliExecutor::SetupInputs(const std::vector<IODescr<true>>&);
-template PipelineGroup DaliExecutor::SetupInputs(const std::vector<IODescr<false>>&);
+template PipelineGroup DaliExecutor::SetupInputs(
+    const std::vector<IODescr<true>>&);
+template PipelineGroup DaliExecutor::SetupInputs(
+    const std::vector<IODescr<false>>&);
 
 }}}  // namespace triton::backend::dali

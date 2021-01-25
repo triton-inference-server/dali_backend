@@ -68,8 +68,8 @@ DaliPipeline::SetInput(
       inputs_shapes.size() % sample_ndims == 0,
       "Incorrect inputs shapes or sample ndims");
   daliSetExternalInput(
-      &handle_, name, source_device, data_ptr, data_type,
-      inputs_shapes.data(), sample_ndims, nullptr, DALI_ext_default);
+      &handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
+      sample_ndims, nullptr, DALI_ext_default);
 }
 
 

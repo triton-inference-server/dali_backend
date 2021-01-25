@@ -98,7 +98,9 @@ class IODescriptorBase {
   span<T> buffer;
 };
 
-static_assert(std::is_move_constructible<IODescriptorBase<char>>::value && std::is_move_assignable<IODescriptorBase<char>>::value);
+static_assert(
+    std::is_move_constructible<IODescriptorBase<char>>::value &&
+    std::is_move_assignable<IODescriptorBase<char>>::value);
 
 template <typename T, typename StorageBackend, bool owns_memory = false>
 class IODescriptor : public IODescriptorBase<T> {

@@ -59,8 +59,8 @@ TEST_CASE("Scaling Pipeline")
     auto output = executor.Run(input_vec);
     REQUIRE(shape == output[0].shape);
     std::vector<float> output_buffer(input_buffer.size());
-    std::vector<IODescr<false>>output_vec(1);
-    auto& outdesc=output_vec[0];
+    std::vector<IODescr<false>> output_vec(1);
+    auto& outdesc = output_vec[0];
     outdesc.device = device_type_t::CPU;
     outdesc.buffer = make_span(
         reinterpret_cast<char*>(output_buffer.data()),

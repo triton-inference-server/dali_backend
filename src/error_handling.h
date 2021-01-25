@@ -54,7 +54,6 @@ struct DaliBackendException : public std::runtime_error {
   } while (false)
 
 
-
 inline void
 CudaResultCheck(cudaError_t err)
 {
