@@ -53,6 +53,31 @@ struct DaliBackendException : public std::runtime_error {
     }                                                      \
   } while (false)
 
+
+
+inline void
+CudaResultCheck(cudaError_t err)
+{
+  switch (err) {
+    case cudaSuccess:
+      return;
+    case cudaErrorMemoryAllocation:
+    case cudaErrorInvalidValue:
+    default:
+      throw DaliBackendException(make_string(
+          cudaGetErrorName(cudaGetLastError()), " --> ",
+          cudaGetErrorString(cudaGetLastError())));
+      cudaGetLastError();
+  }
+}
+
+template <typename T>
+void
+CUDA_CALL_GUARD(T status)
+{
+  CudaResultCheck(status);
+}
+
 }}}  // namespace triton::backend::dali
 
 #endif  // DALI_BACKEND_UTILS_ERROR_HANDLING_H_

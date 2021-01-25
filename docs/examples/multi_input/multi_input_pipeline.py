@@ -28,7 +28,7 @@ def main(filename):
 
     with pipe:
         x = dali.fn.external_source(device="cpu", name="DALI_X_INPUT")
-        y = dali.fn.external_source(device="cpu", name="DALI_Y_INPUT")
+        y = dali.fn.external_source(device="gpu", name="DALI_Y_INPUT")
         pipe.set_outputs(x, y)
 
     pipe.build()

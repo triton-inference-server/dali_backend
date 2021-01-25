@@ -85,7 +85,7 @@ DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs)
         inp.shape.num_elements() * dali_type_size(inp.type) <=
         inp.buffer.size());
     pipelines.SetInput(
-        inp.buffer.data(), inp.name.c_str(), CPU, inp.type, inp.shape);
+        inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
   }
   return pipelines;
 }

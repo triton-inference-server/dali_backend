@@ -24,6 +24,7 @@
 #define TRITONDALIBACKEND_IO_DESCRIPTOR_H
 
 #include "src/dali_executor/utils/dali.h"
+#include "src/error_handling.h"
 
 namespace triton { namespace backend { namespace dali {
 
@@ -50,7 +51,7 @@ template <>
 inline void
 allocate<StorageGpu>(void** ptr, size_t size)
 {
-  // TODO
+  CUDA_CALL_GUARD(cudaMalloc(ptr, size));
 }
 
 
@@ -66,7 +67,7 @@ template <>
 inline void
 deallocate<StorageGpu>(void* ptr)
 {
-  // TODO
+  CUDA_CALL_GUARD(cudaFree(ptr));
 }
 
 
@@ -82,7 +83,7 @@ template <>
 inline void
 copy<StorageGpu>(void* dst, const void* src, size_t count)
 {
-  // TODO
+  CUDA_CALL_GUARD(cudaMemcpy(dst, src, count, cudaMemcpyDefault));
 }
 }  // namespace detail
 
@@ -92,9 +93,12 @@ class IODescriptorBase {
   std::string name;
   dali_data_type_t type;
   device_type_t device;
+  int device_id;
   TensorListShape<> shape;
   span<T> buffer;
 };
+
+static_assert(std::is_move_constructible<IODescriptorBase<char>>::value && std::is_move_assignable<IODescriptorBase<char>>::value);
 
 template <typename T, typename StorageBackend, bool owns_memory = false>
 class IODescriptor : public IODescriptorBase<T> {
@@ -102,16 +106,18 @@ class IODescriptor : public IODescriptorBase<T> {
   using IODescriptorBase<T>::name;
   using IODescriptorBase<T>::type;
   using IODescriptorBase<T>::device;
+  using IODescriptorBase<T>::device_id;
   using IODescriptorBase<T>::shape;
   using IODescriptorBase<T>::buffer;
 };
+
 
 template <typename T, typename StorageBackend>
 class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
  public:
   IODescriptor() = default;
 
-  IODescriptor(size_t cap) : owned_mem_capacity(cap) { alloc(); }
+  explicit IODescriptor(size_t cap) : owned_mem_capacity(cap) { alloc(); }
 
   ~IODescriptor() { dealloc(); }
 
@@ -128,7 +134,9 @@ class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
   IODescriptor& operator=(IODescriptor&& other)
   {
     if (this != &other) {
-      free(owned_mem);
+      dealloc();
+
+      IODescriptorBase<T>::operator=(std::move(other));
 
       owned_mem = other.owned_mem;
       owned_mem_size = other.owned_mem_size;
@@ -161,6 +169,7 @@ class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
   using IODescriptorBase<T>::name;
   using IODescriptorBase<T>::type;
   using IODescriptorBase<T>::device;
+  using IODescriptorBase<T>::device_id;
   using IODescriptorBase<T>::shape;
   using IODescriptorBase<T>::buffer;
 

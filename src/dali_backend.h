@@ -101,7 +101,8 @@ GenerateInputs(TRITONBACKEND_Request* request)
     TRITON_CALL_GUARD(
         TRITONBACKEND_RequestInputName(request, input_idx, &name));
     TRITONBACKEND_Input* input;
-    TRITON_CALL_GUARD(TRITONBACKEND_RequestInput(request, name, &input));
+    TRITON_CALL_GUARD(
+        TRITONBACKEND_RequestInputByIndex(request, input_idx, &input));
     TRITONSERVER_DataType input_datatype;
     const int64_t* input_shape;
     uint32_t input_dims_count;
@@ -123,22 +124,27 @@ GenerateInputs(TRITONBACKEND_Request* request)
     auto shape = TensorListShape<>::make_uniform(batch_size, sample_shape);
     input_desc.shape = shape;
 
-    const void* buffer;
-    uint64_t buffer_byte_size;
+    const void* buffer = nullptr;
+    uint64_t buffer_byte_size = 0;
     TRITONSERVER_MemoryType buffer_memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
     int64_t buffer_memory_type_id = 0;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(
-        input, input_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
-        &buffer_memory_type_id));
-    input_desc.device = to_dali(buffer_memory_type);
-    input_desc.append((const char*)buffer, buffer_byte_size);
 
-    for (uint32_t buffer_idx = 1; buffer_idx < input_buffer_count;
-         buffer_idx++) {
+    for (size_t buffer_idx = 0; buffer_idx < input_buffer_count; buffer_idx++) {
       TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(
-          input, input_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
+          input, buffer_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
           &buffer_memory_type_id));
-      assert(input_desc.device == to_dali(buffer_memory_type));
+      if (buffer_idx == 0) {
+        input_desc.device = to_dali(buffer_memory_type);
+        input_desc.device_id = buffer_memory_type_id;
+      } else {
+        ENFORCE(
+            input_desc.device == to_dali(buffer_memory_type),
+            "The entire buffer of an input shall reside on the same device "
+            "type");
+        ENFORCE(
+            input_desc.device_id == buffer_memory_type_id,
+            "The entire buffer of an input shall reside on the same device id");
+      }
       input_desc.append((const char*)buffer, buffer_byte_size);
     }
   }
@@ -168,7 +174,7 @@ AllocateOutputs(
         response, &triton_output, name, to_triton(snt.type),
         output_shape.data(), output_shape.size()));
     void* buffer;
-    TRITONSERVER_MemoryType memtype;
+    TRITONSERVER_MemoryType memtype;//TODO ustawic typ
     int64_t memid;
     auto buffer_byte_size = std::accumulate(
                                 output_shape.begin(), output_shape.end(), 1,
