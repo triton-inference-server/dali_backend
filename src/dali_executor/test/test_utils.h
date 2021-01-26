@@ -64,14 +64,14 @@ dali_data_type()
 
 
 template <typename T, typename R>
-InputDescriptor
+IODescr<false>
 RandomInput(
     std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
     const R& generator)
 {
   buffer.clear();
   std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
-  InputDescriptor dscr;
+  IODescr<false> dscr;
   dscr.name = name;
   dscr.shape = shape;
   dscr.type = dali_data_type<T>();

@@ -68,8 +68,8 @@ DaliPipeline::SetInput(
       inputs_shapes.size() % sample_ndims == 0,
       "Incorrect inputs shapes or sample ndims");
   daliSetExternalInput(
-      &handle_, name, device_type_t::CPU, data_ptr, data_type,
-      inputs_shapes.data(), sample_ndims, nullptr, DALI_ext_default);
+      &handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
+      sample_ndims, nullptr, DALI_ext_default);
 }
 
 
@@ -77,7 +77,8 @@ void
 DaliPipeline::PutOutput(
     void* destination, int output_idx, device_type_t destination_device)
 {
-  assert(destination != nullptr && output_idx >= 0);
+  assert(destination != nullptr);
+  assert(output_idx >= 0);
   daliOutputCopy(
       &handle_, destination, output_idx, destination_device,
       destination_device == CPU ? nullptr : output_stream_, 0);

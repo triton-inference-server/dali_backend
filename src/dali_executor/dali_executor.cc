@@ -37,9 +37,9 @@ distribute_batch_size(int batch_size)
   return result;
 }
 
-
+template <bool owns>
 std::vector<shape_and_type_t>
-DaliExecutor::Run(const std::vector<InputDescriptor>& inputs)
+DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
 {
   auto pipelines = SetupInputs(inputs);
   pipelines.Run();
@@ -53,9 +53,9 @@ DaliExecutor::Run(const std::vector<InputDescriptor>& inputs)
   return ret;
 }
 
-
+template <bool owns>
 void
-DaliExecutor::PutOutputs(const std::vector<OutputDescriptor>& outputs)
+DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs)
 {
   auto pipelines =
       pipeline_pool_.Get(serialized_pipeline_, batch_sizes_, device_id_);
@@ -66,9 +66,9 @@ DaliExecutor::PutOutputs(const std::vector<OutputDescriptor>& outputs)
   }
 }
 
-
+template <bool owns>
 PipelineGroup
-DaliExecutor::SetupInputs(const std::vector<InputDescriptor>& inputs)
+DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs)
 {
   assert(!inputs.empty());
   int batch_size = inputs[0].shape.num_samples();
@@ -80,14 +80,27 @@ DaliExecutor::SetupInputs(const std::vector<InputDescriptor>& inputs)
   batch_sizes_ = distribute_batch_size(batch_size);
   auto pipelines =
       pipeline_pool_.Get(serialized_pipeline_, batch_sizes_, device_id_);
-  for (auto const& inp : inputs) {
+  for (auto& inp : inputs) {
     assert(
         inp.shape.num_elements() * dali_type_size(inp.type) <=
         inp.buffer.size());
     pipelines.SetInput(
-        inp.buffer.data(), inp.name.c_str(), CPU, inp.type, inp.shape);
+        inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
   }
   return pipelines;
 }
+
+
+// Handful of explicit instantiations to make the development less painful
+template std::vector<shape_and_type_t> DaliExecutor::Run(
+    const std::vector<IODescr<true>>&);
+template std::vector<shape_and_type_t> DaliExecutor::Run(
+    const std::vector<IODescr<false>>&);
+template void DaliExecutor::PutOutputs(const std::vector<IODescr<true>>&);
+template void DaliExecutor::PutOutputs(const std::vector<IODescr<false>>&);
+template PipelineGroup DaliExecutor::SetupInputs(
+    const std::vector<IODescr<true>>&);
+template PipelineGroup DaliExecutor::SetupInputs(
+    const std::vector<IODescr<false>>&);
 
 }}}  // namespace triton::backend::dali
