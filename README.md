@@ -1,3 +1,5 @@
+##### **NOTE:** `dali_backend` is available in `tritonserver-20.11` and later
+
 # DALI TRITON Backend
 
 This repository contains code for DALI Backend for Triton Inference Server.
@@ -90,9 +92,10 @@ group for DALI model.
 ## How to build?
 
 ### Docker build
-To build DALI Backend using docker, it's as simple as
+Building DALI Backend with docker is as simple as:
 
-    cd <repo>
+    git clone --recursive https://github.com/triton-inference-server/dali_backend.git
+    cd dali_backend 
     docker build .
 
 ### Bare metal
@@ -118,3 +121,5 @@ Building DALI Backend is really straightforward. One thing to remember is to clo
     
 The building process will generate `unittest` executable.
 You can use it to run unit tests for DALI Backend
+
+

@@ -174,7 +174,7 @@ AllocateOutputs(
         response, &triton_output, name, to_triton(snt.type),
         output_shape.data(), output_shape.size()));
     void* buffer;
-    TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_CPU_PINNED;
+    TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_GPU;
     int64_t memid = 0;
     auto buffer_byte_size = std::accumulate(
                                 output_shape.begin(), output_shape.end(), 1,
