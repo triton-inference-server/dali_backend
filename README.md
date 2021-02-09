@@ -1,5 +1,13 @@
 ##### **NOTE:** `dali_backend` is available in `tritonserver-20.11` and later
 
+ :exclamation: **IMPORTANT** :exclamation:
+ 
+`dali_backend` is new and rapidly growing. Official `tritonserver` releases might be behind
+on some features and bug fixes. We encourage you to use the latest version of `dali_backend`.
+[Docker build](#docker_build) section explains, how to build a `tritonserver` docker
+image with `main` branch of `dali_backend` and DALI nightly release. This is a way to
+get daily updates!
+ 
 # DALI TRITON Backend
 
 This repository contains code for DALI Backend for Triton Inference Server.
@@ -91,12 +99,14 @@ group for DALI model.
 
 ## How to build?
 
-### Docker build
+### Docker build <a name="docker_build"></a>
 Building DALI Backend with docker is as simple as:
 
     git clone --recursive https://github.com/triton-inference-server/dali_backend.git
     cd dali_backend 
-    docker build .
+    docker build -t tritonserver:dali-latest .
+    
+And `tritonserver:dali-latest` becomes your new `tritonserver` docker image
 
 ### Bare metal
 #### Prerequisites
