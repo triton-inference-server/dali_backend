@@ -1,6 +1,6 @@
 ##### **NOTE:** `dali_backend` is available in `tritonserver-20.11` and later
 
- :exclamation: :exclamation: :exclamation: :exclamation: :exclamation: :exclamation:
+ :exclamation: **IMPORTANT** :exclamation:
  
 `dali_backend` is new and rapidly growing. Official `tritonserver` releases might be behind
 on some features and bug fixes. We encourage you to use the latest version of `dali_backend`.
@@ -8,8 +8,6 @@ on some features and bug fixes. We encourage you to use the latest version of `d
 image with `main` branch of `dali_backend` and DALI nightly release. This is a way to
 get daily updates!
  
- :exclamation: :exclamation: :exclamation: :exclamation: :exclamation: :exclamation:
-
 # DALI TRITON Backend
 
 This repository contains code for DALI Backend for Triton Inference Server.
