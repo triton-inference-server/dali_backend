@@ -22,7 +22,6 @@
 set(
     DALI_BACKEND_SRCS
         dali_executor.cc
-        pipeline_group.cc
         dali_pipeline.cc
 )
 

@@ -38,7 +38,7 @@ namespace triton { namespace backend { namespace dali {
 
 class DaliPipeline {
  public:
-  explicit DaliPipeline(int batch_size = 0) : batch_size(batch_size)
+  explicit DaliPipeline(int max_batch_size = 0) : max_batch_size(max_batch_size)
   {
     std::call_once(dali_initialized_, []() {
       daliInitialize();
@@ -54,7 +54,7 @@ class DaliPipeline {
 
 
   DaliPipeline(DaliPipeline&& dp)
-      : batch_size(dp.batch_size), handle_(dp.handle_),
+      : max_batch_size(dp.max_batch_size), handle_(dp.handle_),
         output_stream_(dp.output_stream_)
   {
     dp.handle_ = daliPipelineHandle{};
@@ -68,14 +68,14 @@ class DaliPipeline {
   }
 
   DaliPipeline(
-      const std::string& serialized_pipeline, int batch_size,
+      const std::string& serialized_pipeline, int max_batch_size,
       int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
       int seed = -1)
-      : DaliPipeline(batch_size)
+      : DaliPipeline(max_batch_size)
   {
     daliCreatePipeline(
         &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
-        batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
+        max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
@@ -110,10 +110,14 @@ class DaliPipeline {
       dali_data_type_t data_type, span<const int64_t> inputs_shapes,
       int sample_ndims);
 
+  void SetInput(
+      const void* ptr, const char* name, device_type_t source_device,
+      dali_data_type_t data_type, TensorListShape<> input_shape);
+
   void PutOutput(
       void* destination, int output_idx, device_type_t destination_device);
 
-  const int batch_size;
+  const int max_batch_size;
 
  private:
   void ReleasePipeline()
