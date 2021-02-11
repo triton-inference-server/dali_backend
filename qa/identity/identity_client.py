@@ -23,10 +23,12 @@
 
 import argparse, os, sys
 import numpy as np
+from numpy.random import randint
 import tritongrpcclient
 from PIL import Image
 import math
 
+np.random.seed(100019)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,7 +36,7 @@ def parse_args():
                         help='Enable verbose output')
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
                         help='Inference server URL. Default is localhost:8001.')
-    parser.add_argument('--batch_size', type=int, required=False, default=1,
+    parser.add_argument('--batch_size', type=int, required=False, default=4,
                         help='Batch size')
     parser.add_argument('--n_iter', type=int, required=False, default=-1,
                         help='Number of iterations , with `batch_size` size')
@@ -55,18 +57,19 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-def batcher(dataset, batch_size, n_iterations=-1):
+def batcher(dataset, max_batch_size, n_iterations=-1):
     """
     Generator, that splits dataset into batches with given batch size
     """
-    assert len(dataset) % batch_size == 0
-    n_batches = len(dataset) // batch_size
     iter_idx = 0
-    for i in range(n_batches):
+    data_idx = 0
+    while data_idx < len(dataset):
         if 0 < n_iterations <= iter_idx:
             raise StopIteration
+        batch_size = min(randint(1, max_batch_size), len(dataset) - data_idx)
         iter_idx += 1
-        yield dataset[i * batch_size:(i + 1) * batch_size]
+        yield dataset[data_idx : data_idx + batch_size]
+        data_idx += batch_size
 
 
 def main():
@@ -80,22 +83,22 @@ def main():
     model_name = FLAGS.model_name
     model_version = -1
 
-    input_data = [np.random.randint(0, 255, size=np.random.randint(100), dtype='uint8') for _ in
-                  range(np.random.randint(100) * FLAGS.batch_size)]
+    input_data = [randint(0, 255, size=randint(100), dtype='uint8') for _ in
+                  range(randint(100) * FLAGS.batch_size)]
     input_data = array_from_list(input_data)
 
     # Infer
-    inputs = []
     outputs = []
     input_name = "DALI_INPUT_0"
     output_name = "DALI_OUTPUT_0"
     input_shape = list(input_data.shape)
-    input_shape[0] = FLAGS.batch_size
-    inputs.append(tritongrpcclient.InferInput(input_name, input_shape, "UINT8"))
     outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
 
     for batch in batcher(input_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
+        input_shape[0] = np.shape(batch)[0]
+        print("Batch size: ", input_shape[0])
+        inputs = [tritongrpcclient.InferInput(input_name, input_shape, "UINT8")]
         # Initialize the data
         inputs[0].set_data_from_numpy(batch)
 
