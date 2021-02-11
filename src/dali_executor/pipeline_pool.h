@@ -106,6 +106,16 @@ class PipelinePool {
     return Get(serialized_pipeline, {batch_size}, args...);
   }
 
+  template <typename... Args>
+  void Remove(
+    const std::string& serialized_pipeline,
+    const std::vector<int>& batch_sizes, const Args&... args)
+  {
+    for (int bs: batch_sizes) {
+      pool_.erase(PipelineDescr(serialized_pipeline, bs, args...));
+    }
+  }
+
   size_t NumCreatedPipelines() { return created_pipelines_; }
 
  private:
