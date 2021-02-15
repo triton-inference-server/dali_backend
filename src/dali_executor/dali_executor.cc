@@ -42,8 +42,14 @@ std::vector<shape_and_type_t>
 DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
 {
   auto pipelines = SetupInputs(inputs);
-  pipelines.Run();
-  pipelines.Output();
+  try {
+    pipelines.Run();
+    pipelines.Output();
+  }
+  catch (std::runtime_error& e) {
+    pipeline_pool_.Remove(serialized_pipeline_, batch_sizes_, device_id_);
+    throw e;
+  }
   std::vector<shape_and_type_t> ret(pipelines.GetNumOutputs());
   auto outputs_shapes = pipelines.GetOutputsShape();
   auto outputs_types = pipelines.GetOutputsTypes();
