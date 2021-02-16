@@ -1,0 +1,72 @@
+import os, sys
+import numpy as np
+import json
+import tritongrpcclient
+import argparse
+import time
+
+def load_image(img_path: str):
+    """
+    Loads image as an encoded array of bytes.
+    This is a typical approach you want to use in DALI backend
+    """
+    with open(img_path, "rb") as f:
+        img = f.read()
+        return np.array(list(img)).astype(np.uint8)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", 
+                        type=str, required=False, 
+                        default="ensemble_dali_resnet50", 
+                        help="Model name")
+    parser.add_argument("--image", 
+                        type=str, 
+                        required=True, 
+                        help="Path to the image (.jpg)")
+    parser.add_argument("--url", 
+                        type=str, 
+                        required=False, 
+                        default="localhost:8001",
+                        help="Inference server URL. Default is localhost:8001.")
+
+    parser.add_argument("--label", 
+                        type=str, 
+                        default="./model_repository/resnet50_trt/labels.txt",
+                        help="Path to the label")
+    args = parser.parse_args()
+
+    try:
+        triton_client = tritongrpcclient.InferenceServerClient(url=args.url, verbose=False)
+    except Exception as e:
+        print("channel creation failed: " + str(e))
+        sys.exit(1)
+
+    with open(args.label) as f:
+        labels_dict = {idx:line.strip() for idx, line in enumerate(f)}
+
+    inputs = []
+    outputs = []
+    input_name = "INPUT"
+    output_name = "OUTPUT"
+    image_data = load_image(args.image)
+    image_data = np.expand_dims(image_data, axis=0)
+
+    inputs.append(tritongrpcclient.InferInput(input_name, image_data.shape, "UINT8"))
+    outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
+
+    inputs[0].set_data_from_numpy(image_data)
+    start_time = time.time()
+    # Test with outputs
+    results = triton_client.infer(model_name=args.model_name,
+                                    inputs=inputs,
+                                    outputs=outputs)
+    latency = time.time() - start_time
+
+    output0_data = results.as_numpy(output_name)
+    
+    maxs = np.argmax(output0_data, axis=1)
+    
+    print("{}ms class:{}".format(latency, labels_dict[maxs[0]]))
+
+
