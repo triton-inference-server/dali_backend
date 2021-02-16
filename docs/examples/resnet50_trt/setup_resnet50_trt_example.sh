@@ -25,10 +25,10 @@ mkdir -p model_repository/dali/1
 mkdir -p model_repository/ensemble_dali_resnet50/1
 mkdir -p model_repository/resnet50_trt/1
 
-docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 \
-  python onnx_exporter.py --save model.onnx && \
-  trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.plan \
-    --explicitBatch --minShapes=input:1x3x224x224 --optShapes=input:1x3x224x224 --maxShapes=input:256x3x224x224 --fp16 && \
-  python serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali
+docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 /bin/bash -c \
+  "python onnx_exporter.py --save model.onnx &&
+   trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.plan
+           --explicitBatch --minShapes=input:1x3x224x224 --optShapes=input:1x3x224x224 --maxShapes=input:256x3x224x224 --fp16 &&
+   python serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali"
 
 echo "Resnet50 model ready."
