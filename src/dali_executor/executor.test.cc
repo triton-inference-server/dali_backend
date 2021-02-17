@@ -102,16 +102,27 @@ TEST_CASE("RN50 pipeline")
   input.device = device_type_t::CPU;
 
   auto execute_with_image = [&]() {
+    const float expected_values[]
+      = {-2.1179, -2.03571, -1.80444}; // 0 values after normalization
+    const int output_c = 3, output_h = 224, output_w = 224;
     auto output = executor.Run(std::vector<IODescr<false>>({input}));
+    REQUIRE(output[0].shape.tensor_shape(0) == TensorShape<3>(output_c, output_h, output_w));
     std::vector<float> output_buffer(output[0].shape.num_elements());
     std::vector<IODescr<false>> output_vec(1);
     auto& outdesc = output_vec[0];
-    outdesc.device = device_type_t::GPU;
+    outdesc.device = device_type_t::CPU;
     outdesc.device_id = 0;
     outdesc.buffer = make_span(
         (char*)output_buffer.data(),
         output_buffer.size() * sizeof(decltype(output_buffer)::size_type));
     executor.PutOutputs(output_vec);
+    for (int c = 0; c < output_c; ++c) {
+      for (int y = 0; y < output_h; ++y) {
+        for (int x = 0; x < output_w; ++x) {
+          REQUIRE(output_buffer[x + (y + c * output_h) * output_w] == Approx(expected_values[c]));
+        }
+      }
+    }
   };
 
   SECTION("Simple execute")
