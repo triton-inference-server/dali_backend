@@ -24,7 +24,7 @@
 #include <catch2/catch.hpp>
 
 #include "src/dali_executor/dali_executor.h"
-#include "src/dali_executor/serialized_pipelines.h"
+#include "src/dali_executor/test_data.h"
 #include "src/dali_executor/test/test_utils.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {
@@ -83,6 +83,58 @@ TEST_CASE("Scaling Pipeline")
     auto created_pipelines = executor.NumCreatedPipelines();
     scaling_test(3);
     REQUIRE(created_pipelines == executor.NumCreatedPipelines());
+  }
+}
+
+TEST_CASE("RN50 pipeline")
+{
+  std::string pipeline(
+      (const char*)pipelines::rn50_gpu_dali_chr,
+      pipelines::rn50_gpu_dali_len);
+  DaliExecutor executor(pipeline, 0);
+  IODescr<false> input;
+  input.name = "DALI_INPUT_0";
+  input.type = dali_data_type_t::DALI_UINT8;
+  input.shape = TensorListShape<1>(1);
+  input.shape.set_tensor_shape(0, TensorShape<>(data::jpeg_image_len));
+  input.buffer = span<char>((char*)(data::jpeg_image_str),
+                            data::jpeg_image_len);
+  input.device = device_type_t::CPU;
+
+  auto execute_with_image = [&]() {
+    auto output = executor.Run(std::vector<IODescr<false>>({input}));
+    std::vector<float> output_buffer(output[0].shape.num_elements());
+    std::vector<IODescr<false>> output_vec(1);
+    auto& outdesc = output_vec[0];
+    outdesc.device = device_type_t::GPU;
+    outdesc.device_id = 0;
+    outdesc.buffer = make_span(
+        (char*)output_buffer.data(),
+        output_buffer.size() * sizeof(decltype(output_buffer)::size_type));
+    executor.PutOutputs(output_vec);
+  };
+
+  SECTION("Simple execute")
+  {
+    execute_with_image();
+  }
+
+  SECTION("Recover from error")
+  {
+    auto rand_inp_shape = TensorListShape<1>(1);
+    rand_inp_shape.set_tensor_shape(0, TensorShape<>(1024));
+    std::vector<uint8_t> rand_input_buffer;
+    std::mt19937 rand(1217);
+    std::uniform_int_distribution<short> dist(0, 255);
+    auto rand_input = RandomInput(
+        rand_input_buffer, input.name, rand_inp_shape, [&]() { return dist(rand); });
+    REQUIRE_THROWS(
+      executor.Run(std::vector<IODescr<false>>({rand_input}))
+    );
+
+    REQUIRE_NOTHROW(
+      execute_with_image()
+    );
   }
 }
 
