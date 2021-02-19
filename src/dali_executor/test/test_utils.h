@@ -77,6 +77,7 @@ RandomInput(
   dscr.type = dali_data_type<T>();
   dscr.buffer = span<char>(
       reinterpret_cast<char*>(buffer.data()), sizeof(T) * buffer.size());
+  dscr.device = device_type_t::CPU;
   return dscr;
 }
 
