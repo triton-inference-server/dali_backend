@@ -97,6 +97,16 @@ class PipelinePool {
     }
   }
 
+  template <typename... Args>
+  void Remove(
+    const std::string& serialized_pipeline,
+    const std::vector<int>& max_batch_size, const Args&... args)
+  {
+    for (int bs: batch_sizes) {
+      pool_.erase(PipelineDescr(serialized_pipeline, bs, args...));
+    }
+  }
+
   size_t NumCreatedPipelines() { return created_pipelines_; }
 
   std::unordered_map<PipelineDescr, DaliPipeline> pool_;

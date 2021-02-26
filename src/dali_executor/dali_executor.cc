@@ -53,8 +53,14 @@ DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
   auto &pipeline =
       pipeline_pool_.Get(serialized_pipeline_, max_batch_size_, device_id_);
   SetupInputs(pipeline, inputs);
-  pipeline.Run();
-  pipeline.Output();
+  try {
+    pipeline.Run();
+    pipeline.Output();
+  }
+  catch (std::runtime_error& e) {
+    pipeline_pool_.Remove(serialized_pipeline_, max_batch_size_, device_id_);
+    throw e;
+  }
   std::vector<shape_and_type_t> ret(pipeline.GetNumOutput());
   auto outputs_shapes = pipeline.GetOutputShapes();
   for (int out_idx = 0; out_idx < ret.size(); out_idx++) {
