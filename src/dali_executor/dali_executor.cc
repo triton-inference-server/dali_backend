@@ -28,7 +28,7 @@ namespace triton { namespace backend { namespace dali {
 
 template <bool owns>
 void
-SetupInputs(DaliPipeline &pipeline, const std::vector<IODescr<owns>>& inputs)
+SetupInputs(DaliPipeline& pipeline, const std::vector<IODescr<owns>>& inputs)
 {
   assert(!inputs.empty());
   int batch_size = inputs[0].shape.num_samples();
@@ -50,7 +50,7 @@ template <bool owns>
 std::vector<shape_and_type_t>
 DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
 {
-  auto &pipeline =
+  auto& pipeline =
       pipeline_pool_.Get(serialized_pipeline_, max_batch_size_, device_id_);
   SetupInputs(pipeline, inputs);
   try {
@@ -73,7 +73,7 @@ template <bool owns>
 void
 DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs)
 {
-  auto &pipeline =
+  auto& pipeline =
       pipeline_pool_.Get(serialized_pipeline_, max_batch_size_, device_id_);
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
     auto data = outputs[output_idx].buffer.data();

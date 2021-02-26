@@ -52,7 +52,8 @@ struct PipelineDescr {
   bool operator==(const PipelineDescr& other) const noexcept
   {
     return serialized_pipeline_hash == other.serialized_pipeline_hash &&
-           max_batch_size == other.max_batch_size && device_id == other.device_id &&
+           max_batch_size == other.max_batch_size &&
+           device_id == other.device_id &&
            bytes_per_sample_hint == other.bytes_per_sample_hint &&
            num_threads == other.num_threads && seed == other.seed;
   }
@@ -85,7 +86,8 @@ class PipelinePool {
    */
   template <typename... Args>
   DaliPipeline& Get(
-      const std::string& serialized_pipeline, int max_batch_size, const Args&... args)
+      const std::string& serialized_pipeline, int max_batch_size,
+      const Args&... args)
   {
     auto key = PipelineDescr(serialized_pipeline, max_batch_size, args...);
     if (pool_.find(key) == pool_.end()) {
@@ -99,12 +101,10 @@ class PipelinePool {
 
   template <typename... Args>
   void Remove(
-    const std::string& serialized_pipeline,
-    const std::vector<int>& max_batch_size, const Args&... args)
+      const std::string& serialized_pipeline, int max_batch_size,
+      const Args&... args)
   {
-    for (int bs: batch_sizes) {
-      pool_.erase(PipelineDescr(serialized_pipeline, bs, args...));
-    }
+    pool_.erase(PipelineDescr(serialized_pipeline, max_batch_size, args...));
   }
 
   size_t NumCreatedPipelines() { return created_pipelines_; }

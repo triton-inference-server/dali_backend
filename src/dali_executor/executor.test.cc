@@ -24,8 +24,8 @@
 #include <catch2/catch.hpp>
 
 #include "src/dali_executor/dali_executor.h"
-#include "src/dali_executor/test_data.h"
 #include "src/dali_executor/test/test_utils.h"
+#include "src/dali_executor/test_data.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {
 
@@ -83,7 +83,7 @@ TEST_CASE("RN50 pipeline")
   std::string pipeline(
       (const char*)pipelines::rn50_gpu_dali_chr,
       pipelines::rn50_gpu_dali_len);
-  DaliExecutor executor(pipeline, 0);
+  DaliExecutor executor(pipeline, 1, 0);
   IODescr<false> input;
   input.name = "DALI_INPUT_0";
   input.type = dali_data_type_t::DALI_UINT8;
