@@ -28,13 +28,10 @@
 #include <vector>
 
 #include "src/dali_executor/io_descriptor.h"
-#include "src/dali_executor/pipeline_group.h"
 #include "src/dali_executor/pipeline_pool.h"
 
 
 namespace triton { namespace backend { namespace dali {
-
-std::vector<int> distribute_batch_size(int batch_size);
 
 
 struct shape_and_type_t {
@@ -44,9 +41,10 @@ struct shape_and_type_t {
 
 class DaliExecutor {
  public:
-  DaliExecutor(std::string serialized_pipeline, int device_id)
+  DaliExecutor(
+      std::string serialized_pipeline, int max_batch_size, int device_id)
       : serialized_pipeline_(std::move(serialized_pipeline)),
-        device_id_(device_id)
+        device_id_(device_id), max_batch_size_(max_batch_size)
   {
   }
 
@@ -61,14 +59,10 @@ class DaliExecutor {
   size_t NumCreatedPipelines() { return pipeline_pool_.NumCreatedPipelines(); }
 
  private:
-  template <bool owns>
-  PipelineGroup SetupInputs(const std::vector<IODescr<owns>>& inputs);
-
-
   std::string serialized_pipeline_;
   int device_id_;
+  int max_batch_size_;
   PipelinePool pipeline_pool_;
-  std::vector<int> batch_sizes_;
 };
 
 }}}  // namespace triton::backend::dali

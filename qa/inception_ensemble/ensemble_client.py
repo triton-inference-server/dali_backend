@@ -23,9 +23,11 @@
 
 import argparse, os, sys
 import numpy as np
+from numpy.random import randint
 import tritongrpcclient
 from PIL import Image
 
+np.random.seed(100019)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -93,18 +95,19 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-def batcher(dataset, batch_size, n_iterations=-1):
+def batcher(dataset, max_batch_size, n_iterations=-1):
     """
     Generator, that splits dataset into batches with given batch size
     """
-    assert len(dataset) % batch_size == 0
-    n_batches = len(dataset) // batch_size
     iter_idx = 0
-    for i in range(n_batches):
+    data_idx = 0
+    while data_idx < len(dataset):
         if 0 < n_iterations <= iter_idx:
             raise StopIteration
+        batch_size = min(randint(1, max_batch_size), len(dataset) - data_idx)
         iter_idx += 1
-        yield dataset[i * batch_size:(i + 1) * batch_size]
+        yield dataset[data_idx : data_idx + batch_size]
+        data_idx += batch_size
 
 
 def save_byte_image(bytes, size_wh=(299, 299), name_suffix=0):
@@ -134,18 +137,18 @@ def main():
     print("Images loaded, inferring")
 
     # Infer
-    inputs = []
     outputs = []
     input_name = "INPUT"
     output_name = "OUTPUT"
     input_shape = list(image_data.shape)
-    input_shape[0] = FLAGS.batch_size
-    inputs.append(tritongrpcclient.InferInput(input_name, input_shape, "UINT8"))
     outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
 
     img_idx = 0
     for batch in batcher(image_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
+        input_shape[0] = np.shape(batch)[0]
+        print("Batch size: ", input_shape[0])
+        inputs = [tritongrpcclient.InferInput(input_name, input_shape, "UINT8")]
         # Initialize the data
         inputs[0].set_data_from_numpy(batch)
 

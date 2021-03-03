@@ -38,27 +38,29 @@ namespace triton { namespace backend { namespace dali {
 
 class DaliPipeline {
  public:
-  explicit DaliPipeline(int batch_size = 0) : batch_size(batch_size)
-  {
-    std::call_once(dali_initialized_, []() {
-      daliInitialize();
-      daliInitOperators();
-    });
-    CUDA_CALL(cudaStreamCreate(&output_stream_));
-  }
-
-
   DaliPipeline(const DaliPipeline&) = delete;
+
 
   DaliPipeline& operator=(const DaliPipeline&) = delete;
 
 
   DaliPipeline(DaliPipeline&& dp)
-      : batch_size(dp.batch_size), handle_(dp.handle_),
-        output_stream_(dp.output_stream_)
   {
-    dp.handle_ = daliPipelineHandle{};
-    dp.output_stream_ = nullptr;
+    *this = std::move(dp);
+  }
+
+  DaliPipeline& operator=(DaliPipeline&& dp)
+  {
+    if (this != &dp) {
+      ReleasePipeline();
+      ReleaseStream();
+      handle_ = dp.handle_;
+      output_stream_ = dp.output_stream_;
+
+      dp.handle_ = daliPipelineHandle{};
+      dp.output_stream_ = nullptr;
+    }
+    return *this;
   }
 
   ~DaliPipeline()
@@ -68,14 +70,15 @@ class DaliPipeline {
   }
 
   DaliPipeline(
-      const std::string& serialized_pipeline, int batch_size,
+      const std::string& serialized_pipeline, int max_batch_size,
       int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
       int seed = -1)
-      : DaliPipeline(batch_size)
   {
+    InitDali();
+    InitStream();
     daliCreatePipeline(
         &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
-        batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
+        max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
@@ -110,10 +113,12 @@ class DaliPipeline {
       dali_data_type_t data_type, span<const int64_t> inputs_shapes,
       int sample_ndims);
 
+  void SetInput(
+      const void* ptr, const char* name, device_type_t source_device,
+      dali_data_type_t data_type, TensorListShape<> input_shape);
+
   void PutOutput(
       void* destination, int output_idx, device_type_t destination_device);
-
-  const int batch_size;
 
  private:
   void ReleasePipeline()
@@ -132,11 +137,22 @@ class DaliPipeline {
     }
   }
 
+  void InitDali() {
+    std::call_once(dali_initialized_, []() {
+      daliInitialize();
+      daliInitOperators();
+    });
+  }
+
+  void InitStream() {
+    CUDA_CALL(cudaStreamCreate(&output_stream_));
+  }
 
   daliPipelineHandle handle_{};
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
 };
+
 
 
 }}}  // namespace triton::backend::dali

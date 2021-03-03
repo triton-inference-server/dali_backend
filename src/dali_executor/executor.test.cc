@@ -24,25 +24,17 @@
 #include <catch2/catch.hpp>
 
 #include "src/dali_executor/dali_executor.h"
-#include "src/dali_executor/test_data.h"
 #include "src/dali_executor/test/test_utils.h"
+#include "src/dali_executor/test_data.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {
-
-TEST_CASE("Distribute batch size")
-{
-  REQUIRE(distribute_batch_size(4) == std::vector<int>{4});
-  REQUIRE(distribute_batch_size(5) == std::vector<int>{1, 4});
-  REQUIRE(distribute_batch_size(1) == std::vector<int>{1});
-  REQUIRE(distribute_batch_size(15) == std::vector<int>{1, 2, 4, 8});
-}
 
 TEST_CASE("Scaling Pipeline")
 {
   std::string pipeline(
       (const char*)pipelines::scale_pipeline_str,
       pipelines::scale_pipeline_len);
-  DaliExecutor executor(pipeline, 0);
+  DaliExecutor executor(pipeline, 8, 0);
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
   const std::string inp_name = "INPUT0";
@@ -75,14 +67,14 @@ TEST_CASE("Scaling Pipeline")
   {
     scaling_test(2);
     scaling_test(4);
+    REQUIRE(executor.NumCreatedPipelines() == 1);
   }
 
   SECTION("Repeat batch size")
   {
     scaling_test(3);
-    auto created_pipelines = executor.NumCreatedPipelines();
     scaling_test(3);
-    REQUIRE(created_pipelines == executor.NumCreatedPipelines());
+    REQUIRE(executor.NumCreatedPipelines() == 1);
   }
 }
 
@@ -91,7 +83,7 @@ TEST_CASE("RN50 pipeline")
   std::string pipeline(
       (const char*)pipelines::rn50_gpu_dali_chr,
       pipelines::rn50_gpu_dali_len);
-  DaliExecutor executor(pipeline, 0);
+  DaliExecutor executor(pipeline, 1, 0);
   IODescr<false> input;
   input.name = "DALI_INPUT_0";
   input.type = dali_data_type_t::DALI_UINT8;
