@@ -45,7 +45,6 @@ class DaliPipeline {
 
 
   DaliPipeline(DaliPipeline&& dp)
-      : DaliPipeline()
   {
     *this = std::move(dp);
   }
@@ -122,8 +121,6 @@ class DaliPipeline {
       void* destination, int output_idx, device_type_t destination_device);
 
  private:
-  DaliPipeline() = default;
-
   void ReleasePipeline()
   {
     if (handle_.pipe && handle_.ws) {
