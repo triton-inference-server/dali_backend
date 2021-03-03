@@ -100,7 +100,7 @@ def main():
         # Initialize the data
         input_shape[0] = np.shape(batch)[0]
         print("Batch size: ", input_shape[0])
-        inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8")) for iname in input_names]
+        inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in input_names]
         for inp in inputs:
             inp.set_data_from_numpy(np.copy(batch))
 
