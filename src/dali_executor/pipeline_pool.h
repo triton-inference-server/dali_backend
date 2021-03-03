@@ -67,7 +67,7 @@ struct hash<triton::backend::dali::PipelineDescr> {
   size_t operator()(
       triton::backend::dali::PipelineDescr const& pk) const noexcept
   {
-    return pk.serialized_pipeline_hash ^ static_cast<size_t>(pk.max_batch_size);
+    return pk.serialized_pipeline_hash + static_cast<size_t>(pk.max_batch_size);
   }
 };
 }  // namespace std
@@ -95,7 +95,7 @@ class PipelinePool {
       ++created_pipelines_;
       return pool_.insert({key, std::move(pipeline)}).first->second;
     } else {
-      return pool_[key];
+      return pool_.at(key);
     }
   }
 

@@ -38,27 +38,30 @@ namespace triton { namespace backend { namespace dali {
 
 class DaliPipeline {
  public:
-  explicit DaliPipeline(int max_batch_size = 0) : max_batch_size(max_batch_size)
-  {
-    std::call_once(dali_initialized_, []() {
-      daliInitialize();
-      daliInitOperators();
-    });
-    CUDA_CALL(cudaStreamCreate(&output_stream_));
-  }
-
-
   DaliPipeline(const DaliPipeline&) = delete;
+
 
   DaliPipeline& operator=(const DaliPipeline&) = delete;
 
 
   DaliPipeline(DaliPipeline&& dp)
-      : max_batch_size(dp.max_batch_size), handle_(dp.handle_),
-        output_stream_(dp.output_stream_)
+      : DaliPipeline()
   {
-    dp.handle_ = daliPipelineHandle{};
-    dp.output_stream_ = nullptr;
+    *this = std::move(dp);
+  }
+
+  DaliPipeline& operator=(DaliPipeline&& dp)
+  {
+    if (this != &dp) {
+      ReleasePipeline();
+      ReleaseStream();
+      handle_ = dp.handle_;
+      output_stream_ = dp.output_stream_;
+
+      dp.handle_ = daliPipelineHandle{};
+      dp.output_stream_ = nullptr;
+    }
+    return *this;
   }
 
   ~DaliPipeline()
@@ -71,8 +74,9 @@ class DaliPipeline {
       const std::string& serialized_pipeline, int max_batch_size,
       int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
       int seed = -1)
-      : DaliPipeline(max_batch_size)
   {
+    InitDali();
+    InitStream();
     daliCreatePipeline(
         &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
         max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
@@ -117,9 +121,9 @@ class DaliPipeline {
   void PutOutput(
       void* destination, int output_idx, device_type_t destination_device);
 
-  const int max_batch_size;
-
  private:
+  DaliPipeline() = default;
+
   void ReleasePipeline()
   {
     if (handle_.pipe && handle_.ws) {
@@ -136,11 +140,22 @@ class DaliPipeline {
     }
   }
 
+  void InitDali() {
+    std::call_once(dali_initialized_, []() {
+      daliInitialize();
+      daliInitOperators();
+    });
+  }
+
+  void InitStream() {
+    CUDA_CALL(cudaStreamCreate(&output_stream_));
+  }
 
   daliPipelineHandle handle_{};
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
 };
+
 
 
 }}}  // namespace triton::backend::dali
