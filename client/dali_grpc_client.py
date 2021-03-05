@@ -72,7 +72,7 @@ def load_images(dir_path: str, max_images=-1):
     """
     Loads all files in given dir_path. Treats them as images
     """
-    assert max_images > 0 or max_images == -1
+    assert max_images > 0 or max_images == -1, "Please specify sane number of images"
     images = []
 
     # Traverses directory for files (not dirs) and returns full paths to them
@@ -80,7 +80,7 @@ def load_images(dir_path: str, max_images=-1):
                       os.path.isfile(os.path.join(dir_path, f)))
 
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
-    if max_images > 0:
+    if 0 < max_images < len(img_paths):
         img_paths = img_paths[:max_images]
     for img in tqdm(img_paths, desc="Reading images"):
         images.append(load_image(img))
@@ -148,7 +148,7 @@ def main():
     print("Loading images")
 
     image_data = load_images(FLAGS.img_dir if FLAGS.img_dir is not None else FLAGS.img,
-                             max_images=15)
+                             max_images=FLAGS.batch_size * FLAGS.n_iter)
 
     image_data = array_from_list(image_data)
     print("Images loaded")
