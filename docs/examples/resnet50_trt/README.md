@@ -19,21 +19,30 @@ ResNet50 model optimized by [TensorRT](https://developer.nvidia.com/tensorrt) is
 #### Setting up the ONNX-TensorRT and DALI backend ENV
 
 ```
-$git clone https://gitlab-master.nvidia.com/ghong/triton_dali
-$cd triton_dali
-$git clone https://github.com/triton-inference-server/dali_backend
+$git clone https://github.com/triton-inference-server/dali_backend --recursive
 $cd dali_backend
 $docker build -t triton_dali_backend -f Dockerfile .
-$cd ..
+$cd docs/examples/resnet50_trt
 ```
 
-####  Build TensorRT via ONNX
+#### Ready for ResNet50-TensorRT model and DALI pipeline
+
+Run `setup_resnet50_trt_example.sh` for building resnet50-trt model and DALI pipeline.
+```
+$bash setup_resnet50_trt_example.sh
+```
+
+If you don't want to run the script, follow 1-3 steps below.
 
 ##### 1.  Converting PyTorch Model to ONNX-model 
 
-Run `onnx_exporter.py` for conversion using PyTorch model to ONNX model. In this case, ResNet50 model is converted to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch is used. 
+Create directories for model repository and run `onnx_exporter.py` for conversion using PyTorch model to ONNX model. In this case, ResNet50 model is converted to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch is used. 
 
 ```
+$mkdir -p model_repository/dali/1
+$mkdir -p model_repository/ensemble_dali_resnet50/1
+$mkdir -p model_repository/resnet50_trt/1
+
 $docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 bash
 $python onnx_exporter.py --save model.onnx
 ```
@@ -72,6 +81,7 @@ with pipe:
 
     pipe.set_outputs(images)
     pipe.serialize(filename=args.save)
+    
 ````
 
 
@@ -114,7 +124,7 @@ output [
 {
     name: "DALI_OUTPUT_0"
     data_type: TYPE_FP32
-    dims: [ 3, 224, 224]
+    dims: [ 3, 224, 224 ]
 }
 ]
 ```
@@ -128,8 +138,8 @@ max_batch_size: 256
 input [
 {
     name: "input"
-    data_type:TYPE_FP32
-    dims:[3, -1, -1]
+    data_type: TYPE_FP32
+    dims: [ 3, -1, -1 ]
     
 }
 ]
@@ -161,7 +171,7 @@ output [
   {
     name: "OUTPUT"
     data_type: TYPE_FP32
-    dims: [1000 ]
+    dims: [ 1000 ]
   }
 ]
 ensemble_scheduling {
