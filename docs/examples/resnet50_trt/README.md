@@ -8,23 +8,35 @@ ResNet50 model optimized by [TensorRT](https://developer.nvidia.com/tensorrt) is
 #### Dependencies
 
 * Export ONNX and build TensorRT
-  * nvcr.io/nvidia/pytorch:20.12-py3
+  * `nvcr.io/nvidia/pytorch:20.12-py3`
 * Triton Inference Server for DALI backend
-  * nvcr.io/nvidia/tritonserver:20.12-py3
-  * https://github.com/triton-inference-server/dali_backend
+  * `nvcr.io/nvidia/tritonserver:20.12-py3`
+  * `https://github.com/triton-inference-server/dali_backend`
 
 * Client
-  * nvcr.io/nvidia/tritonserver:20.10-py3-clients
+  * `nvcr.io/nvidia/tritonserver:20.10-py3-client`
 
-#### Setting up the ONNX-TensorRT and DALI backend ENV
+## Setting up the ONNX-TensorRT DALI
+
+The quickest way to set up this example is to run the setup script:
 
 ```
-$git clone https://gitlab-master.nvidia.com/ghong/triton_dali
-$cd triton_dali
-$git clone https://github.com/triton-inference-server/dali_backend
-$cd dali_backend
-$docker build -t triton_dali_backend -f Dockerfile .
-$cd ..
+cd dali_backend/docs/examples/resnet50_trt
+sh setup_resnet50_trt_example.sh
+```
+
+Below we add step-by-step guide, how to set up and run this example.
+If you used the `setup_resnet50_trt_example.sh` script, please skip to
+[Run Triton Inference Server](#run-triton-inference-server) section.
+
+### Step-by-step guide
+
+Prepare directory structure for the model repository.
+
+```
+mkdir -p model_repository/dali/1
+mkdir -p model_repository/ensemble_dali_resnet50/1
+mkdir -p model_repository/resnet50_trt/1
 ```
 
 ####  Build TensorRT via ONNX
@@ -34,8 +46,8 @@ $cd ..
 Run `onnx_exporter.py` for conversion using PyTorch model to ONNX model. In this case, ResNet50 model is converted to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch is used. 
 
 ```
-$docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 bash
-$python onnx_exporter.py --save model.onnx
+docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 bash
+python onnx_exporter.py --save model.onnx
 ```
 
 ##### 2. Building ONNX-model to TensorRT engine
@@ -43,7 +55,7 @@ $python onnx_exporter.py --save model.onnx
 Set the arguments for enabling fp16 precision `--fp16` and for dynamic shapes using a profile `--minShapes`, `--optShapes`, and `maxShapes` with `--explicitBatch`
 
 ```python
-$trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.plan --explicitBatch --minShapes=input:1x3x224x224 --optShapes=input:1x3x224x224 --maxShapes=input:256x3x224x224 --fp16
+trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.plan --explicitBatch --minShapes=input:1x3x224x224 --optShapes=input:1x3x224x224 --maxShapes=input:256x3x224x224 --fp16
 ```
 
 ##### 3. Serialize DALI pipeline 
@@ -51,7 +63,7 @@ $trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.
 Run `serialize_dali_pipeline.py` for generating  DALI pipeline. 
 
 ```
-$python serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali
+python serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali
 ```
 
 If had a dedicated hardware decoder, the hardware is available. Set the preprocessing pipeline  `resize` and `normalize` using `dali.pipeline.Pipeline` and serialize pipeline using `Pipeline.serialize`
@@ -76,7 +88,7 @@ with pipe:
 
 
 
-#### Run Triton Inference Server
+## Run Triton Inference Server
 
 ![](./images/ensemble.PNG)
 
@@ -114,7 +126,7 @@ output [
 {
     name: "DALI_OUTPUT_0"
     data_type: TYPE_FP32
-    dims: [ 3, 224, 224]
+    dims: [ 3, 224, 224 ]
 }
 ]
 ```
@@ -128,8 +140,8 @@ max_batch_size: 256
 input [
 {
     name: "input"
-    data_type:TYPE_FP32
-    dims:[3, -1, -1]
+    data_type: TYPE_FP32
+    dims: [ 3, -1, -1 ]
     
 }
 ]
@@ -161,7 +173,7 @@ output [
   {
     name: "OUTPUT"
     data_type: TYPE_FP32
-    dims: [1000 ]
+    dims: [ 1000 ]
   }
 ]
 ensemble_scheduling {
@@ -197,10 +209,10 @@ ensemble_scheduling {
 Run Triton inference server
 
 ```
-$docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 -v$(pwd):/workspace/ -v/$(pwd)/model_repository:/models triton_dali_backend tritonserver --model-repository=/models
+docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 -v$(pwd):/workspace/ -v/$(pwd)/model_repository:/models nvcr.io/nvidia/tritonserver:20.12-py3 tritonserver --model-repository=/models
 ```
 
-#### Request image classification
+## Request image classification
 
 Create gRPC client via URL
 
@@ -235,13 +247,9 @@ output0_data = results.as_numpy(output_name)
 
 Run `client.py` with the path to image `--image`
 
-```
-$docker run --rm --net=host -v $(pwd):/workspace/ nvcr.io/nvidia/tritonserver:20.10-py3-clientsdk python client.py --image <path to image> 
-```
-
 ```bash
-$wget https://raw.githubusercontent.com/triton-inference-server/server/master/qa/images/mug.jpg -O "mug.jpg"
-$docker run --rm --net=host -v $(pwd):/workspace/ nvcr.io/nvidia/tritonserver:20.10-py3-clientsdk python client.py --image mug.jpg 
+wget https://raw.githubusercontent.com/triton-inference-server/server/master/qa/images/mug.jpg -O "mug.jpg"
+docker run --rm --net=host -v $(pwd):/workspace/ nvcr.io/nvidia/tritonserver:20.10-py3-clientsdk python client.py --image mug.jpg 
 0.02642226219177246ms class:COFFEE MUG
 ```
 
