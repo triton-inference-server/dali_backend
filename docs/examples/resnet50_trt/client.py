@@ -26,45 +26,52 @@ import tritongrpcclient
 import argparse
 import time
 
+
 def load_image(img_path: str):
     """
-    Loads image as an encoded array of bytes.
-    This is a typical approach you want to use in DALI backend
+    Loads an encoded image as an array of bytes.
+
+    This is a typical approach you'd like to use in DALI backend.
+    DALI performs image decoding, therefore this way the processing
+    can be fully offloaded to the GPU.
     """
-    with open(img_path, "rb") as f:
-        img = f.read()
-        return np.array(list(img)).astype(np.uint8)
+    np.fromfile(img_path, dtype='uint8')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", 
-                        type=str, required=False, 
-                        default="ensemble_dali_resnet50", 
+    parser.add_argument("--model_name",
+                        type=str, required=False,
+                        default="ensemble_dali_resnet50",
                         help="Model name")
-    parser.add_argument("--image", 
-                        type=str, 
-                        required=True, 
-                        help="Path to the image (.jpg)")
-    parser.add_argument("--url", 
-                        type=str, 
-                        required=False, 
+    parser.add_argument("--image",
+                        type=str,
+                        required=True,
+                        help="Path to the image")
+    parser.add_argument("--url",
+                        type=str,
+                        required=False,
                         default="localhost:8001",
                         help="Inference server URL. Default is localhost:8001.")
-
-    parser.add_argument("--label", 
-                        type=str, 
+    perser.add_argument('-v', "--verbose",
+                        action="store_true",
+                        required=False,
+                        default=False,
+                        help='Enable verbose output')
+    parser.add_argument("--label_file",
+                        type=str,
                         default="./model_repository/resnet50_trt/labels.txt",
-                        help="Path to the label")
+                        help="Path to the file with text representation of given labels")
     args = parser.parse_args()
 
     try:
-        triton_client = tritongrpcclient.InferenceServerClient(url=args.url, verbose=False)
+        triton_client = tritongrpcclient.InferenceServerClient(url=args.url, verbose=args.verbose)
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit(1)
 
-    with open(args.label) as f:
-        labels_dict = {idx:line.strip() for idx, line in enumerate(f)}
+    with open(args.label_file) as f:
+        labels_dict = {idx: line.strip() for idx, line in enumerate(f)}
 
     inputs = []
     outputs = []
@@ -80,14 +87,12 @@ if __name__ == "__main__":
     start_time = time.time()
     # Test with outputs
     results = triton_client.infer(model_name=args.model_name,
-                                    inputs=inputs,
-                                    outputs=outputs)
+                                  inputs=inputs,
+                                  outputs=outputs)
     latency = time.time() - start_time
 
     output0_data = results.as_numpy(output_name)
-    
+
     maxs = np.argmax(output0_data, axis=1)
-    
+
     print("{}ms class:{}".format(latency, labels_dict[maxs[0]]))
-
-
