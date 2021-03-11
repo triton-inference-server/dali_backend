@@ -1,22 +1,22 @@
 # Triton Inference Server with DALI backend
 
-This repo is an example of [DALI (Data Loading Library) backend](https://github.com/NVIDIA/DALI) for image classification on [Triton Inference server](https://github.com/triton-inference-server/server).
+This is an example of [DALI (Data Loading Library) backend](https://github.com/NVIDIA/DALI) for image classification on [Triton Inference Server](https://github.com/triton-inference-server/server).
 
-ResNet50 model optimized by [TensorRT](https://developer.nvidia.com/tensorrt) is used for image classification. 
+The classification is performed on the ResNet50 model, which is optimized by [TensorRT](https://developer.nvidia.com/tensorrt).
 
 
-#### Dependencies
+#### Prerequisites
 
 * Export ONNX and build TensorRT
   * `nvcr.io/nvidia/pytorch:20.12-py3`
-* Triton Inference Server for DALI backend
+* Triton Inference Server with DALI Backend
   * `nvcr.io/nvidia/tritonserver:20.12-py3`
-  * `https://github.com/triton-inference-server/dali_backend`
+  * `https://github.com/triton-inference-server/dali_backend`. DALI Backend is included out-of-the-box in `tritonserver`, starting from `20.11` release.
 
 * Client
   * `nvcr.io/nvidia/tritonserver:20.10-py3-client`
 
-## Setting up the ONNX-TensorRT DALI
+## Quick setup (recommended)
 
 The quickest way to set up this example is to run the setup script:
 
@@ -26,10 +26,11 @@ sh setup_resnet50_trt_example.sh
 ```
 
 Below we add step-by-step guide, how to set up and run this example.
+
+### Step-by-step guide (optional)
+
 If you used the `setup_resnet50_trt_example.sh` script, please skip to
 [Run Triton Inference Server](#run-triton-inference-server) section.
-
-### Step-by-step guide
 
 Prepare directory structure for the model repository.
 
@@ -43,7 +44,7 @@ mkdir -p model_repository/resnet50_trt/1
 
 ##### 1.  Converting PyTorch Model to ONNX-model 
 
-Run `onnx_exporter.py` for conversion using PyTorch model to ONNX model. In this case, ResNet50 model is converted to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch is used. 
+Run `onnx_exporter.py` to convert ResNet50 PyTorch model to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch are used.
 
 ```
 docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 bash
