@@ -26,8 +26,42 @@
 
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
+#include "src/dali_executor/utils/utils.h"
 
 namespace triton { namespace backend { namespace dali {
+
+struct ModelParameters {
+  explicit ModelParameters(common::TritonJson::Value &model_config)
+  {
+    common::TritonJson::Value params;
+    model_config.MemberAsObject("parameters", &params);
+    GetMember(params, num_threads_key, &num_threads);
+  }
+
+ private:
+  template <typename T>
+  void GetMember(
+      common::TritonJson::Value &params,
+      const char* key,
+      T *value)
+  {
+    if (params.Find(key)) {
+      common::TritonJson::Value param;
+      TRITON_CALL_GUARD(
+        params.MemberAsObject(key, &param));
+      std::string string_value;
+      TRITON_CALL_GUARD(
+        param.MemberAsString("string_value", &string_value));
+      num_threads = string_as<int>(string_value);
+    }
+  }
+
+ public:
+  int64_t num_threads = -1;
+
+ private:
+  static constexpr const char* num_threads_key = "num_threads";
+};
 
 class DaliModel : public ::triton::backend::BackendModel {
  public:
@@ -53,9 +87,14 @@ class DaliModel : public ::triton::backend::BackendModel {
     return *dali_model_provider_;
   };
 
+  const ModelParameters& GetModelParamters() const {
+    return params_;
+  }
+
  private:
   explicit DaliModel(TRITONBACKEND_Model* triton_model)
-      : BackendModel(triton_model)
+      : BackendModel(triton_model),
+        params_(model_config_)
   {
     const char sep = '/';
 
@@ -74,7 +113,6 @@ class DaliModel : public ::triton::backend::BackendModel {
     dali_model_provider_ = std::make_unique<FileModelProvider>(filename);
   }
 
-
   std::string GetModelFilename()
   {
     std::string ret;
@@ -83,7 +121,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return ret.empty() ? "model.dali" : ret;
   }
 
-
+  const ModelParameters params_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
 };
 
@@ -120,8 +158,11 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
       : BackendModelInstance(model, triton_model_instance)
   {
+    auto serialized_pipeline = model->GetModelProvider().GetModel();
+    auto max_batch_size = model->MaxBatchSize();
+    auto num_threads = model->GetModelParamters().num_threads;
     dali_executor_ = std::make_unique<DaliExecutor>(
-        model->GetModelProvider().GetModel(), model->MaxBatchSize(), device_id_);
+        serialized_pipeline, max_batch_size, num_threads, device_id_);
   }
 
 

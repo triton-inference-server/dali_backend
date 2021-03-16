@@ -60,6 +60,13 @@ array_shape(TensorListShape<ndims> tls)
   return ret;
 }
 
+template <typename T>
+T string_as(const std::string &str);
+
+template <>
+inline int string_as<int>(const std::string &str) {
+  return std::stoi(str);
+}
 
 // Basic timerange for profiling
 struct TimeRange {

@@ -34,7 +34,7 @@ TEST_CASE("Scaling Pipeline")
   std::string pipeline(
       (const char*)pipelines::scale_pipeline_str,
       pipelines::scale_pipeline_len);
-  DaliExecutor executor(pipeline, 8, 0);
+  DaliExecutor executor(pipeline, 8, 4, 0);
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
   const std::string inp_name = "INPUT0";
@@ -67,14 +67,12 @@ TEST_CASE("Scaling Pipeline")
   {
     scaling_test(2);
     scaling_test(4);
-    REQUIRE(executor.NumCreatedPipelines() == 1);
   }
 
   SECTION("Repeat batch size")
   {
     scaling_test(3);
     scaling_test(3);
-    REQUIRE(executor.NumCreatedPipelines() == 1);
   }
 }
 
@@ -83,7 +81,7 @@ TEST_CASE("RN50 pipeline")
   std::string pipeline(
       (const char*)pipelines::rn50_gpu_dali_chr,
       pipelines::rn50_gpu_dali_len);
-  DaliExecutor executor(pipeline, 1, 0);
+  DaliExecutor executor(pipeline, 1, 3, 0);
   IODescr<false> input;
   input.name = "DALI_INPUT_0";
   input.type = dali_data_type_t::DALI_UINT8;

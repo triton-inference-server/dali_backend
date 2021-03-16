@@ -37,3 +37,10 @@ output [
     dims: [ 299, 299, 3 ]
   }
 ]
+
+parameters: [
+  {
+    key: "num_threads"
+    value: { string_value: "12" }
+  }
+]

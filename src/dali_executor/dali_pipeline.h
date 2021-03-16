@@ -71,14 +71,13 @@ class DaliPipeline {
 
   DaliPipeline(
       const std::string& serialized_pipeline, int max_batch_size,
-      int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
-      int seed = -1)
+      int num_threads = -1, int device_id = -1)
   {
     InitDali();
     InitStream();
     daliCreatePipeline(
         &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
-        max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
+        max_batch_size, num_threads, device_id, 0, 1, 0, 0, 0);
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
