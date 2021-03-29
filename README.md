@@ -1,20 +1,20 @@
 ##### **NOTE:** `dali_backend` is available in `tritonserver-20.11` and later
 
  :exclamation: **IMPORTANT** :exclamation:
- 
+
 `dali_backend` is new and rapidly growing. Official `tritonserver` releases might be behind
 on some features and bug fixes. We encourage you to use the latest version of `dali_backend`.
 [Docker build](#docker_build) section explains, how to build a `tritonserver` docker
 image with `main` branch of `dali_backend` and DALI nightly release. This is a way to
 get daily updates!
- 
+
 # DALI TRITON Backend
 
 This repository contains code for DALI Backend for Triton Inference Server.
 
-![alt text](https://developer.nvidia.com/sites/default/files/akamai/dali.png)
+![alt text](dali.png)
 
-**NVIDIA DALI (R)**, the Data Loading Library, is a collection of highly optimized building blocks, 
+**NVIDIA DALI (R)**, the Data Loading Library, is a collection of highly optimized building blocks,
 and an execution engine, to accelerate the pre-processing of the input data for deep learning applications.
 DALI provides both the performance and the flexibility to accelerate different data pipelines as one library.
 This library can then be easily integrated into different deep learning training and inference applications,
@@ -41,20 +41,20 @@ method to generate a Model file. As an example, we'll use simple
 resizing pipeline:
 
         import nvidia.dali as dali
-        
+
         pipe = dali.pipeline.Pipeline(batch_size=256, num_threads=4, device_id=0)
         with pipe:
             images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
             images = dali.fn.image_decoder(images, device="mixed")
             images = dali.fn.resize(images, resize_x=224, resize_y=224)
             pipe.set_outputs(images)
-            
+
         pipe.serialize(filename="/my/model/repository/path/dali/1/model.dali")
 
 1. Model file shall be incorporated in Triton's [Model
 Repository](https://github.com/triton-inference-server/server/blob/master/docs/model_repository.md).
 Here's the example:
-    
+
         model_repository
         └── dali
             ├── 1
@@ -75,7 +75,7 @@ Here's the whole `config.pbtxt` we use for the `ResizePipeline` example:
             dims: [ -1 ]
         }
         ]
-        
+
         output [
         {
             name: "DALI_OUTPUT_0"
@@ -83,9 +83,9 @@ Here's the whole `config.pbtxt` we use for the `ResizePipeline` example:
             dims: [ 224, 224, 3 ]
         }
         ]
-        
+
 ## Tips & Tricks:
-1. There's a high chance, that you'll want to use the `ops.ExternalSource` operator to feed the encoded 
+1. There's a high chance, that you'll want to use the `ops.ExternalSource` operator to feed the encoded
 images into DALI (or any other data for that matter).
 1. Give your `ExternalSource` operator the same name you give to the Input in `config.pbtxt`
 
@@ -103,9 +103,9 @@ group for DALI model.
 Building DALI Backend with docker is as simple as:
 
     git clone --recursive https://github.com/triton-inference-server/dali_backend.git
-    cd dali_backend 
+    cd dali_backend
     docker build -t tritonserver:dali-latest .
-    
+
 And `tritonserver:dali-latest` becomes your new `tritonserver` docker image
 
 ### Bare metal
@@ -114,8 +114,8 @@ To build `dali_backend` you'll need `CMake 3.17+`
 #### Using fresh DALI release
 On the event you'd need to use newer DALI version than it's provided in `tritonserver` image,
 you can use DALI's [nightly builds](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/installation.html#nightly-and-weekly-release-channels).
-Just install whatever DALI version you like using pip (refer to the link for more info how to do it). 
-In this case, while building `dali_backend`, you'd need to pass `-D TRITON_SKIP_DALI_DOWNLOAD=ON` 
+Just install whatever DALI version you like using pip (refer to the link for more info how to do it).
+In this case, while building `dali_backend`, you'd need to pass `-D TRITON_SKIP_DALI_DOWNLOAD=ON`
 option to your CMake build. `dali_backend` will find the latest DALI installed in your system and
 use this particular version.
 #### Building
@@ -128,7 +128,7 @@ Building DALI Backend is really straightforward. One thing to remember is to clo
     cd build
     cmake ..
     make
-    
+
 The building process will generate `unittest` executable.
 You can use it to run unit tests for DALI Backend
 
