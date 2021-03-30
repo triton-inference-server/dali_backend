@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("--label_file",
                         type=str,
                         default="./model_repository/resnet50_trt/labels.txt",
-                        help="Path to the file with text representation of given labels")
+                        help="Path to the file with text representation of available labels")
     args = parser.parse_args()
 
     try:
