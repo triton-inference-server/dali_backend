@@ -24,8 +24,8 @@
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 
 #include <string>
+#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/pipeline_pool.h"
@@ -48,8 +48,13 @@ class DaliExecutor {
   {
   }
 
+  /**
+   * Run DALI pipeline and return the result descriptor
+   * @return [output_name, output_shape_and_type]
+   */
   template <bool owns>
-  std::vector<shape_and_type_t> Run(const std::vector<IODescr<owns>>& inputs);
+  std::unordered_map<std::string, shape_and_type_t> Run(
+      const std::vector<IODescr<owns>>& inputs);
 
 
   template <bool owns>

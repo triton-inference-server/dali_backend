@@ -106,6 +106,10 @@ class DaliPipeline {
     return daliTypeAt(&handle_, output_idx);
   }
 
+  std::string GetOutputName(int output_idx) {
+    return std::string(daliGetOutputName(&handle_, output_idx));
+  }
+
   std::vector<TensorListShape<>> GetOutputShapes();
 
   void SetInput(

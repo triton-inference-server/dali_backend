@@ -151,11 +151,17 @@ GenerateInputs(TRITONBACKEND_Request* request)
   return ret;
 }
 
-
+/**
+ * Allocate outputs within Triton Server
+ * @param request Request, corresponding to which the Response will be allocated
+ * @param response Output argument. This Response's memory will be allocated
+ * @param shapes_and_types [output_name, output_shape_and_type] map
+ * @return
+ */
 std::vector<IODescr<false>>
 AllocateOutputs(
     TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
-    const std::vector<shape_and_type_t>& shapes_and_types)
+    const std::unordered_map<std::string, shape_and_type_t>& shapes_and_types)
 {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
@@ -163,10 +169,10 @@ AllocateOutputs(
   std::vector<IODescr<false>> ret(output_cnt);
   for (size_t output_idx = 0; output_idx < output_cnt; output_idx++) {
     auto& output_desc = ret[output_idx];
-    auto& snt = shapes_and_types[output_idx];
     const char* name;
     TRITONBACKEND_RequestOutputName(request, output_idx, &name);
     output_desc.name = name;
+    auto& snt = shapes_and_types.at(name);
 
     auto output_shape = array_shape(snt.shape);
     TRITONBACKEND_Output* triton_output;
@@ -210,7 +216,6 @@ ProcessRequest(
   ret.compute_start_ns = capture_time();
   auto shapes_and_types = executor.Run(dali_inputs);
   ret.compute_end_ns = capture_time();
-  // TODO verify shapes_and_types against what's provided in config.pbtxt
   auto dali_outputs = AllocateOutputs(request, response, shapes_and_types);
   executor.PutOutputs(dali_outputs);
   return ret;
