@@ -45,16 +45,14 @@ def parse_args():
                         help='Input name')
     parser.add_argument('-o', '--output_name', type=str, required=False, default="OUTPUT",
                         help='Output name')
-    parser.add_argument('--preprocess', action='store_true', required=False, default=False,
-                        help='Make client perform the preprocessing. Remember, to target proper'
-                             'model when this option is turned on.')
     parser.add_argument('--statistics', action='store_true', required=False, default=False,
                         help='Print tritonserver statistics after inferring')
     img_group = parser.add_mutually_exclusive_group()
     img_group.add_argument('--img', type=str, required=False, default=None,
                            help='Run a img dali pipeline. Arg: path to the image.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches an infered. The directory must contain images only')
+                           help='Directory, with images that will be broken down into batches an '
+                                'inferred. The directory must contain images only')
     return parser.parse_args()
 
 
@@ -85,24 +83,6 @@ def load_images(dir_path: str, max_images=-1):
     for img in tqdm(img_paths, desc="Reading images"):
         images.append(load_image(img))
     return images
-
-
-def preprocess_image(encoded_image):
-    """
-    Preprocess an image for the inception model
-    :param encoded_image: ndarray with encoded image
-    :return: (preprocessed image, preprocessing time)
-    """
-    import cv2, time
-    start = time.perf_counter()
-    img = cv2.imdecode(encoded_image, 1)
-    img = cv2.resize(img, (299, 299))
-    img = img.astype(np.float32)
-    mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
-    std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-    img = (img - mean) / std
-    stop = time.perf_counter()
-    return img, stop - start
 
 
 def array_from_list(arrays):
@@ -158,26 +138,13 @@ def main():
     for batch in tqdm(utils.batcher(image_data, FLAGS.batch_size, n_iterations=FLAGS.n_iter),
                       desc="Inferring", total=FLAGS.n_iter):
 
-        if FLAGS.preprocess:
-            preprocessed_samples = []
-            latency = 0
-            for img in batch:
-                prep, lat = preprocess_image(img)
-                preprocessed_samples.append(prep)
-                latency += lat
-            batch = array_from_list(preprocessed_samples).astype(np.float32)
-            latencies.append(latency)
-
-        inputs, outputs = generate_io(FLAGS.input_name, FLAGS.output_name, batch.shape,
-                                      "UINT8" if not FLAGS.preprocess else "FP32")
+        inputs, outputs = generate_io(FLAGS.input_name, FLAGS.output_name, batch.shape, "UINT8")
 
         # Initialize the data
         inputs[0].set_data_from_numpy(batch)
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name,
-                                      inputs=inputs,
-                                      outputs=outputs)
+        results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
         # Get the output arrays from the results
         output0_data = results.as_numpy(FLAGS.output_name)
@@ -192,8 +159,6 @@ def main():
         sys.exit(1)
     if FLAGS.statistics:
         print(statistics)
-    if FLAGS.preprocess:
-        print("Latencies [ms]: ", np.mean(latencies) * 1000, np.array(latencies) * 1000)
 
     print('PASS: infer')
 
