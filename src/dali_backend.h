@@ -155,24 +155,35 @@ GenerateInputs(TRITONBACKEND_Request* request)
  * Allocate outputs within Triton Server
  * @param request Request, corresponding to which the Response will be allocated
  * @param response Output argument. This Response's memory will be allocated
- * @param shapes_and_types [output_name, output_shape_and_type] map
+ * @param shapes_and_types Shape and type of the output for a given index
+ * @param output_order Maps output name to its index in the results from DALI
+ * processing.
  * @return
  */
 std::vector<IODescr<false>>
 AllocateOutputs(
     TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
-    const std::unordered_map<std::string, shape_and_type_t>& shapes_and_types)
+    const std::vector<shape_and_type_t>& shapes_and_types,
+    const std::unordered_map<std::string, int>& output_order)
 {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
-  assert(output_cnt == shapes_and_types.size());
+  ENFORCE(
+      shapes_and_types.size() == output_cnt,
+      make_string(
+          "Number of outputs in the model configuration (", output_cnt,
+          ") does not match to the number of outputs from DALI pipeline (",
+          shapes_and_types.size(), ")"));
+
   std::vector<IODescr<false>> ret(output_cnt);
-  for (size_t output_idx = 0; output_idx < output_cnt; output_idx++) {
-    auto& output_desc = ret[output_idx];
+  for (size_t i = 0; i < output_cnt; i++) {
     const char* name;
-    TRITONBACKEND_RequestOutputName(request, output_idx, &name);
+    TRITONBACKEND_RequestOutputName(request, i, &name);
+    auto output_idx = output_order.at(std::string(name));
+
+    auto& output_desc = ret[output_idx];
     output_desc.name = name;
-    auto& snt = shapes_and_types.at(name);
+    auto& snt = shapes_and_types[output_idx];
 
     auto output_shape = array_shape(snt.shape);
     TRITONBACKEND_Output* triton_output;
@@ -195,31 +206,6 @@ AllocateOutputs(
   return ret;
 }
 
-
-struct RequestMeta {
-  uint64_t compute_start_ns, compute_end_ns;
-  int batch_size;
-};
-
-
-RequestMeta
-ProcessRequest(
-    TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
-    DaliExecutor& executor)
-{
-  RequestMeta ret;
-
-  auto dali_inputs = GenerateInputs(request);
-  ret.batch_size =
-      dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
-                                           // same in every input
-  ret.compute_start_ns = capture_time();
-  auto shapes_and_types = executor.Run(dali_inputs);
-  ret.compute_end_ns = capture_time();
-  auto dali_outputs = AllocateOutputs(request, response, shapes_and_types);
-  executor.PutOutputs(dali_outputs);
-  return ret;
-}
 
 }}}}  // namespace triton::backend::dali::detail
 

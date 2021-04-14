@@ -38,12 +38,12 @@ input [
 
 output [
   {
-    name: "DALI_OUTPUT_X"
+    name: "DALI_unchanged"
     data_type: TYPE_UINT8
     dims: [ -1 ]
   },
   {
-    name: "DALI_OUTPUT_Y"
+    name: "DALI_changed"
     data_type: TYPE_UINT8
     dims: [ -1 ]
   }
