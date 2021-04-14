@@ -22,6 +22,4 @@
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.11-py3-clientsdk
 FROM ${BASE_IMAGE} as client
 
-RUN apt-get update && apt-get install -y python3-opencv
-
 RUN pip3 install ipdb, tqdm

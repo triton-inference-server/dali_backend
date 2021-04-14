@@ -133,8 +133,6 @@ def main():
     image_data = array_from_list(image_data)
     print("Images loaded")
 
-    latencies = []
-
     for batch in tqdm(utils.batcher(image_data, FLAGS.batch_size, n_iterations=FLAGS.n_iter),
                       desc="Inferring", total=FLAGS.n_iter):
 
