@@ -21,22 +21,26 @@
 
 import nvidia.dali as dali
 import nvidia.dali.types as types
-import argparse
+
+
+def _parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
+    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
+    return parser.parse_args()
+
+
+@dali.pipeline_def(batch_size=256, num_threads=8, device_id=0)
+def pipe():
+    images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+    images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)
+    return images
 
 
 def main(filename):
-    pipe = dali.pipeline.Pipeline(batch_size=256, num_threads=8, device_id=0)
-    with pipe:
-        images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
-        images = dali.fn.image_decoder(images, device="mixed", output_type=types.RGB)
-
-        pipe.set_outputs(images)
-        pipe.serialize(filename=filename)
-
+    pipe().serialize(filename=filename)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
-    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
-    args = parser.parse_args()
+    args = _parse_args()
     main(args.file_path)
