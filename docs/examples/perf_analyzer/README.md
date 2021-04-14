@@ -16,7 +16,7 @@ When you have your model repo set up, you can run `tritonserver`. Be sure to fil
 
 ### perf_analyzer
 
-1. Pick an image you like the most
+1. Pick an image for testing
 1. Run Triton's client docker container:
  
     ```
