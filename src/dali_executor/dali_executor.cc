@@ -46,8 +46,9 @@ SetupInputs(DaliPipeline& pipeline, const std::vector<IODescr<owns>>& inputs)
   }
 }
 
+
 template <bool owns>
-std::unordered_map<std::string, shape_and_type_t>
+std::vector<shape_and_type_t>
 DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
 {
   auto& pipeline =
@@ -61,14 +62,14 @@ DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
     pipeline_pool_.Remove(serialized_pipeline_, max_batch_size_, device_id_);
     throw e;
   }
-  std::unordered_map<std::string, shape_and_type_t> ret;
+  std::vector<shape_and_type_t> ret(pipeline.GetNumOutput());
   auto outputs_shapes = pipeline.GetOutputShapes();
-  for (int out_idx = 0; out_idx < pipeline.GetNumOutput(); out_idx++) {
-    ret[pipeline.GetOutputName(out_idx)] = {
-        outputs_shapes[out_idx], pipeline.GetOutputType(out_idx)};
+  for (int out_idx = 0; out_idx < ret.size(); out_idx++) {
+    ret[out_idx] = {outputs_shapes[out_idx], pipeline.GetOutputType(out_idx)};
   }
   return ret;
 }
+
 
 template <bool owns>
 void
@@ -85,10 +86,8 @@ DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs)
 
 
 // Handful of explicit instantiations to make the development less painful
-template std::unordered_map<std::string, shape_and_type_t> DaliExecutor::Run(
-    const std::vector<IODescr<true>>&);
-template std::unordered_map<std::string, shape_and_type_t> DaliExecutor::Run(
-    const std::vector<IODescr<false>>&);
+template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<true>>&);
+template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<false>>&);
 template void DaliExecutor::PutOutputs(const std::vector<IODescr<true>>&);
 template void DaliExecutor::PutOutputs(const std::vector<IODescr<false>>&);
 

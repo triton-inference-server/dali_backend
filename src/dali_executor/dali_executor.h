@@ -50,11 +50,9 @@ class DaliExecutor {
 
   /**
    * Run DALI pipeline and return the result descriptor
-   * @return [output_name, output_shape_and_type]
    */
   template <bool owns>
-  std::unordered_map<std::string, shape_and_type_t> Run(
-      const std::vector<IODescr<owns>>& inputs);
+  std::vector<shape_and_type_t> Run(const std::vector<IODescr<owns>>& inputs);
 
 
   template <bool owns>

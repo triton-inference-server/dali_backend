@@ -39,12 +39,12 @@ input [
 output [
   {
     name: "DALI_unchanged"
-    data_type: TYPE_UINT8
+    data_type: TYPE_INT32
     dims: [ -1 ]
   },
   {
     name: "DALI_changed"
-    data_type: TYPE_UINT8
+    data_type: TYPE_INT32
     dims: [ -1 ]
   }
 ]

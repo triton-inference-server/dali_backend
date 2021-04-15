@@ -70,7 +70,8 @@ class DaliModel : public ::triton::backend::BackendModel {
     }
   }
 
-  const std::unordered_map<std::string, int>& GetOutputOrder()
+
+  const std::unordered_map<std::string, int>& GetOutputOrder() const
   {
     return output_order_;
   }
@@ -139,17 +140,21 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   DaliExecutor& GetDaliExecutor() { return *dali_executor_; }
 
+  const DaliModel& GetDaliModel() const { return *dali_model_; }
+
  private:
   DaliModelInstance(
       DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
-      : BackendModelInstance(model, triton_model_instance)
+      : BackendModelInstance(model, triton_model_instance), dali_model_(model)
   {
     dali_executor_ = std::make_unique<DaliExecutor>(
-        model->GetModelProvider().GetModel(), model->MaxBatchSize(), device_id_);
+        model->GetModelProvider().GetModel(), model->MaxBatchSize(),
+        device_id_);
   }
 
 
   std::unique_ptr<DaliExecutor> dali_executor_;
+  DaliModel* dali_model_;
 };
 
 
@@ -198,15 +203,15 @@ ProcessRequest(
 {
   RequestMeta ret;
   auto& executor = model_instance.GetDaliExecutor();
-  auto& outputs_indices = model_instance.GetOutputOrder();
+  auto& outputs_indices = model_instance.GetDaliModel().GetOutputOrder();
 
   auto dali_inputs = detail::GenerateInputs(request);
   ret.batch_size =
       dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
-  // same in every input
-  ret.compute_start_ns = capture_time();
+                                           // same in every input
+  ret.compute_start_ns = detail::capture_time();
   auto shapes_and_types = executor.Run(dali_inputs);
-  ret.compute_end_ns = capture_time();
+  ret.compute_end_ns = detail::capture_time();
   auto dali_outputs = detail::AllocateOutputs(
       request, response, shapes_and_types, outputs_indices);
   executor.PutOutputs(dali_outputs);
