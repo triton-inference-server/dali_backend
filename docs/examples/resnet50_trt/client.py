@@ -35,7 +35,7 @@ def load_image(img_path: str):
     DALI performs image decoding, therefore this way the processing
     can be fully offloaded to the GPU.
     """
-    np.fromfile(img_path, dtype='uint8')
+    return np.fromfile(img_path, dtype='uint8')
 
 
 if __name__ == "__main__":
@@ -53,7 +53,7 @@ if __name__ == "__main__":
                         required=False,
                         default="localhost:8001",
                         help="Inference server URL. Default is localhost:8001.")
-    perser.add_argument('-v', "--verbose",
+    parser.add_argument('-v', "--verbose",
                         action="store_true",
                         required=False,
                         default=False,
@@ -95,4 +95,4 @@ if __name__ == "__main__":
 
     maxs = np.argmax(output0_data, axis=1)
 
-    print("{}ms class:{}".format(latency, labels_dict[maxs[0]]))
+    print("{}ms class: {}".format(latency, labels_dict[maxs[0]]))
