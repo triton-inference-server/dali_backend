@@ -70,7 +70,7 @@ def load_images(dir_path: str, max_images=-1):
     """
     Loads all files in given dir_path. Treats them as images
     """
-    assert max_images > 0 or max_images == -1, "Please specify sane number of images"
+    assert max_images > 0 or max_images == -1
     images = []
 
     # Traverses directory for files (not dirs) and returns full paths to them
