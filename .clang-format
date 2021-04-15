@@ -10,14 +10,12 @@ AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
 AlignOperands: Align
 AlignTrailingComments: true
-# Arguments can be moved to next line if they all will fit
 AllowAllArgumentsOnNextLine: true
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortEnumsOnASingleLine: false
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: false
-# Empty and Inline instead of ALL
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Inline
@@ -34,7 +32,6 @@ BreakBeforeTernaryOperators: false
 BreakConstructorInitializers: AfterColon
 BreakAfterJavaFieldAnnotations: false
 BreakStringLiterals: true
-# We use 100 instead of 80
 ColumnLimit: 100
 CommentPragmas: '^ IWYU pragma:'
 CompactNamespaces: true
