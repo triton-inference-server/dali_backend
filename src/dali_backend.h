@@ -158,7 +158,7 @@ GenerateInputs(TRITONBACKEND_Request* request)
  * @param shapes_and_types Shape and type of the output for a given index
  * @param output_order Maps output name to its index in the results from DALI
  * processing.
- * @return
+ * @return A descriptor that wraps Triton output
  */
 std::vector<IODescr<false>>
 AllocateOutputs(

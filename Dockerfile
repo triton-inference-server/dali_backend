@@ -61,7 +61,6 @@ RUN CMAKE_VERSION=3.17 && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
     rm -rf /cmake-${CMAKE_BUILD}
 
-RUN ls
 RUN pip install --force-reinstall --extra-index-url https://developer.download.nvidia.com/compute/redist/nightly nvidia-dali-nightly-cuda110
 
 WORKDIR /dali

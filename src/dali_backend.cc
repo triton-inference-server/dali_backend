@@ -56,16 +56,14 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   void ReadOutputsOrder()
   {
-    cout << "DUPA ";
     using Value = ::triton::common::TritonJson::Value;
     Value outputs;
     model_config_.MemberAsArray("output", &outputs);
-    for (int output_idx = 0; output_idx < 2; output_idx++) {
+    for (int output_idx = 0; output_idx < outputs.ArraySize(); output_idx++) {
       Value out;
       std::string name;
       outputs.IndexAsObject(output_idx, &out);
       out.MemberAsString("name", &name);
-      cout << output_idx << " " << name << endl;
       output_order_[name] = output_idx;
     }
   }
