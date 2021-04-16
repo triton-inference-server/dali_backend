@@ -146,7 +146,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       : BackendModelInstance(model, triton_model_instance), dali_model_(model)
   {
     dali_executor_ = std::make_unique<DaliExecutor>(
-        model->GetModelProvider().GetModel(), model->MaxBatchSize(),
+        dali_model_->GetModelProvider().GetModel(), dali_model_->MaxBatchSize(),
         device_id_);
   }
 

@@ -24,7 +24,6 @@
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 #include "src/dali_executor/io_descriptor.h"
