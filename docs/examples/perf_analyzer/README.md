@@ -1,5 +1,8 @@
 # perf_analyzer example with DALI image decoder
 
+This is an example of using `perf_analyer` tool from the Triton's Client toolkit in order to
+measure the performance of your model ensemble, when DALI is the first model in the ensemble.
+Before diving into this example, be sure to get accustomed to [Triton's basics](https://github.com/triton-inference-server/server#documentation).
 
 ## Run the example
 
@@ -20,7 +23,7 @@ When you have your model repository set up, you can run `tritonserver`. Be sure 
 1. Run Triton's client docker container:
  
     ```
-    docker run -it --net=host nvcr.io/nvidia/tritonserver:XX.YY-py3-clientsdk
+    docker run -it --net=host nvcr.io/nvidia/tritonserver:20.11-py3-clientsdk
     ```
 
 1. Create a directory for the test image and put it there. 
