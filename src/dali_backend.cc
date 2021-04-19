@@ -35,7 +35,7 @@ struct ModelParameters {
   {
     common::TritonJson::Value params;
     model_config.MemberAsObject("parameters", &params);
-    GetMember(params, num_threads_key, &num_threads);
+    GetMember(params, num_threads_key, num_threads);
   }
 
  private:
@@ -43,7 +43,7 @@ struct ModelParameters {
   void GetMember(
       common::TritonJson::Value &params,
       const char* key,
-      T *value)
+      T &value)
   {
     if (params.Find(key)) {
       common::TritonJson::Value param;
@@ -52,7 +52,7 @@ struct ModelParameters {
       std::string string_value;
       TRITON_CALL_GUARD(
         param.MemberAsString("string_value", &string_value));
-      num_threads = string_as<int>(string_value);
+      value = string_as<T>(string_value);
     }
   }
 
@@ -60,7 +60,7 @@ struct ModelParameters {
   int64_t num_threads = -1;
 
  private:
-  static constexpr const char* num_threads_key = "num_threads";
+  static constexpr const char *num_threads_key = "num_threads";
 };
 
 class DaliModel : public ::triton::backend::BackendModel {

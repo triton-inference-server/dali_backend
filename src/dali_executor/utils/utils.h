@@ -61,10 +61,10 @@ array_shape(TensorListShape<ndims> tls)
 }
 
 template <typename T>
-T string_as(const std::string &str);
+T from_string(const std::string &str);
 
 template <>
-inline int string_as<int>(const std::string &str) {
+inline int from_string<int>(const std::string &str) {
   return std::stoi(str);
 }
 
