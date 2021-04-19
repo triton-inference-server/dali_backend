@@ -52,7 +52,7 @@ struct ModelParameters {
       std::string string_value;
       TRITON_CALL_GUARD(
         param.MemberAsString("string_value", &string_value));
-      value = string_as<T>(string_value);
+      value = from_string<T>(string_value);
     }
   }
 
