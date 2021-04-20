@@ -25,6 +25,7 @@ import argparse, os, sys
 import numpy as np
 import tritonclient.grpc
 import utils
+import re
 from tqdm import tqdm
 from PIL import Image
 
@@ -51,7 +52,7 @@ def parse_args():
     img_group.add_argument('--img', type=str, required=False, default=None,
                            help='Run a img dali pipeline. Arg: path to the image.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches an '
+                           help='Directory, with images that will be broken down into batches and '
                                 'inferred. The directory must contain images only')
     return parser.parse_args()
 
@@ -66,16 +67,18 @@ def load_image(img_path: str):
         return np.array(list(img)).astype(np.uint8)
 
 
-def load_images(dir_path: str, max_images=-1):
+def load_images(dir_path: str, name_pattern='.', max_images=-1):
     """
-    Loads all files in given dir_path. Treats them as images
+    Loads all files in given dir_path. Treats them as images. Optionally apply regex pattern to
+    file names and use only the files, that suffice the pattern
     """
     assert max_images > 0 or max_images == -1
     images = []
 
     # Traverses directory for files (not dirs) and returns full paths to them
     path_generator = (os.path.join(dir_path, f) for f in os.listdir(dir_path) if
-                      os.path.isfile(os.path.join(dir_path, f)))
+                      os.path.isfile(os.path.join(dir_path, f)) and
+                      re.search(name_pattern, f) is not None)
 
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
     if 0 < max_images < len(img_paths):
@@ -105,12 +108,12 @@ def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
     im.save("result_img_" + str(name_suffix) + ".jpg")
 
 
-def generate_io(input_name, output_name, input_shape, input_dtype):
-    inputs = []
-    outputs = []
-    inputs.append(tritonclient.grpc.InferInput(input_name, input_shape, input_dtype))
-    outputs.append(tritonclient.grpc.InferRequestedOutput(output_name))
-    return inputs, outputs
+def generate_inputs(input_name, input_shape, input_dtype):
+    return [tritonclient.grpc.InferInput(input_name, input_shape, input_dtype)]
+
+
+def generate_outputs(output_name):
+    return [tritonclient.grpc.InferRequestedOutput(output_name)]
 
 
 def main():
@@ -136,7 +139,8 @@ def main():
     for batch in tqdm(utils.batcher(image_data, FLAGS.batch_size, n_iterations=FLAGS.n_iter),
                       desc="Inferring", total=FLAGS.n_iter):
 
-        inputs, outputs = generate_io(FLAGS.input_name, FLAGS.output_name, batch.shape, "UINT8")
+        inputs = generate_inputs(FLAGS.input_name, batch.shape, "UINT8")
+        outputs = generate_outputs(FLAGS.output_name)
 
         # Initialize the data
         inputs[0].set_data_from_numpy(batch)
