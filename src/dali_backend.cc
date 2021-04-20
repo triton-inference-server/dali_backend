@@ -59,7 +59,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     using Value = ::triton::common::TritonJson::Value;
     Value outputs;
     model_config_.MemberAsArray("output", &outputs);
-    for (int output_idx = 0; output_idx < outputs.ArraySize(); output_idx++) {
+    for (size_t output_idx = 0; output_idx < outputs.ArraySize(); output_idx++) {
       Value out;
       std::string name;
       outputs.IndexAsObject(output_idx, &out);

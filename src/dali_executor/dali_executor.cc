@@ -64,7 +64,7 @@ DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
   }
   std::vector<shape_and_type_t> ret(pipeline.GetNumOutput());
   auto outputs_shapes = pipeline.GetOutputShapes();
-  for (int out_idx = 0; out_idx < ret.size(); out_idx++) {
+  for (size_t out_idx = 0; out_idx < ret.size(); out_idx++) {
     ret[out_idx] = {outputs_shapes[out_idx], pipeline.GetOutputType(out_idx)};
   }
   return ret;
