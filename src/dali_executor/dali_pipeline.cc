@@ -35,7 +35,7 @@ DaliPipeline::GetOutputShapeAt(int output_idx)
   size_t batch_size = daliNumTensors(&handle_, output_idx);
   auto ndim = daliMaxDimTensors(&handle_, output_idx);
   TensorListShape<> result(batch_size, ndim);
-  for (int s = 0; s < batch_size; ++s) {
+  for (size_t s = 0; s < batch_size; ++s) {
     auto* shape = daliShapeAtSample(&handle_, output_idx, s);
     result.set_tensor_shape(s, span<int64_t>(shape, ndim));
     free(shape);
