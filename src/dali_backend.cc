@@ -53,6 +53,28 @@ class DaliModel : public ::triton::backend::BackendModel {
     return *dali_model_provider_;
   };
 
+
+  void ReadOutputsOrder()
+  {
+    using Value = ::triton::common::TritonJson::Value;
+    Value outputs;
+    model_config_.MemberAsArray("output", &outputs);
+    for (int output_idx = 0; output_idx < outputs.ArraySize(); output_idx++) {
+      Value out;
+      std::string name;
+      outputs.IndexAsObject(output_idx, &out);
+      out.MemberAsString("name", &name);
+      output_order_[name] = output_idx;
+    }
+  }
+
+
+  const std::unordered_map<std::string, int>& GetOutputOrder() const
+  {
+    return output_order_;
+  }
+
+
  private:
   explicit DaliModel(TRITONBACKEND_Model* triton_model)
       : BackendModel(triton_model)
@@ -85,6 +107,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
 
   std::unique_ptr<ModelProvider> dali_model_provider_;
+  std::unordered_map<std::string, int> output_order_;
 };
 
 
@@ -115,17 +138,21 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   DaliExecutor& GetDaliExecutor() { return *dali_executor_; }
 
+  const DaliModel& GetDaliModel() const { return *dali_model_; }
+
  private:
   DaliModelInstance(
       DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
-      : BackendModelInstance(model, triton_model_instance)
+      : BackendModelInstance(model, triton_model_instance), dali_model_(model)
   {
     dali_executor_ = std::make_unique<DaliExecutor>(
-        model->GetModelProvider().GetModel(), model->MaxBatchSize(), device_id_);
+        dali_model_->GetModelProvider().GetModel(), dali_model_->MaxBatchSize(),
+        device_id_);
   }
 
 
   std::unique_ptr<DaliExecutor> dali_executor_;
+  DaliModel* dali_model_;
 };
 
 
@@ -160,7 +187,34 @@ DaliModelInstance::Create(
   return error;  // success
 }
 
-/////////////
+
+struct RequestMeta {
+  uint64_t compute_start_ns, compute_end_ns;
+  int batch_size;
+};
+
+
+RequestMeta
+ProcessRequest(
+    TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
+    DaliModelInstance& model_instance)
+{
+  RequestMeta ret;
+  auto& executor = model_instance.GetDaliExecutor();
+  auto& outputs_indices = model_instance.GetDaliModel().GetOutputOrder();
+
+  auto dali_inputs = detail::GenerateInputs(request);
+  ret.batch_size =
+      dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
+                                           // same in every input
+  ret.compute_start_ns = detail::capture_time();
+  auto shapes_and_types = executor.Run(dali_inputs);
+  ret.compute_end_ns = detail::capture_time();
+  auto dali_outputs = detail::AllocateOutputs(
+      request, response, shapes_and_types, outputs_indices);
+  executor.PutOutputs(dali_outputs);
+  return ret;
+}
 
 extern "C" {
 
@@ -309,6 +363,8 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
   // function will prevent the model from loading.
   RETURN_IF_ERROR(model_state->ValidateModelConfig());
 
+  model_state->ReadOutputsOrder();
+
   return nullptr;  // success
 }
 
@@ -416,11 +472,10 @@ TRITONBACKEND_ModelInstanceExecute(
     LOG_IF_ERROR(
         TRITONBACKEND_ResponseNew(&responses[i], requests[i]),
         make_string("Failed creating a response, idx: ", i));
-    detail::RequestMeta request_meta;
+    RequestMeta request_meta;
 
     try {
-      request_meta = detail::ProcessRequest(
-          responses[i], requests[i], instance_state->GetDaliExecutor());
+      request_meta = ProcessRequest(responses[i], requests[i], *instance_state);
     }
     catch (DaliBackendException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
@@ -440,11 +495,16 @@ TRITONBACKEND_ModelInstanceExecute(
           TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
           make_string("runtime error: ", e.what()).c_str());
     }
+    catch (std::exception& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = TRITONSERVER_ErrorNew(
+          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+          make_string("exception: ", e.what()).c_str());
+    }
     catch (...) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
       error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-          "Unknown DALI Backend error");
+          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN, "Unknown error");
     }
 
     exec_end_ns = detail::capture_time();

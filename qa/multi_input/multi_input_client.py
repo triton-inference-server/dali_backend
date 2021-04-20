@@ -66,7 +66,7 @@ def batcher(dataset, max_batch_size, n_iterations=-1):
     while data_idx < len(dataset):
         if 0 < n_iterations <= iter_idx:
             raise StopIteration
-        batch_size = min(randint(1, max_batch_size), len(dataset) - data_idx)
+        batch_size = min(randint(0, max_batch_size) + 1, len(dataset) - data_idx)
         iter_idx += 1
         yield dataset[data_idx : data_idx + batch_size]
         data_idx += batch_size
@@ -90,31 +90,38 @@ def main():
     # Infer
     outputs = []
     input_names = ["DALI_X_INPUT", "DALI_Y_INPUT"]
-    output_names = ["DALI_OUTPUT_X", "DALI_OUTPUT_Y"]
+    output_names = ["DALI_unchanged", "DALI_changed"]
+
     input_shape = list(input_data.shape)
+    multiplier = 2
+
     for oname in output_names:
         outputs.append(tritonclient.grpc.InferRequestedOutput(oname))
 
     for batch in batcher(input_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
+        batch_size = np.shape(batch)[0]
+        print("Batch size: ", batch_size)
+
         # Initialize the data
-        input_shape[0] = np.shape(batch)[0]
-        print("Batch size: ", input_shape[0])
-        inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in input_names]
+        input_shape[0] = batch_size
+        inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in
+                  input_names]
         for inp in inputs:
             inp.set_data_from_numpy(np.copy(batch))
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name,
-                                      inputs=inputs,
-                                      outputs=outputs)
+        results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
         # Get the output arrays from the results
         for oname in output_names:
-            output0_data = results.as_numpy(oname)
-            print("Output mean after backend processing:", np.mean(output0_data))
-            print("Output shape: ", np.shape(output0_data))
-            if not math.isclose(np.mean(output0_data), np.mean(batch)):
+            print("\nOutput: ", oname)
+            output_data = results.as_numpy(oname)
+            print("Output mean after backend processing:", np.mean(output_data))
+            print("Output shape: ", np.shape(output_data))
+            expected = np.multiply(batch, 1 if oname is "DALI_unchanged" else multiplier,
+                                   dtype=np.int32)
+            if not np.allclose(output_data, expected):
                 print("Pre/post average does not match")
                 sys.exit(1)
             else:
