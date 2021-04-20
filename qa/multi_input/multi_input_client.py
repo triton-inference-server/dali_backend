@@ -116,11 +116,12 @@ def main():
         # Get the output arrays from the results
         for oname in output_names:
             print("\nOutput: ", oname)
-            output0_data = results.as_numpy(oname)
-            print("Output mean after backend processing:", np.mean(output0_data))
-            print("Output shape: ", np.shape(output0_data))
-            expected = np.mean(batch) * (1 if oname is "DALI_unchanged" else multiplier)
-            if not math.isclose(np.mean(output0_data), expected):
+            output_data = results.as_numpy(oname)
+            print("Output mean after backend processing:", np.mean(output_data))
+            print("Output shape: ", np.shape(output_data))
+            expected = np.multiply(batch, 1 if oname is "DALI_unchanged" else multiplier,
+                                   dtype=np.int32)
+            if not np.allclose(output_data, expected):
                 print("Pre/post average does not match")
                 sys.exit(1)
             else:
