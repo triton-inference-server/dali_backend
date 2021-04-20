@@ -13,14 +13,14 @@ To run the tritonserver, first you need to serialize a DALI pipeline and put it 
 `setup_perf_analyzer_example.sh` is a convenience script that automatizes setting up.
 Provided you have DALI installed in your system, you can just call `sh setup_perf_analyzer_example.sh`
 
-When you have your model repository set up, you can run `tritonserver`. Be sure to replace `<path to model repo>` with the actual path in your system:
+When you have your model repository set up, you can run `tritonserver`. Be sure to replace `<path to model repo>` with the actual path in your system (`21.02-py3 tritonserver` version is just an example, any newer should work as well):
 
     docker run -it --rm --shm-size=1g --ulimit memlock=-1 --gpus all --ulimit stack=67108864 -p8000:8000 -p8001:8001 -p8002:8002 -v <path to model repo>:/models nvcr.io/nvidia/tritonserver:21.02-py3 tritonserver --model-repository=/models
 
 ### perf_analyzer
 
 1. Pick an image for testing
-1. Run Triton's client docker container:
+1. Run Triton's client docker container (`20.11-py3-clientsdk` version is just an example, any newer should work as well):
  
     ```
     docker run -it --net=host nvcr.io/nvidia/tritonserver:20.11-py3-clientsdk
@@ -46,4 +46,3 @@ When you have your model repository set up, you can run `tritonserver`. Be sure 
 
 As always with DALI Backend, remember that `dali.fn.external_source`'s `name` parameter must match
 with the input name provided in the `config.pbtxt` file.
-
