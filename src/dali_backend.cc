@@ -33,22 +33,35 @@ namespace triton { namespace backend { namespace dali {
 struct ModelParameters {
   explicit ModelParameters(common::TritonJson::Value &model_config)
   {
-    common::TritonJson::Value params;
-    model_config.MemberAsObject("parameters", &params);
-    GetMember(params, num_threads_key, num_threads);
+    model_config.MemberAsObject("parameters", &params_);
+  }
+
+  /**
+   * Rerurn a value of a parameter with a given `key`
+   * or `def` if the parameter is not present.
+   */
+  template <typename T>
+  T GetParam(const std::string &key, const T &def) {
+    T result = def;
+    GetMember(key, result);
+    return result;
+  }
+
+  int GetNumThreads() {
+    return GetParam("num_threads", -1);
   }
 
  private:
   template <typename T>
   void GetMember(
-      common::TritonJson::Value &params,
-      const char* key,
+      const std::string &key,
       T &value)
   {
-    if (params.Find(key)) {
+    auto key_c = key.c_str();
+    if (params_.Find(key_c)) {
       common::TritonJson::Value param;
       TRITON_CALL_GUARD(
-        params.MemberAsObject(key, &param));
+        params_.MemberAsObject(key_c, &param));
       std::string string_value;
       TRITON_CALL_GUARD(
         param.MemberAsString("string_value", &string_value));
@@ -56,11 +69,7 @@ struct ModelParameters {
     }
   }
 
- public:
-  int64_t num_threads = -1;
-
- private:
-  static constexpr const char *num_threads_key = "num_threads";
+  common::TritonJson::Value params_;
 };
 
 class DaliModel : public ::triton::backend::BackendModel {
@@ -87,7 +96,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return *dali_model_provider_;
   };
 
-  const ModelParameters& GetModelParamters() const {
+  ModelParameters& GetModelParamters() {
     return params_;
   }
 
@@ -121,7 +130,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return ret.empty() ? "model.dali" : ret;
   }
 
-  const ModelParameters params_;
+  ModelParameters params_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
 };
 
@@ -160,7 +169,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   {
     auto serialized_pipeline = model->GetModelProvider().GetModel();
     auto max_batch_size = model->MaxBatchSize();
-    auto num_threads = model->GetModelParamters().num_threads;
+    auto num_threads = model->GetModelParamters().GetNumThreads();
+    std::cout << "Num Threads: " << num_threads << std::endl;
     dali_executor_ = std::make_unique<DaliExecutor>(
         serialized_pipeline, max_batch_size, num_threads, device_id_);
   }

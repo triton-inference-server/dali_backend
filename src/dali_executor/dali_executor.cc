@@ -55,8 +55,7 @@ DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
     pipeline_.Output();
   }
   catch (std::runtime_error& e) {
-    pipeline_ = DaliPipeline(serialized_pipeline_, max_batch_size_,
-                             num_threads_, device_id_);
+    pipeline_.Reset();
     throw e;
   }
   std::vector<shape_and_type_t> ret(pipeline_.GetNumOutput());
