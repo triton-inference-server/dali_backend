@@ -41,7 +41,7 @@ TEST_CASE("IODescriptor owning memory")
     });
     buffers.push_back(buffer);
   }
-  int stitched_buffer_size = 0;
+  size_t stitched_buffer_size = 0;
   for (const auto& buf : buffers) {
     stitched_buffer_size += buf.size();
   }
@@ -53,10 +53,10 @@ TEST_CASE("IODescriptor owning memory")
   }
 
   auto* ptr = desc.buffer.data();
-  REQUIRE(desc.buffer.size() == stitched_buffer_size);
-  for (int i = 0; i < buffers.size(); i++) {
+  REQUIRE(static_cast<size_t>(desc.buffer.size()) == stitched_buffer_size);
+  for (size_t i = 0; i < buffers.size(); i++) {
     auto& buf = buffers[i];
-    for (int j = 0; j < buf.size(); j++) {
+    for (size_t j = 0; j < buf.size(); j++) {
       REQUIRE(buf[j] == *ptr++);
     }
   }

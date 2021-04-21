@@ -19,18 +19,12 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali_multi_input"
+name: "dali"
 backend: "dali"
-max_batch_size: 64
-default_model_filename: "model.dali"
+max_batch_size: 256
 input [
   {
-    name: "DALI_X_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_Y_INPUT"
+    name: "DALI_INPUT_0"
     data_type: TYPE_UINT8
     dims: [ -1 ]
   }
@@ -38,13 +32,8 @@ input [
 
 output [
   {
-    name: "DALI_unchanged"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_changed"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
+    name: "DALI_OUTPUT_0"
+    data_type: TYPE_UINT8
+    dims: [ -1, -1, -1 ]
   }
 ]

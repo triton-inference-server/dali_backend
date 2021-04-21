@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2021 NVIDIA CORPORATION
@@ -19,32 +21,13 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali_multi_input"
-backend: "dali"
-max_batch_size: 64
-default_model_filename: "model.dali"
-input [
-  {
-    name: "DALI_X_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_Y_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  }
-]
+mkdir -p model_repository/dali/1
+mkdir -p model_repository/ensemble_dali_resnet50/1
+mkdir -p model_repository/resnet50_trt/1
 
-output [
-  {
-    name: "DALI_unchanged"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_changed"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  }
-]
+docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 /bin/bash -c \
+  "python onnx_exporter.py --save model.onnx &&
+   trtexec --onnx=model.onnx --saveEngine=./model_repository/resnet50_trt/1/model.plan --explicitBatch --minShapes=input:1x3x224x224 --optShapes=input:1x3x224x224 --maxShapes=input:256x3x224x224 --fp16 &&
+   python serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali"
+
+echo "Resnet50 model ready."

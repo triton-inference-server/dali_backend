@@ -19,32 +19,28 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali_multi_input"
-backend: "dali"
-max_batch_size: 64
-default_model_filename: "model.dali"
-input [
-  {
-    name: "DALI_X_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_Y_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  }
-]
+import nvidia.dali as dali
+import nvidia.dali.types as types
 
-output [
-  {
-    name: "DALI_unchanged"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_changed"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  }
-]
+
+def _parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
+    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
+    return parser.parse_args()
+
+
+@dali.pipeline_def(batch_size=256, num_threads=4, device_id=0)
+def pipe():
+    images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+    images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)
+    return images
+
+
+def main(filename):
+    pipe().serialize(filename=filename)
+
+
+if __name__ == '__main__':
+    args = _parse_args()
+    main(args.file_path)

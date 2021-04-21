@@ -19,32 +19,29 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "dali_multi_input"
-backend: "dali"
-max_batch_size: 64
-default_model_filename: "model.dali"
-input [
-  {
-    name: "DALI_X_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_Y_INPUT"
-    data_type: TYPE_UINT8
-    dims: [ -1 ]
-  }
-]
+import torch
+import torchvision.models as models
+import argparse
+import os
 
-output [
-  {
-    name: "DALI_unchanged"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  },
-  {
-    name: "DALI_changed"
-    data_type: TYPE_INT32
-    dims: [ -1 ]
-  }
-]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--save", default="model.onnx")
+    args = parser.parse_args()
+
+    resnet50 = models.resnet50(pretrained=True)
+    dummy_input = torch.randn(1, 3, 224, 224)
+    resnet50 = resnet50.eval()
+
+    torch.onnx.export(resnet50,
+                      dummy_input,
+                      args.save,
+                      export_params=True,
+                      opset_version=10,
+                      do_constant_folding=True,
+                      input_names=['input'],
+                      output_names=['output'],
+                      dynamic_axes={'input': {0: 'batch_size', 2: "height", 3: 'width'},
+                                    'output': {0: 'batch_size'}})
+
+    print("Saved {}".format(args.save))
