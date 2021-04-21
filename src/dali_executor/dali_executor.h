@@ -41,13 +41,8 @@ struct shape_and_type_t {
 
 class DaliExecutor {
  public:
-  DaliExecutor(
-      std::string serialized_pipeline, int max_batch_size, int num_threads, int device_id)
-      : serialized_pipeline_(std::move(serialized_pipeline)),
-        max_batch_size_(max_batch_size),
-        num_threads_(num_threads),
-        device_id_(device_id),
-        pipeline_(serialized_pipeline_, max_batch_size, num_threads, device_id)
+  DaliExecutor(DaliPipeline pipeline)
+      : pipeline_(std::move(pipeline))
   {
   }
 
@@ -62,10 +57,6 @@ class DaliExecutor {
   template <bool owns>
   void SetupInputs(const std::vector<IODescr<owns>>& inputs);
 
-  std::string serialized_pipeline_;
-  int max_batch_size_;
-  int num_threads_;
-  int device_id_;
   DaliPipeline pipeline_;
 };
 

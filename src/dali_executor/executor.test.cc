@@ -31,10 +31,11 @@ namespace triton { namespace backend { namespace dali { namespace test {
 
 TEST_CASE("Scaling Pipeline")
 {
-  std::string pipeline(
+  std::string pipeline_s(
       (const char*)pipelines::scale_pipeline_str,
       pipelines::scale_pipeline_len);
-  DaliExecutor executor(pipeline, 8, 4, 0);
+  DaliPipeline pipeline(pipeline_s, 8, 4, 0);
+  DaliExecutor executor(std::move(pipeline));
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
   const std::string inp_name = "INPUT0";
@@ -78,10 +79,11 @@ TEST_CASE("Scaling Pipeline")
 
 TEST_CASE("RN50 pipeline")
 {
-  std::string pipeline(
+  std::string pipeline_s(
       (const char*)pipelines::rn50_gpu_dali_chr,
       pipelines::rn50_gpu_dali_len);
-  DaliExecutor executor(pipeline, 1, 3, 0);
+  DaliPipeline pipeline(pipeline_s, 1, 3, 0);
+  DaliExecutor executor(std::move(pipeline));
   IODescr<false> input;
   input.name = "DALI_INPUT_0";
   input.type = dali_data_type_t::DALI_UINT8;

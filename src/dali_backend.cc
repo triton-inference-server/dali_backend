@@ -170,9 +170,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto serialized_pipeline = model->GetModelProvider().GetModel();
     auto max_batch_size = model->MaxBatchSize();
     auto num_threads = model->GetModelParamters().GetNumThreads();
-    std::cout << "Num Threads: " << num_threads << std::endl;
-    dali_executor_ = std::make_unique<DaliExecutor>(
-        serialized_pipeline, max_batch_size, num_threads, device_id_);
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size,
+                          num_threads, device_id_);
+    dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
 
