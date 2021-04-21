@@ -26,8 +26,51 @@
 
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
+#include "src/dali_executor/utils/utils.h"
 
 namespace triton { namespace backend { namespace dali {
+
+struct ModelParameters {
+  explicit ModelParameters(common::TritonJson::Value &model_config)
+  {
+    model_config.MemberAsObject("parameters", &params_);
+  }
+
+  /**
+   * Rerurn a value of a parameter with a given `key`
+   * or `def` if the parameter is not present.
+   */
+  template <typename T>
+  T GetParam(const std::string &key, const T &def = T()) {
+    T result = def;
+    GetMember(key, result);
+    return result;
+  }
+
+  int GetNumThreads() {
+    return GetParam("num_threads", -1);
+  }
+
+ private:
+  template <typename T>
+  void GetMember(
+      const std::string &key,
+      T &value)
+  {
+    auto key_c = key.c_str();
+    if (params_.Find(key_c)) {
+      common::TritonJson::Value param;
+      TRITON_CALL_GUARD(
+        params_.MemberAsObject(key_c, &param));
+      std::string string_value;
+      TRITON_CALL_GUARD(
+        param.MemberAsString("string_value", &string_value));
+      value = from_string<T>(string_value);
+    }
+  }
+
+  common::TritonJson::Value params_;
+};
 
 class DaliModel : public ::triton::backend::BackendModel {
  public:
@@ -53,6 +96,10 @@ class DaliModel : public ::triton::backend::BackendModel {
     return *dali_model_provider_;
   };
 
+  ModelParameters& GetModelParamters() {
+    return params_;
+  }
+
 
   void ReadOutputsOrder()
   {
@@ -77,7 +124,8 @@ class DaliModel : public ::triton::backend::BackendModel {
 
  private:
   explicit DaliModel(TRITONBACKEND_Model* triton_model)
-      : BackendModel(triton_model)
+      : BackendModel(triton_model),
+        params_(model_config_)
   {
     const char sep = '/';
 
@@ -96,7 +144,6 @@ class DaliModel : public ::triton::backend::BackendModel {
     dali_model_provider_ = std::make_unique<FileModelProvider>(filename);
   }
 
-
   std::string GetModelFilename()
   {
     std::string ret;
@@ -105,7 +152,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return ret.empty() ? "model.dali" : ret;
   }
 
-
+  ModelParameters params_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
   std::unordered_map<std::string, int> output_order_;
 };
@@ -145,9 +192,12 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
       : BackendModelInstance(model, triton_model_instance), dali_model_(model)
   {
-    dali_executor_ = std::make_unique<DaliExecutor>(
-        dali_model_->GetModelProvider().GetModel(), dali_model_->MaxBatchSize(),
-        device_id_);
+    auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
+    auto max_batch_size = dali_model_->MaxBatchSize();
+    auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size,
+                          num_threads, device_id_);
+    dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
 

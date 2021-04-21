@@ -54,6 +54,10 @@ class DaliPipeline {
     if (this != &dp) {
       ReleasePipeline();
       ReleaseStream();
+      serialized_pipeline_ = std::move(dp.serialized_pipeline_);
+      max_batch_size_ = dp.max_batch_size_;
+      num_threads_ = dp.num_threads_;
+      device_id_ = dp.device_id_;
       handle_ = dp.handle_;
       output_stream_ = dp.output_stream_;
 
@@ -71,15 +75,15 @@ class DaliPipeline {
 
   DaliPipeline(
       const std::string& serialized_pipeline, int max_batch_size,
-      int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
-      int seed = -1)
+      int num_threads, int device_id)
+        : serialized_pipeline_(serialized_pipeline),
+        max_batch_size_(max_batch_size),
+        num_threads_(num_threads),
+        device_id_(device_id)
   {
     InitDali();
     InitStream();
-    daliCreatePipeline(
-        &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
-        max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
-    assert(handle_.pipe != nullptr && handle_.ws != nullptr);
+    CreatePipeline();
   }
 
   void Run()
@@ -120,7 +124,21 @@ class DaliPipeline {
   void PutOutput(
       void* destination, int output_idx, device_type_t destination_device);
 
+  void Reset()
+  {
+    ReleasePipeline();
+    CreatePipeline();
+  }
+
  private:
+  void CreatePipeline()
+  {
+    daliCreatePipeline(
+        &handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),
+        max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
+    assert(handle_.pipe != nullptr && handle_.ws != nullptr);
+  }
+
   void ReleasePipeline()
   {
     if (handle_.pipe && handle_.ws) {
@@ -147,6 +165,11 @@ class DaliPipeline {
   void InitStream() {
     CUDA_CALL(cudaStreamCreate(&output_stream_));
   }
+
+  std::string serialized_pipeline_{};
+  int max_batch_size_ = 0;
+  int num_threads_ = 0;
+  int device_id_ = 0;
 
   daliPipelineHandle handle_{};
   ::cudaStream_t output_stream_ = nullptr;
