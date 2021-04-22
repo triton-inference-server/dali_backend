@@ -36,9 +36,7 @@ namespace triton { namespace backend { namespace dali { namespace detail {
 /**
  * Converts TRITONSERVER_DataType to dali_data_type_t
  */
-dali_data_type_t
-to_dali(TRITONSERVER_DataType t)
-{
+dali_data_type_t to_dali(TRITONSERVER_DataType t) {
   assert(t >= 0 && t <= 13);
   // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
   // types have more-or-less the same order, with few exceptions
@@ -54,9 +52,7 @@ to_dali(TRITONSERVER_DataType t)
 /**
  * Converts dali_data_type_t to TRITONSERVER_DataType
  */
-TRITONSERVER_DataType
-to_triton(dali_data_type_t t)
-{
+TRITONSERVER_DataType to_triton(dali_data_type_t t) {
   assert(-1 <= t && t <= 11);
   // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
   // types have more-or-less the same order, with few exceptions
@@ -68,9 +64,7 @@ to_triton(dali_data_type_t t)
 }
 
 
-device_type_t
-to_dali(TRITONSERVER_MemoryType t)
-{
+device_type_t to_dali(TRITONSERVER_MemoryType t) {
   switch (t) {
     case TRITONSERVER_MEMORY_CPU:
     case TRITONSERVER_MEMORY_CPU_PINNED:
@@ -82,35 +76,29 @@ to_dali(TRITONSERVER_MemoryType t)
   }
 }
 
-inline uint64_t
-capture_time()
-{
+inline uint64_t capture_time() {
   return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
 
-std::vector<IODescr<true>>
-GenerateInputs(TRITONBACKEND_Request* request)
-{
+std::vector<IODescr<true>> GenerateInputs(TRITONBACKEND_Request* request) {
   uint32_t input_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(request, &input_cnt));
   std::vector<IODescr<true>> ret;
 
   for (size_t input_idx = 0; input_idx < input_cnt; input_idx++) {
     const char* name;
-    TRITON_CALL_GUARD(
-        TRITONBACKEND_RequestInputName(request, input_idx, &name));
+    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputName(request, input_idx, &name));
     TRITONBACKEND_Input* input;
-    TRITON_CALL_GUARD(
-        TRITONBACKEND_RequestInputByIndex(request, input_idx, &input));
+    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputByIndex(request, input_idx, &input));
     TRITONSERVER_DataType input_datatype;
     const int64_t* input_shape;
     uint32_t input_dims_count;
     uint64_t input_byte_size;
     uint32_t input_buffer_count;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(
-        input, nullptr, &input_datatype, &input_shape, &input_dims_count,
-        &input_byte_size, &input_buffer_count));
+    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(input, nullptr, &input_datatype, &input_shape,
+                                                    &input_dims_count, &input_byte_size,
+                                                    &input_buffer_count));
 
     assert(ret.size() == input_idx);
     ret.emplace_back(input_byte_size);
@@ -119,8 +107,7 @@ GenerateInputs(TRITONBACKEND_Request* request)
     input_desc.name = name;
     input_desc.type = to_dali(input_datatype);
     auto batch_size = input_shape[0];
-    auto sample_shape =
-        TensorShape<>(input_shape + 1, input_shape + input_dims_count);
+    auto sample_shape = TensorShape<>(input_shape + 1, input_shape + input_dims_count);
     auto shape = TensorListShape<>::make_uniform(batch_size, sample_shape);
     input_desc.shape = shape;
 
@@ -130,20 +117,17 @@ GenerateInputs(TRITONBACKEND_Request* request)
     int64_t buffer_memory_type_id = 0;
 
     for (size_t buffer_idx = 0; buffer_idx < input_buffer_count; buffer_idx++) {
-      TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(
-          input, buffer_idx, &buffer, &buffer_byte_size, &buffer_memory_type,
-          &buffer_memory_type_id));
+      TRITON_CALL_GUARD(TRITONBACKEND_InputBuffer(input, buffer_idx, &buffer, &buffer_byte_size,
+                                                  &buffer_memory_type, &buffer_memory_type_id));
       if (buffer_idx == 0) {
         input_desc.device = to_dali(buffer_memory_type);
         input_desc.device_id = buffer_memory_type_id;
       } else {
-        ENFORCE(
-            input_desc.device == to_dali(buffer_memory_type),
-            "The entire buffer of an input shall reside on the same device "
-            "type");
-        ENFORCE(
-            input_desc.device_id == buffer_memory_type_id,
-            "The entire buffer of an input shall reside on the same device id");
+        ENFORCE(input_desc.device == to_dali(buffer_memory_type),
+                "The entire buffer of an input shall reside on the same device "
+                "type");
+        ENFORCE(input_desc.device_id == buffer_memory_type_id,
+                "The entire buffer of an input shall reside on the same device id");
       }
       input_desc.append((const char*)buffer, buffer_byte_size);
     }
@@ -160,20 +144,16 @@ GenerateInputs(TRITONBACKEND_Request* request)
  * processing.
  * @return A descriptor that wraps Triton output
  */
-std::vector<IODescr<false>>
-AllocateOutputs(
+std::vector<IODescr<false>> AllocateOutputs(
     TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
     const std::vector<shape_and_type_t>& shapes_and_types,
-    const std::unordered_map<std::string, int>& output_order)
-{
+    const std::unordered_map<std::string, int>& output_order) {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
-  ENFORCE(
-      shapes_and_types.size() == output_cnt,
-      make_string(
-          "Number of outputs in the model configuration (", output_cnt,
-          ") does not match to the number of outputs from DALI pipeline (",
-          shapes_and_types.size(), ")"));
+  ENFORCE(shapes_and_types.size() == output_cnt,
+          make_string("Number of outputs in the model configuration (", output_cnt,
+                      ") does not match to the number of outputs from DALI pipeline (",
+                      shapes_and_types.size(), ")"));
 
   std::vector<IODescr<false>> ret(output_cnt);
   for (size_t i = 0; i < output_cnt; i++) {
@@ -187,21 +167,19 @@ AllocateOutputs(
 
     auto output_shape = array_shape(snt.shape);
     TRITONBACKEND_Output* triton_output;
-    TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(
-        response, &triton_output, name, to_triton(snt.type),
-        output_shape.data(), output_shape.size()));
+    TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(response, &triton_output, name,
+                                                   to_triton(snt.type), output_shape.data(),
+                                                   output_shape.size()));
     void* buffer;
     TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_GPU;
     int64_t memid = 0;
-    auto buffer_byte_size = std::accumulate(
-                                output_shape.begin(), output_shape.end(), 1,
-                                std::multiplies<int>()) *
-                            TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
-    TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(
-        triton_output, &buffer, buffer_byte_size, &memtype, &memid));
+    auto buffer_byte_size =
+        std::accumulate(output_shape.begin(), output_shape.end(), 1, std::multiplies<int>()) *
+        TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
+    TRITON_CALL_GUARD(
+        TRITONBACKEND_OutputBuffer(triton_output, &buffer, buffer_byte_size, &memtype, &memid));
     output_desc.device = to_dali(memtype);
-    output_desc.buffer =
-        make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
+    output_desc.buffer = make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
   }
   return ret;
 }

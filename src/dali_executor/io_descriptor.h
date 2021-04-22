@@ -28,18 +28,14 @@
 
 namespace triton { namespace backend { namespace dali {
 
-struct StorageCpu {
-};
-struct StorageGpu {
-};
+struct StorageCpu {};
+struct StorageGpu {};
 
 namespace detail {
 
 
-template <typename StorageBackend = StorageCpu>
-void
-allocate(void** ptr, size_t size)
-{
+template<typename StorageBackend = StorageCpu>
+void allocate(void** ptr, size_t size) {
   *ptr = malloc(size);
   if (!*ptr) {
     throw std::bad_alloc();
@@ -47,47 +43,37 @@ allocate(void** ptr, size_t size)
 }
 
 
-template <>
-inline void
-allocate<StorageGpu>(void** ptr, size_t size)
-{
+template<>
+inline void allocate<StorageGpu>(void** ptr, size_t size) {
   CUDA_CALL_GUARD(cudaMalloc(ptr, size));
 }
 
 
-template <typename StorageBackend = StorageCpu>
-void
-deallocate(void* ptr)
-{
+template<typename StorageBackend = StorageCpu>
+void deallocate(void* ptr) {
   free(ptr);
 }
 
 
-template <>
-inline void
-deallocate<StorageGpu>(void* ptr)
-{
+template<>
+inline void deallocate<StorageGpu>(void* ptr) {
   CUDA_CALL_GUARD(cudaFree(ptr));
 }
 
 
-template <typename StorageBackend = StorageCpu>
-void
-copy(void* dst, const void* src, size_t count)
-{
+template<typename StorageBackend = StorageCpu>
+void copy(void* dst, const void* src, size_t count) {
   memcpy(dst, src, count);
 }
 
 
-template <>
-inline void
-copy<StorageGpu>(void* dst, const void* src, size_t count)
-{
+template<>
+inline void copy<StorageGpu>(void* dst, const void* src, size_t count) {
   CUDA_CALL_GUARD(cudaMemcpy(dst, src, count, cudaMemcpyDefault));
 }
 }  // namespace detail
 
-template <typename T>
+template<typename T>
 class IODescriptorBase {
  public:
   std::string name;
@@ -98,11 +84,10 @@ class IODescriptorBase {
   span<T> buffer;
 };
 
-static_assert(
-    std::is_move_constructible<IODescriptorBase<char>>::value &&
-    std::is_move_assignable<IODescriptorBase<char>>::value);
+static_assert(std::is_move_constructible<IODescriptorBase<char>>::value &&
+              std::is_move_assignable<IODescriptorBase<char>>::value);
 
-template <typename T, typename StorageBackend, bool owns_memory = false>
+template<typename T, typename StorageBackend, bool owns_memory = false>
 class IODescriptor : public IODescriptorBase<T> {
  public:
   using IODescriptorBase<T>::name;
@@ -114,27 +99,29 @@ class IODescriptor : public IODescriptorBase<T> {
 };
 
 
-template <typename T, typename StorageBackend>
+template<typename T, typename StorageBackend>
 class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
  public:
   IODescriptor() = default;
 
-  explicit IODescriptor(size_t cap) : owned_mem_capacity(cap) { alloc(); }
+  explicit IODescriptor(size_t cap) : owned_mem_capacity(cap) {
+    alloc();
+  }
 
-  ~IODescriptor() { dealloc(); }
+  ~IODescriptor() {
+    dealloc();
+  }
 
   IODescriptor(const IODescriptor&) = delete;
 
-  IODescriptor(IODescriptor&& other) noexcept
-      : owned_mem(nullptr), owned_mem_size(0), owned_mem_capacity(0)
-  {
+  IODescriptor(IODescriptor&& other) noexcept :
+      owned_mem(nullptr), owned_mem_size(0), owned_mem_capacity(0) {
     *this = std::move(other);
   }
 
   IODescriptor& operator=(const IODescriptor&) = delete;
 
-  IODescriptor& operator=(IODescriptor&& other)
-  {
+  IODescriptor& operator=(IODescriptor&& other) {
     if (this != &other) {
       dealloc();
 
@@ -151,21 +138,25 @@ class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
     return *this;
   }
 
-  void append(span<const T> buffer) { append(buffer.data(), buffer.size()); }
+  void append(span<const T> buffer) {
+    append(buffer.data(), buffer.size());
+  }
 
 
-  void append(const T* buffer, size_t size)
-  {
+  void append(const T* buffer, size_t size) {
     assert(size + owned_mem_size <= owned_mem_capacity);
-    detail::copy<StorageBackend>(
-        reinterpret_cast<uint8_t*>(owned_mem) + owned_mem_size, buffer,
-        size * sizeof(T));
+    detail::copy<StorageBackend>(reinterpret_cast<uint8_t*>(owned_mem) + owned_mem_size, buffer,
+                                 size * sizeof(T));
     owned_mem_size += size;
     regenerate_buffer();
   }
 
-  size_t size() const noexcept { return owned_mem_size; }
-  size_t capacity() const noexcept { return owned_mem_capacity; }
+  size_t size() const noexcept {
+    return owned_mem_size;
+  }
+  size_t capacity() const noexcept {
+    return owned_mem_capacity;
+  }
 
 
   using IODescriptorBase<T>::name;
@@ -181,24 +172,23 @@ class IODescriptor<T, StorageBackend, true> : public IODescriptorBase<T> {
   size_t owned_mem_capacity = 0;  /// In bytes
 
  private:
-  void regenerate_buffer()
-  {
+  void regenerate_buffer() {
     assert(owned_mem_size % sizeof(T) == 0);
-    buffer =
-        make_span(reinterpret_cast<T*>(owned_mem), owned_mem_size / sizeof(T));
+    buffer = make_span(reinterpret_cast<T*>(owned_mem), owned_mem_size / sizeof(T));
   }
 
 
-  void alloc()
-  {
+  void alloc() {
     detail::allocate<StorageBackend>(&owned_mem, owned_mem_capacity);
   }
 
 
-  void dealloc() { detail::deallocate<StorageBackend>(owned_mem); }
+  void dealloc() {
+    detail::deallocate<StorageBackend>(owned_mem);
+  }
 };
 
-template <bool owns_memory>
+template<bool owns_memory>
 using IODescr = IODescriptor<char, StorageCpu, owns_memory>;
 
 

@@ -44,13 +44,11 @@ class DaliPipeline {
   DaliPipeline& operator=(const DaliPipeline&) = delete;
 
 
-  DaliPipeline(DaliPipeline&& dp)
-  {
+  DaliPipeline(DaliPipeline&& dp) {
     *this = std::move(dp);
   }
 
-  DaliPipeline& operator=(DaliPipeline&& dp)
-  {
+  DaliPipeline& operator=(DaliPipeline&& dp) {
     if (this != &dp) {
       ReleasePipeline();
       ReleaseStream();
@@ -63,73 +61,65 @@ class DaliPipeline {
     return *this;
   }
 
-  ~DaliPipeline()
-  {
+  ~DaliPipeline() {
     ReleasePipeline();
     ReleaseStream();
   }
 
-  DaliPipeline(
-      const std::string& serialized_pipeline, int max_batch_size,
-      int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
-      int seed = -1)
-  {
+  DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int device_id = -1,
+               int bytes_per_sample_hint = 0, int num_threads = -1, int seed = -1) {
     InitDali();
     InitStream();
-    daliCreatePipeline(
-        &handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
-        max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
+    daliCreatePipeline(&handle_, serialized_pipeline.c_str(), serialized_pipeline.length(),
+                       max_batch_size, num_threads, device_id, 0, 1, 666, 666, 0);
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
-  void Run()
-  {
+  void Run() {
     daliOutputRelease(&handle_);
     daliRun(&handle_);
   }
 
-  void Output() { daliOutput(&handle_); }
+  void Output() {
+    daliOutput(&handle_);
+  }
 
-  int GetBatchSize() { return static_cast<int>(daliNumTensors(&handle_, 0)); }
+  int GetBatchSize() {
+    return static_cast<int>(daliNumTensors(&handle_, 0));
+  }
 
-  int GetNumOutput() { return static_cast<int>(daliGetNumOutput(&handle_)); }
+  int GetNumOutput() {
+    return static_cast<int>(daliGetNumOutput(&handle_));
+  }
 
   TensorListShape<> GetOutputShapeAt(int output_idx);
 
-  size_t GetOutputNumElements(int output_idx)
-  {
+  size_t GetOutputNumElements(int output_idx) {
     return daliNumElements(&handle_, output_idx);
   }
 
-  dali_data_type_t GetOutputType(int output_idx)
-  {
+  dali_data_type_t GetOutputType(int output_idx) {
     return daliTypeAt(&handle_, output_idx);
   }
 
   std::vector<TensorListShape<>> GetOutputShapes();
 
-  void SetInput(
-      const void* data_ptr, const char* name, device_type_t source_device,
-      dali_data_type_t data_type, span<const int64_t> inputs_shapes,
-      int sample_ndims);
+  void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
+                dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims);
 
-  void SetInput(
-      const void* ptr, const char* name, device_type_t source_device,
-      dali_data_type_t data_type, TensorListShape<> input_shape);
+  void SetInput(const void* ptr, const char* name, device_type_t source_device,
+                dali_data_type_t data_type, TensorListShape<> input_shape);
 
-  void PutOutput(
-      void* destination, int output_idx, device_type_t destination_device);
+  void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 
  private:
-  void ReleasePipeline()
-  {
+  void ReleasePipeline() {
     if (handle_.pipe && handle_.ws) {
       daliDeletePipeline(&handle_);
     }
   }
 
-  void ReleaseStream()
-  {
+  void ReleaseStream() {
     if (output_stream_) {
       CUDA_CALL(cudaStreamSynchronize(output_stream_));
       CUDA_CALL(cudaStreamDestroy(output_stream_));
@@ -152,7 +142,6 @@ class DaliPipeline {
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
 };
-
 
 
 }}}  // namespace triton::backend::dali

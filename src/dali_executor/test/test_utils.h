@@ -31,10 +31,8 @@
 
 namespace triton { namespace backend { namespace dali { namespace test {
 
-template <typename T>
-constexpr dali_data_type_t
-dali_data_type()
-{
+template<typename T>
+constexpr dali_data_type_t dali_data_type() {
   if (std::is_same<T, uint8_t>::value) {
     return dali_data_type_t::DALI_UINT8;
   } else if (std::is_same<T, uint16_t>::value) {
@@ -63,20 +61,16 @@ dali_data_type()
 }
 
 
-template <typename T, typename R>
-IODescr<false>
-RandomInput(
-    std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
-    const R& generator)
-{
+template<typename T, typename R>
+IODescr<false> RandomInput(std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
+                           const R& generator) {
   buffer.clear();
   std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
   IODescr<false> dscr;
   dscr.name = name;
   dscr.shape = shape;
   dscr.type = dali_data_type<T>();
-  dscr.buffer = span<char>(
-      reinterpret_cast<char*>(buffer.data()), sizeof(T) * buffer.size());
+  dscr.buffer = span<char>(reinterpret_cast<char*>(buffer.data()), sizeof(T) * buffer.size());
   dscr.device = device_type_t::CPU;
   return dscr;
 }

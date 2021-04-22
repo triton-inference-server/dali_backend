@@ -38,16 +38,16 @@ class ModelProvider {
 };
 
 
-template <typename ModelFunctor>
+template<typename ModelFunctor>
 class FunctorModelProvider : public ModelProvider {
  public:
-  template <typename... Args>
-  explicit FunctorModelProvider(Args&&... args)
-      : functor_(), serialized_model_(functor_(std::forward<Args>(args)...))
-  {
-  }
+  template<typename... Args>
+  explicit FunctorModelProvider(Args&&... args) :
+      functor_(), serialized_model_(functor_(std::forward<Args>(args)...)) {}
 
-  const std::string& GetModel() const override { return serialized_model_; }
+  const std::string& GetModel() const override {
+    return serialized_model_;
+  }
 
   ~FunctorModelProvider() override = default;
 
@@ -60,18 +60,18 @@ class FileModelProvider : public ModelProvider {
  public:
   FileModelProvider() = default;
 
-  explicit FileModelProvider(const std::string& filename)
-  {
+  explicit FileModelProvider(const std::string& filename) {
     std::ifstream fin(filename, std::ios::binary);
     if (!fin)
-      throw std::runtime_error(
-          std::string("Failed to open serialized model file: ") + filename);
+      throw std::runtime_error(std::string("Failed to open serialized model file: ") + filename);
     std::stringstream ss;
     ss << fin.rdbuf();
     model_ = ss.str();
   }
 
-  const std::string& GetModel() const override { return model_; }
+  const std::string& GetModel() const override {
+    return model_;
+  }
 
   ~FileModelProvider() override = default;
 

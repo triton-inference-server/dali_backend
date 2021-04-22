@@ -37,23 +37,19 @@ struct PipelineDescr {
   int max_batch_size, device_id, bytes_per_sample_hint, num_threads, seed;
 
 
-  PipelineDescr(
-      const std::string& serialized_pipeline, int max_batch_size,
-      int device_id = -1, int bytes_per_sample_hint = 0, int num_threads = -1,
-      int seed = -1)
-      : serialized_pipeline_hash(std::hash<std::string>{}(serialized_pipeline)),
-        max_batch_size(max_batch_size), device_id(device_id),
-        bytes_per_sample_hint(bytes_per_sample_hint), num_threads(num_threads),
-        seed(seed)
-  {
-  }
+  PipelineDescr(const std::string& serialized_pipeline, int max_batch_size, int device_id = -1,
+                int bytes_per_sample_hint = 0, int num_threads = -1, int seed = -1) :
+      serialized_pipeline_hash(std::hash<std::string>{}(serialized_pipeline)),
+      max_batch_size(max_batch_size),
+      device_id(device_id),
+      bytes_per_sample_hint(bytes_per_sample_hint),
+      num_threads(num_threads),
+      seed(seed) {}
 
 
-  bool operator==(const PipelineDescr& other) const noexcept
-  {
+  bool operator==(const PipelineDescr& other) const noexcept {
     return serialized_pipeline_hash == other.serialized_pipeline_hash &&
-           max_batch_size == other.max_batch_size &&
-           device_id == other.device_id &&
+           max_batch_size == other.max_batch_size && device_id == other.device_id &&
            bytes_per_sample_hint == other.bytes_per_sample_hint &&
            num_threads == other.num_threads && seed == other.seed;
   }
@@ -62,11 +58,9 @@ struct PipelineDescr {
 }}}  // namespace triton::backend::dali
 
 namespace std {
-template <>
+template<>
 struct hash<triton::backend::dali::PipelineDescr> {
-  size_t operator()(
-      triton::backend::dali::PipelineDescr const& pk) const noexcept
-  {
+  size_t operator()(triton::backend::dali::PipelineDescr const& pk) const noexcept {
     return pk.serialized_pipeline_hash + static_cast<size_t>(pk.max_batch_size);
   }
 };
@@ -84,11 +78,9 @@ class PipelinePool {
    * @return Reference to newly added DaliPipeline, or the old one,
    *         if given DaliPipeline already existed
    */
-  template <typename... Args>
-  DaliPipeline& Get(
-      const std::string& serialized_pipeline, int max_batch_size,
-      const Args&... args)
-  {
+  template<typename... Args>
+  DaliPipeline& Get(const std::string& serialized_pipeline, int max_batch_size,
+                    const Args&... args) {
     auto key = PipelineDescr(serialized_pipeline, max_batch_size, args...);
     if (pool_.find(key) == pool_.end()) {
       DaliPipeline pipeline(serialized_pipeline, max_batch_size, args...);
@@ -99,15 +91,14 @@ class PipelinePool {
     }
   }
 
-  template <typename... Args>
-  void Remove(
-      const std::string& serialized_pipeline, int max_batch_size,
-      const Args&... args)
-  {
+  template<typename... Args>
+  void Remove(const std::string& serialized_pipeline, int max_batch_size, const Args&... args) {
     pool_.erase(PipelineDescr(serialized_pipeline, max_batch_size, args...));
   }
 
-  size_t NumCreatedPipelines() { return created_pipelines_; }
+  size_t NumCreatedPipelines() {
+    return created_pipelines_;
+  }
 
   std::unordered_map<PipelineDescr, DaliPipeline> pool_;
   size_t created_pipelines_ = 0;
