@@ -24,6 +24,9 @@
 import argparse, os, sys
 import numpy as np
 import tritonclient.grpc
+import utils
+import re
+from tqdm import tqdm
 from PIL import Image
 
 
@@ -37,13 +40,20 @@ def parse_args():
                         help='Batch size')
     parser.add_argument('--n_iter', type=int, required=False, default=-1,
                         help='Number of iterations , with `batch_size` size')
-    parser.add_argument('--model_name', type=str, required=False, default="dali_backend",
+    parser.add_argument('-m', '--model_name', type=str, required=False, default="dali_backend",
                         help='Model name')
+    parser.add_argument('-i', '--input_name', type=str, required=False, default="INPUT",
+                        help='Input name')
+    parser.add_argument('-o', '--output_name', type=str, required=False, default="OUTPUT",
+                        help='Output name')
+    parser.add_argument('--statistics', action='store_true', required=False, default=False,
+                        help='Print tritonserver statistics after inferring')
     img_group = parser.add_mutually_exclusive_group()
     img_group.add_argument('--img', type=str, required=False, default=None,
                            help='Run a img dali pipeline. Arg: path to the image.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches an infered. The directory must contain images only')
+                           help='Directory, with images that will be broken down into batches and '
+                                'inferred. The directory must contain images only')
     return parser.parse_args()
 
 
@@ -57,18 +67,23 @@ def load_image(img_path: str):
         return np.array(list(img)).astype(np.uint8)
 
 
-def load_images(dir_path: str):
+def load_images(dir_path: str, name_pattern='.', max_images=-1):
     """
-    Loads all files in given dir_path. Treats them as images
+    Loads all files in given dir_path. Treats them as images. Optionally apply regex pattern to
+    file names and use only the files, that suffice the pattern
     """
+    assert max_images > 0 or max_images == -1
     images = []
 
     # Traverses directory for files (not dirs) and returns full paths to them
     path_generator = (os.path.join(dir_path, f) for f in os.listdir(dir_path) if
-                      os.path.isfile(os.path.join(dir_path, f)))
+                      os.path.isfile(os.path.join(dir_path, f)) and
+                      re.search(name_pattern, f) is not None)
 
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
-    for img in img_paths:
+    if 0 < max_images < len(img_paths):
+        img_paths = img_paths[:max_images]
+    for img in tqdm(img_paths, desc="Reading images"):
         images.append(load_image(img))
     return images
 
@@ -85,20 +100,6 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-def batcher(dataset, batch_size, n_iterations=-1):
-    """
-    Generator, that splits dataset into batches with given batch size
-    """
-    assert len(dataset) % batch_size == 0
-    n_batches = len(dataset) // batch_size
-    iter_idx = 0
-    for i in range(n_batches):
-        if 0 < n_iterations <= iter_idx:
-            raise StopIteration
-        iter_idx += 1
-        yield dataset[i * batch_size:(i + 1) * batch_size]
-
-
 def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
     """
     Utility function, that can be used to save byte array as an image
@@ -107,10 +108,19 @@ def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
     im.save("result_img_" + str(name_suffix) + ".jpg")
 
 
+def generate_inputs(input_name, input_shape, input_dtype):
+    return [tritonclient.grpc.InferInput(input_name, input_shape, input_dtype)]
+
+
+def generate_outputs(output_name):
+    return [tritonclient.grpc.InferRequestedOutput(output_name)]
+
+
 def main():
     FLAGS = parse_args()
     try:
-        triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
+        triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url,
+                                                                verbose=FLAGS.verbose)
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit()
@@ -120,44 +130,37 @@ def main():
 
     print("Loading images")
 
-    image_data = load_images(FLAGS.img_dir if FLAGS.img_dir is not None else FLAGS.img)
+    image_data = load_images(FLAGS.img_dir if FLAGS.img_dir is not None else FLAGS.img,
+                             max_images=FLAGS.batch_size * FLAGS.n_iter)
+
     image_data = array_from_list(image_data)
+    print("Images loaded")
 
-    print("Images loaded, inferring")
+    for batch in tqdm(utils.batcher(image_data, FLAGS.batch_size, n_iterations=FLAGS.n_iter),
+                      desc="Inferring", total=FLAGS.n_iter):
 
-    # Infer
-    inputs = []
-    outputs = []
-    input_name = "INPUT"
-    output_name = "OUTPUT"
-    input_shape = list(image_data.shape)
-    input_shape[0] = FLAGS.batch_size
-    inputs.append(tritonclient.grpc.InferInput(input_name, input_shape, "UINT8"))
-    outputs.append(tritonclient.grpc.InferRequestedOutput(output_name))
+        inputs = generate_inputs(FLAGS.input_name, batch.shape, "UINT8")
+        outputs = generate_outputs(FLAGS.output_name)
 
-    for batch in batcher(image_data, FLAGS.batch_size):
-        print("Input mean before backend processing:", np.mean(batch))
         # Initialize the data
         inputs[0].set_data_from_numpy(batch)
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name,
-                                      inputs=inputs,
-                                      outputs=outputs)
+        results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
         # Get the output arrays from the results
-        output0_data = results.as_numpy(output_name)
-        print("Output mean after backend processing:", np.mean(output0_data))
-        print("Output shape: ", np.shape(output0_data))
+        output0_data = results.as_numpy(FLAGS.output_name)
         maxs = np.argmax(output0_data, axis=1)
-        for i in range(len(maxs)):
-            print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
+        if FLAGS.statistics:
+            for i in range(len(maxs)):
+                print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
 
     statistics = triton_client.get_inference_statistics(model_name="dali")
     if len(statistics.model_stats) != 1:
         print("FAILED: Inference Statistics")
         sys.exit(1)
-    print(statistics)
+    if FLAGS.statistics:
+        print(statistics)
 
     print('PASS: infer')
 
