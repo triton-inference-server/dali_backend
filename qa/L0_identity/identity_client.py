@@ -116,6 +116,7 @@ def main():
             sys.exit(1)
         else:
             print("pass")
+            sys.exit(1)
 
     statistics = triton_client.get_inference_statistics(model_name=model_name)
     if len(statistics.model_stats) != 1:
