@@ -27,7 +27,7 @@
 namespace triton { namespace backend { namespace dali {
 
 template<bool owns>
-void SetupInputs(DaliPipeline& pipeline, const std::vector<IODescr<owns>>& inputs) {
+void DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs) {
   assert(!inputs.empty());
   int batch_size = inputs[0].shape.num_samples();
   for (size_t i = 1; i < inputs.size(); ++i) {
@@ -36,26 +36,25 @@ void SetupInputs(DaliPipeline& pipeline, const std::vector<IODescr<owns>>& input
   }
   for (auto& inp : inputs) {
     assert(inp.shape.num_elements() * dali_type_size(inp.type) <= inp.buffer.size());
-    pipeline.SetInput(inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
+    pipeline_.SetInput(inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
   }
 }
 
 
 template<bool owns>
 std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs) {
-  auto& pipeline = pipeline_pool_.Get(serialized_pipeline_, max_batch_size_, device_id_);
-  SetupInputs(pipeline, inputs);
+  SetupInputs(inputs);
   try {
-    pipeline.Run();
-    pipeline.Output();
+    pipeline_.Run();
+    pipeline_.Output();
   } catch (std::runtime_error& e) {
-    pipeline_pool_.Remove(serialized_pipeline_, max_batch_size_, device_id_);
+    pipeline_.Reset();
     throw e;
   }
-  std::vector<shape_and_type_t> ret(pipeline.GetNumOutput());
-  auto outputs_shapes = pipeline.GetOutputShapes();
+  std::vector<shape_and_type_t> ret(pipeline_.GetNumOutput());
+  auto outputs_shapes = pipeline_.GetOutputShapes();
   for (size_t out_idx = 0; out_idx < ret.size(); out_idx++) {
-    ret[out_idx] = {outputs_shapes[out_idx], pipeline.GetOutputType(out_idx)};
+    ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx)};
   }
   return ret;
 }
@@ -63,11 +62,10 @@ std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>
 
 template<bool owns>
 void DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs) {
-  auto& pipeline = pipeline_pool_.Get(serialized_pipeline_, max_batch_size_, device_id_);
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
     auto data = outputs[output_idx].buffer.data();
     auto device_type = outputs[output_idx].device;
-    pipeline.PutOutput(data, output_idx, device_type);
+    pipeline_.PutOutput(data, output_idx, device_type);
   }
 }
 

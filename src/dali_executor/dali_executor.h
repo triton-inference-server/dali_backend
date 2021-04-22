@@ -26,8 +26,8 @@
 #include <string>
 #include <utility>
 
+#include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/io_descriptor.h"
-#include "src/dali_executor/pipeline_pool.h"
 
 
 namespace triton { namespace backend { namespace dali {
@@ -40,10 +40,7 @@ struct shape_and_type_t {
 
 class DaliExecutor {
  public:
-  DaliExecutor(std::string serialized_pipeline, int max_batch_size, int device_id) :
-      serialized_pipeline_(std::move(serialized_pipeline)),
-      device_id_(device_id),
-      max_batch_size_(max_batch_size) {}
+  DaliExecutor(DaliPipeline pipeline) : pipeline_(std::move(pipeline)) {}
 
   /**
    * Run DALI pipeline and return the result descriptor
@@ -55,16 +52,11 @@ class DaliExecutor {
   template<bool owns>
   void PutOutputs(const std::vector<IODescr<owns>>& outputs);
 
-
-  size_t NumCreatedPipelines() {
-    return pipeline_pool_.NumCreatedPipelines();
-  }
-
  private:
-  std::string serialized_pipeline_;
-  int device_id_;
-  int max_batch_size_;
-  PipelinePool pipeline_pool_;
+  template<bool owns>
+  void SetupInputs(const std::vector<IODescr<owns>>& inputs);
+
+  DaliPipeline pipeline_;
 };
 
 }}}  // namespace triton::backend::dali
