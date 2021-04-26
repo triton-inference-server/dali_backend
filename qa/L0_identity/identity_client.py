@@ -80,6 +80,14 @@ def main():
         print("channel creation failed: " + str(e))
         sys.exit(1)
 
+    if not (triton_client.is_server_live() or
+            triton_client.is_server_ready() or
+            triton_client.is_model_ready(model_name=FLAGS.model_name)):
+        print("Error connecting to server: Server live {}. Server ready {}. Model ready {}".format(
+            triton_client.is_server_live, triton_client.is_server_ready,
+            triton_client.is_model_ready(model_name=FLAGS.model_name)))
+        sys.exit(1)
+
     model_name = FLAGS.model_name
     model_version = -1
 
