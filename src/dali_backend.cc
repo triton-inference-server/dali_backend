@@ -24,17 +24,16 @@
 
 #include <memory>
 
+#include "src/dali_executor/utils/dali.h"
+#include "src/dali_executor/utils/utils.h"
+#include "src/utils/triton.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
-#include "src/dali_executor/utils/utils.h"
-#include "src/dali_executor/utils/dali.h"
-#include "src/utils/triton.h"
 
 namespace triton { namespace backend { namespace dali {
 
 struct ModelParameters {
-  explicit ModelParameters(common::TritonJson::Value &model_config)
-  {
+  explicit ModelParameters(common::TritonJson::Value& model_config) {
     model_config.MemberAsObject("parameters", &params_);
   }
 
@@ -42,8 +41,8 @@ struct ModelParameters {
    * Rerurn a value of a parameter with a given `key`
    * or `def` if the parameter is not present.
    */
-  template <typename T>
-  T GetParam(const std::string &key, const T &def = T()) {
+  template<typename T>
+  T GetParam(const std::string& key, const T& def = T()) {
     T result = def;
     GetMember(key, result);
     return result;
@@ -54,19 +53,14 @@ struct ModelParameters {
   }
 
  private:
-  template <typename T>
-  void GetMember(
-      const std::string &key,
-      T &value)
-  {
+  template<typename T>
+  void GetMember(const std::string& key, T& value) {
     auto key_c = key.c_str();
     if (params_.Find(key_c)) {
       common::TritonJson::Value param;
-      TRITON_CALL_GUARD(
-        params_.MemberAsObject(key_c, &param));
+      TRITON_CALL_GUARD(params_.MemberAsObject(key_c, &param));
       std::string string_value;
-      TRITON_CALL_GUARD(
-        param.MemberAsString("string_value", &string_value));
+      TRITON_CALL_GUARD(param.MemberAsString("string_value", &string_value));
       value = from_string<T>(string_value);
     }
   }
@@ -76,25 +70,21 @@ struct ModelParameters {
 
 class DaliModel : public ::triton::backend::BackendModel {
  public:
-  static TRITONSERVER_Error* Create(
-      TRITONBACKEND_Model* triton_model, DaliModel** state);
+  static TRITONSERVER_Error* Create(TRITONBACKEND_Model* triton_model, DaliModel** state);
 
   virtual ~DaliModel() = default;
 
-  TRITONSERVER_Error* ValidateModelConfig()
-  {
+  TRITONSERVER_Error* ValidateModelConfig() {
     // We have the json DOM for the model configuration...
     common::TritonJson::WriteBuffer buffer;
     RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer));
-    LOG_MESSAGE(
-        TRITONSERVER_LOG_INFO,
-        (std::string("model configuration:\n") + buffer.Contents()).c_str());
+    LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+                (std::string("model configuration:\n") + buffer.Contents()).c_str());
 
     return nullptr;  // success
   }
 
-  const ModelProvider& GetModelProvider() const
-  {
+  const ModelProvider& GetModelProvider() const {
     return *dali_model_provider_;
   };
 
@@ -103,8 +93,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
 
-  void ReadOutputsOrder()
-  {
+  void ReadOutputsOrder() {
     using Value = ::triton::common::TritonJson::Value;
     Value outputs;
     model_config_.MemberAsArray("output", &outputs);
@@ -118,39 +107,32 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
 
-  const std::unordered_map<std::string, int>& GetOutputOrder() const
-  {
+  const std::unordered_map<std::string, int>& GetOutputOrder() const {
     return output_order_;
   }
 
 
  private:
-  explicit DaliModel(TRITONBACKEND_Model* triton_model)
-      : BackendModel(triton_model),
-        params_(model_config_)
-  {
+  explicit DaliModel(TRITONBACKEND_Model* triton_model) :
+      BackendModel(triton_model), params_(model_config_) {
     const char sep = '/';
 
     const char* model_repo_path;
     TRITONBACKEND_ArtifactType artifact_type;
-    TRITON_CALL_GUARD(TRITONBACKEND_ModelRepository(
-        triton_model_, &artifact_type, &model_repo_path));
+    TRITON_CALL_GUARD(
+        TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
     std::stringstream dali_pipeline_path;
-    dali_pipeline_path << model_repo_path << sep << version_ << sep
-                       << GetModelFilename();
+    dali_pipeline_path << model_repo_path << sep << version_ << sep << GetModelFilename();
     std::string filename = dali_pipeline_path.str();
-    LOG_MESSAGE(
-        TRITONSERVER_LOG_INFO,
-        (make_string("Loading DALI pipeline from file ", filename).c_str()));
+    LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+                (make_string("Loading DALI pipeline from file ", filename).c_str()));
     dali_model_provider_ = std::make_unique<FileModelProvider>(filename);
   }
 
-  std::string GetModelFilename()
-  {
+  std::string GetModelFilename() {
     std::string ret;
-    TRITON_CALL_GUARD(
-        model_config_.MemberAsString("default_model_filename", &ret));
+    TRITON_CALL_GUARD(model_config_.MemberAsString("default_model_filename", &ret));
     return ret.empty() ? "model.dali" : ret;
   }
 
@@ -160,18 +142,14 @@ class DaliModel : public ::triton::backend::BackendModel {
 };
 
 
-TRITONSERVER_Error*
-DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state)
-{
+TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state) {
   TRITONSERVER_Error* error = nullptr;  // success
   try {
     *state = new DaliModel(triton_model);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    error = TRITONSERVER_ErrorNew(
-        TRITONSERVER_ERROR_UNKNOWN,
-        make_string("DALI Backend error: ", e.what()).c_str());
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
+                                  make_string("DALI Backend error: ", e.what()).c_str());
   }
 
   return error;
@@ -184,49 +162,47 @@ struct RequestMeta {
 
 class DaliModelInstance : public ::triton::backend::BackendModelInstance {
  public:
-  static TRITONSERVER_Error* Create(
-      DaliModel* model_state,
-      TRITONBACKEND_ModelInstance* triton_model_instance,
-      DaliModelInstance** state);
+  static TRITONSERVER_Error* Create(DaliModel* model_state,
+                                    TRITONBACKEND_ModelInstance* triton_model_instance,
+                                    DaliModelInstance** state);
 
-  DaliExecutor& GetDaliExecutor() { return *dali_executor_; }
+  DaliExecutor& GetDaliExecutor() {
+    return *dali_executor_;
+  }
 
-  const DaliModel& GetDaliModel() const { return *dali_model_; }
+  const DaliModel& GetDaliModel() const {
+    return *dali_model_;
+  }
 
   RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TRITONBACKEND_Request* request) {
     RequestMeta ret;
     auto& outputs_indices = dali_model_.GetOutputOrder();
 
     auto dali_inputs = GenerateInputs(request);
-    ret.batch_size =
-        dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
-                                            // same in every input
+    ret.batch_size = dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
+                                                          // same in every input
     ret.compute_start_ns = detail::capture_time();
     auto shapes_and_types = dali_executor_.Run(dali_inputs);
     ret.compute_end_ns = detail::capture_time();
-    auto dali_outputs = detail::AllocateOutputs(
-        request, response, shapes_and_types, outputs_indices);
+    auto dali_outputs =
+        detail::AllocateOutputs(request, response, shapes_and_types, outputs_indices);
     dali_executor_.PutOutputs(dali_outputs);
     return ret;
   }
 
  private:
-  DaliModelInstance(
-      DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
-      : BackendModelInstance(model, triton_model_instance), dali_model_(model),
-        thread_pool_(dali_model_->GetModelParamters().GetNumThreads())
-  {
+  DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
+      BackendModelInstance(model, triton_model_instance),
+      dali_model_(model),
+      thread_pool_(dali_model_->GetModelParamters().GetNumThreads()) {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size,
-                          num_threads, device_id_);
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
-  std::vector<IODescr>
-  GenerateInputs(TRITONBACKEND_Request* raw_request)
-  {
+  std::vector<IODescr> GenerateInputs(TRITONBACKEND_Request* raw_request) {
     TritonRequest request(raw_requst);
     uint32_t input_cnt = request.InputCount();
     std::vector<IODescr> ret;
@@ -234,7 +210,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       auto input = request.InputByIdx(input_idx);
       auto input_byte_size = input.ByteSize();
       auto input_buffer_count = input.BufferCount();
-      IOBufferI *input_buffer;
+      IOBufferI* input_buffer;
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
         auto buffer = input.GetBuffer(buffer_idx);
         ENFORCE(buffer.device == device_type_t::CPU || buffer.device_id == device_id,
@@ -249,9 +225,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
           buffer->Reserve(input_byte_size);
         }
         auto origin = input_buffer->Extend(buffer_byte_size);
-        thread_pool_.AddWork([] (int) {
-          copyMem(input_buffer->DeviceType(), origin, buffer_memory_type, buffer);
-        });
+        thread_pool_.AddWork(
+            [](int) { copyMem(input_buffer->DeviceType(), origin, buffer_memory_type, buffer); });
         ret.emplace_back(IODescr{input.Meta(), input_buffer->GetDescr()});
       }
     }
@@ -267,32 +242,25 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 };
 
 
-TRITONSERVER_Error*
-DaliModelInstance::Create(
-    DaliModel* model_state, TRITONBACKEND_ModelInstance* triton_model_instance,
-    DaliModelInstance** state)
-{
+TRITONSERVER_Error* DaliModelInstance::Create(DaliModel* model_state,
+                                              TRITONBACKEND_ModelInstance* triton_model_instance,
+                                              DaliModelInstance** state) {
   TRITONSERVER_Error* error = nullptr;  // success
   const char* instance_name;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ModelInstanceName(triton_model_instance, &instance_name));
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(triton_model_instance, &instance_name));
 
   TRITONSERVER_InstanceGroupKind instance_kind;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ModelInstanceKind(triton_model_instance, &instance_kind));
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(triton_model_instance, &instance_kind));
 
   int32_t instance_id;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ModelInstanceDeviceId(triton_model_instance, &instance_id));
+  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceDeviceId(triton_model_instance, &instance_id));
 
   try {
     *state = new DaliModelInstance(model_state, triton_model_instance);
-  }
-  catch (const std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    error = TRITONSERVER_ErrorNew(
-        TRITONSERVER_ERROR_UNKNOWN,
-        make_string("DALI Backend error: ", e.what()).c_str());
+    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
+                                  make_string("DALI Backend error: ", e.what()).c_str());
   }
 
   return error;  // success
@@ -303,42 +271,32 @@ extern "C" {
 // Implementing TRITONBACKEND_Initialize is optional. The backend
 // should initialize any global state that is intended to be shared
 // across all models and model instances that use the backend.
-TRITONSERVER_Error*
-TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend)
-{
+TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_BackendName(backend, &cname));
   std::string name(cname);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("TRITONBACKEND_Initialize: ") + name).c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("TRITONBACKEND_Initialize: ") + name).c_str());
 
   // We should check the backend API version that Triton supports
   // vs. what this backend was compiled against.
   uint32_t api_version_major, api_version_minor;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ApiVersion(&api_version_major, &api_version_minor));
+  RETURN_IF_ERROR(TRITONBACKEND_ApiVersion(&api_version_major, &api_version_minor));
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Triton TRITONBACKEND API version: ") +
-       std::to_string(api_version_major) + "." +
-       std::to_string(api_version_minor))
-          .c_str());
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("'") + name + "' TRITONBACKEND API version: " +
-       std::to_string(TRITONBACKEND_API_VERSION_MAJOR) + "." +
-       std::to_string(TRITONBACKEND_API_VERSION_MINOR))
-          .c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+              (std::string("Triton TRITONBACKEND API version: ") +
+               std::to_string(api_version_major) + "." + std::to_string(api_version_minor))
+                  .c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("'") + name + "' TRITONBACKEND API version: " +
+                                      std::to_string(TRITONBACKEND_API_VERSION_MAJOR) + "." +
+                                      std::to_string(TRITONBACKEND_API_VERSION_MINOR))
+                                         .c_str());
 
 
   if ((api_version_major != TRITONBACKEND_API_VERSION_MAJOR) ||
       (api_version_minor < TRITONBACKEND_API_VERSION_MINOR)) {
-    return TRITONSERVER_ErrorNew(
-        TRITONSERVER_ERROR_UNSUPPORTED,
-        "triton backend API version does not support this backend");
+    return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNSUPPORTED,
+                                 "triton backend API version does not support this backend");
   }
 
 
@@ -346,23 +304,18 @@ TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend)
   // backend, such a command-line arguments. This backend doesn't use
   // any such configuration but we print whatever is available.
   TRITONSERVER_Message* backend_config_message;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_BackendConfig(backend, &backend_config_message));
+  RETURN_IF_ERROR(TRITONBACKEND_BackendConfig(backend, &backend_config_message));
 
   const char* buffer;
   size_t byte_size;
-  RETURN_IF_ERROR(TRITONSERVER_MessageSerializeToJson(
-      backend_config_message, &buffer, &byte_size));
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("backend configuration:\n") + buffer).c_str());
+  RETURN_IF_ERROR(TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
 
   // If we have any global backend state we create and set it here. We
   // don't need anything for this backend but for demonstration
   // purposes we just create something...
   std::string* state = new std::string("backend state");
-  RETURN_IF_ERROR(
-      TRITONBACKEND_BackendSetState(backend, reinterpret_cast<void*>(state)));
+  RETURN_IF_ERROR(TRITONBACKEND_BackendSetState(backend, reinterpret_cast<void*>(state)));
 
   return nullptr;  // success
 }
@@ -370,17 +323,13 @@ TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend)
 // Implementing TRITONBACKEND_Finalize is optional unless state is set
 // using TRITONBACKEND_BackendSetState. The backend must free this
 // state and perform any other global cleanup.
-TRITONSERVER_Error*
-TRITONBACKEND_Finalize(TRITONBACKEND_Backend* backend)
-{
+TRITONSERVER_Error* TRITONBACKEND_Finalize(TRITONBACKEND_Backend* backend) {
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_BackendState(backend, &vstate));
   std::string* state = reinterpret_cast<std::string*>(vstate);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("TRITONBACKEND_Finalize: state is '") + *state + "'")
-          .c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+              (std::string("TRITONBACKEND_Finalize: state is '") + *state + "'").c_str());
 
   delete state;
 
@@ -390,9 +339,7 @@ TRITONBACKEND_Finalize(TRITONBACKEND_Backend* backend)
 // Implementing TRITONBACKEND_ModelInitialize is optional. The backend
 // should initialize any state that is intended to be shared across
 // all instances of the model.
-TRITONSERVER_Error*
-TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
-{
+TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_ModelName(model, &cname));
   std::string name(cname);
@@ -400,11 +347,9 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
   uint64_t version;
   RETURN_IF_ERROR(TRITONBACKEND_ModelVersion(model, &version));
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("TRITONBACKEND_ModelInitialize: ") + name + " (version " +
-       std::to_string(version) + ")")
-          .c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("TRITONBACKEND_ModelInitialize: ") + name +
+                                      " (version " + std::to_string(version) + ")")
+                                         .c_str());
 
   // Can get location of the model artifacts. Normally we would need
   // to check the artifact type to make sure it was something we can
@@ -413,11 +358,8 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
   // something from the model's repo.
   TRITONBACKEND_ArtifactType artifact_type;
   const char* clocation;
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ModelRepository(model, &artifact_type, &clocation));
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Repository location: ") + clocation).c_str());
+  RETURN_IF_ERROR(TRITONBACKEND_ModelRepository(model, &artifact_type, &clocation));
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("Repository location: ") + clocation).c_str());
 
   // The model can access the backend as well... here we can access
   // the backend global state.
@@ -428,16 +370,14 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
   RETURN_IF_ERROR(TRITONBACKEND_BackendState(backend, &vbackendstate));
   std::string* backend_state = reinterpret_cast<std::string*>(vbackendstate);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("backend state is '") + *backend_state + "'").c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+              (std::string("backend state is '") + *backend_state + "'").c_str());
 
   // With each model we create a ModelState object and associate it
   // with the TRITONBACKEND_Model.
   DaliModel* model_state;
   RETURN_IF_ERROR(DaliModel::Create(model, &model_state));
-  RETURN_IF_ERROR(
-      TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state)));
+  RETURN_IF_ERROR(TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state)));
 
   // One of the primary things to do in ModelInitialize is to examine
   // the model configuration to ensure that it is something that this
@@ -453,15 +393,12 @@ TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model)
 // Implementing TRITONBACKEND_ModelFinalize is optional unless state
 // is set using TRITONBACKEND_ModelSetState. The backend must free
 // this state and perform any other cleanup.
-TRITONSERVER_Error*
-TRITONBACKEND_ModelFinalize(TRITONBACKEND_Model* model)
-{
+TRITONSERVER_Error* TRITONBACKEND_ModelFinalize(TRITONBACKEND_Model* model) {
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_ModelState(model, &vstate));
   DaliModel* model_state = reinterpret_cast<DaliModel*>(vstate);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO, "TRITONBACKEND_ModelFinalize: delete model state");
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, "TRITONBACKEND_ModelFinalize: delete model state");
 
   delete model_state;
 
@@ -471,9 +408,7 @@ TRITONBACKEND_ModelFinalize(TRITONBACKEND_Model* model)
 // Implementing TRITONBACKEND_ModelInstanceInitialize is optional. The
 // backend should initialize any state that is required for a model
 // instance.
-TRITONSERVER_Error*
-TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
-{
+TRITONSERVER_Error* TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance) {
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
   std::string name(cname);
@@ -483,12 +418,10 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
   TRITONSERVER_InstanceGroupKind kind;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceKind(instance, &kind));
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("TRITONBACKEND_ModelInstanceInitialize: ") + name + " (" +
-       TRITONSERVER_InstanceGroupKindString(kind) + " device " +
-       std::to_string(device_id) + ")")
-          .c_str());
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("TRITONBACKEND_ModelInstanceInitialize: ") +
+                                      name + " (" + TRITONSERVER_InstanceGroupKindString(kind) +
+                                      " device " + std::to_string(device_id) + ")")
+                                         .c_str());
 
   // The instance can access the corresponding model as well... here
   // we get the model and from that get the model's state.
@@ -502,10 +435,9 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
   // With each instance we create a ModelInstanceState object and
   // associate it with the TRITONBACKEND_ModelInstance.
   DaliModelInstance* instance_state;
+  RETURN_IF_ERROR(DaliModelInstance::Create(model_state, instance, &instance_state));
   RETURN_IF_ERROR(
-      DaliModelInstance::Create(model_state, instance, &instance_state));
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceSetState(
-      instance, reinterpret_cast<void*>(instance_state)));
+      TRITONBACKEND_ModelInstanceSetState(instance, reinterpret_cast<void*>(instance_state)));
 
   return nullptr;  // success
 }
@@ -513,106 +445,82 @@ TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance)
 // Implementing TRITONBACKEND_ModelInstanceFinalize is optional unless
 // state is set using TRITONBACKEND_ModelInstanceSetState. The backend
 // must free this state and perform any other cleanup.
-TRITONSERVER_Error*
-TRITONBACKEND_ModelInstanceFinalize(TRITONBACKEND_ModelInstance* instance)
-{
+TRITONSERVER_Error* TRITONBACKEND_ModelInstanceFinalize(TRITONBACKEND_ModelInstance* instance) {
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(instance, &vstate));
-  DaliModelInstance* instance_state =
-      reinterpret_cast<DaliModelInstance*>(vstate);
+  DaliModelInstance* instance_state = reinterpret_cast<DaliModelInstance*>(vstate);
 
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      "TRITONBACKEND_ModelInstanceFinalize: delete instance state");
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, "TRITONBACKEND_ModelInstanceFinalize: delete instance state");
 
   delete instance_state;
 
   return nullptr;  // success
 }
 
-TRITONSERVER_Error*
-TRITONBACKEND_ModelInstanceExecute(
-    TRITONBACKEND_ModelInstance* instance, TRITONBACKEND_Request** reqs,
-    const uint32_t request_count)
-{
+TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstance* instance,
+                                                       TRITONBACKEND_Request** reqs,
+                                                       const uint32_t request_count) {
   DaliModelInstance* instance_state;
-  RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(
-      instance, reinterpret_cast<void**>(&instance_state)));
+  RETURN_IF_ERROR(
+      TRITONBACKEND_ModelInstanceState(instance, reinterpret_cast<void**>(&instance_state)));
   std::vector<TRITONBACKEND_Request*> requests(reqs, reqs + request_count);
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
   int total_batch_size = 0;
-  uint64_t exec_start_ns = 0, exec_end_ns = 0, batch_exec_start_ns = 0,
-           batch_exec_end_ns = 0, batch_compute_start_ns = 0,
-           batch_compute_end_ns = 0;
+  uint64_t exec_start_ns = 0, exec_end_ns = 0, batch_exec_start_ns = 0, batch_exec_end_ns = 0,
+           batch_compute_start_ns = 0, batch_compute_end_ns = 0;
   batch_exec_start_ns = detail::capture_time();
   for (size_t i = 0; i < responses.size(); i++) {
     TRITONSERVER_Error* error = nullptr;  // success
     exec_start_ns = detail::capture_time();
     // TODO Do not process requests one by one, but gather all
     //     into one buffer and process it in DALI all together
-    LOG_IF_ERROR(
-        TRITONBACKEND_ResponseNew(&responses[i], requests[i]),
-        make_string("Failed creating a response, idx: ", i));
+    LOG_IF_ERROR(TRITONBACKEND_ResponseNew(&responses[i], requests[i]),
+                 make_string("Failed creating a response, idx: ", i));
     RequestMeta request_meta;
 
     try {
       request_meta = ProcessRequest(responses[i], requests[i], *instance_state);
-    }
-    catch (DaliBackendException& e) {
+    } catch (DaliBackendException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-          make_string("DALI Backend error: ", e.what()).c_str());
-    }
-    catch (DALIException& e) {
+      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+                                    make_string("DALI Backend error: ", e.what()).c_str());
+    } catch (DALIException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-          make_string("DALI error: ", e.what()).c_str());
-    }
-    catch (std::runtime_error& e) {
+      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+                                    make_string("DALI error: ", e.what()).c_str());
+    } catch (std::runtime_error& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-          make_string("runtime error: ", e.what()).c_str());
-    }
-    catch (std::exception& e) {
+      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+                                    make_string("runtime error: ", e.what()).c_str());
+    } catch (std::exception& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-          make_string("exception: ", e.what()).c_str());
-    }
-    catch (...) {
+      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+                                    make_string("exception: ", e.what()).c_str());
+    } catch (...) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
-      error = TRITONSERVER_ErrorNew(
-          TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN, "Unknown error");
+      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
+                                    "Unknown error");
     }
 
     exec_end_ns = detail::capture_time();
-    batch_compute_start_ns =
-        batch_compute_start_ns == 0
-            ? request_meta.compute_start_ns
-            : batch_compute_start_ns;  // Ternary to please the compiler
+    batch_compute_start_ns = batch_compute_start_ns == 0 ?
+                                 request_meta.compute_start_ns :
+                                 batch_compute_start_ns;  // Ternary to please the compiler
 
-    LOG_IF_ERROR(
-        TRITONBACKEND_ModelInstanceReportStatistics(
-            instance, requests[i], !error, exec_start_ns,
-            request_meta.compute_start_ns, request_meta.compute_end_ns,
-            exec_end_ns),
-        make_string("Failed reporting statistics for response idx ", i));
+    LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
+                     instance, requests[i], !error, exec_start_ns, request_meta.compute_start_ns,
+                     request_meta.compute_end_ns, exec_end_ns),
+                 make_string("Failed reporting statistics for response idx ", i));
 
     LOG_IF_ERROR(
         TRITONBACKEND_ResponseSend(
-            responses[i],
-            TRITONSERVER_ResponseCompleteFlag::
-                TRITONSERVER_RESPONSE_COMPLETE_FINAL,
+            responses[i], TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
             error),
         make_string("Failed sending response, idx ", i));
     LOG_IF_ERROR(
         TRITONBACKEND_RequestRelease(
-            requests[i],
-            TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL),
+            requests[i], TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL),
         make_string("Failed releasing request idx ", i));
 
     total_batch_size += request_meta.batch_size;
@@ -622,11 +530,10 @@ TRITONBACKEND_ModelInstanceExecute(
   if (batch_exec_end_ns == 0)
     batch_exec_end_ns = detail::capture_time();
 
-  LOG_IF_ERROR(
-      TRITONBACKEND_ModelInstanceReportBatchStatistics(
-          instance, total_batch_size, batch_exec_start_ns,
-          batch_compute_start_ns, batch_compute_end_ns, batch_exec_end_ns),
-      make_string("Failed reporting batch statistics"));
+  LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
+                   instance, total_batch_size, batch_exec_start_ns, batch_compute_start_ns,
+                   batch_compute_end_ns, batch_exec_end_ns),
+               make_string("Failed reporting batch statistics"));
 
   return nullptr;
 }

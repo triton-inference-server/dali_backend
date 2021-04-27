@@ -36,9 +36,7 @@ namespace triton { namespace backend { namespace dali { namespace detail {
 /**
  * Converts TRITONSERVER_DataType to dali_data_type_t
  */
-dali_data_type_t
-to_dali(TRITONSERVER_DataType t)
-{
+dali_data_type_t to_dali(TRITONSERVER_DataType t) {
   assert(t >= 0 && t <= 13);
   // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
   // types have more-or-less the same order, with few exceptions
@@ -54,9 +52,7 @@ to_dali(TRITONSERVER_DataType t)
 /**
  * Converts dali_data_type_t to TRITONSERVER_DataType
  */
-TRITONSERVER_DataType
-to_triton(dali_data_type_t t)
-{
+TRITONSERVER_DataType to_triton(dali_data_type_t t) {
   assert(-1 <= t && t <= 11);
   // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
   // types have more-or-less the same order, with few exceptions
@@ -68,9 +64,7 @@ to_triton(dali_data_type_t t)
 }
 
 
-device_type_t
-to_dali(TRITONSERVER_MemoryType t)
-{
+device_type_t to_dali(TRITONSERVER_MemoryType t) {
   switch (t) {
     case TRITONSERVER_MEMORY_CPU:
     case TRITONSERVER_MEMORY_CPU_PINNED:
@@ -82,9 +76,7 @@ to_dali(TRITONSERVER_MemoryType t)
   }
 }
 
-inline uint64_t
-capture_time()
-{
+inline uint64_t capture_time() {
   return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
@@ -98,20 +90,16 @@ capture_time()
  * processing.
  * @return A descriptor that wraps Triton output
  */
-std::vector<IODescr<false>>
-AllocateOutputs(
+std::vector<IODescr<false>> AllocateOutputs(
     TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
     const std::vector<shape_and_type_t>& shapes_and_types,
-    const std::unordered_map<std::string, int>& output_order)
-{
+    const std::unordered_map<std::string, int>& output_order) {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
-  ENFORCE(
-      shapes_and_types.size() == output_cnt,
-      make_string(
-          "Number of outputs in the model configuration (", output_cnt,
-          ") does not match to the number of outputs from DALI pipeline (",
-          shapes_and_types.size(), ")"));
+  ENFORCE(shapes_and_types.size() == output_cnt,
+          make_string("Number of outputs in the model configuration (", output_cnt,
+                      ") does not match to the number of outputs from DALI pipeline (",
+                      shapes_and_types.size(), ")"));
 
   std::vector<IODescr<false>> ret(output_cnt);
   for (size_t i = 0; i < output_cnt; i++) {
@@ -125,21 +113,19 @@ AllocateOutputs(
 
     auto output_shape = array_shape(snt.shape);
     TRITONBACKEND_Output* triton_output;
-    TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(
-        response, &triton_output, name, to_triton(snt.type),
-        output_shape.data(), output_shape.size()));
+    TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(response, &triton_output, name,
+                                                   to_triton(snt.type), output_shape.data(),
+                                                   output_shape.size()));
     void* buffer;
     TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_GPU;
     int64_t memid = 0;
-    auto buffer_byte_size = std::accumulate(
-                                output_shape.begin(), output_shape.end(), 1,
-                                std::multiplies<int>()) *
-                            TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
-    TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(
-        triton_output, &buffer, buffer_byte_size, &memtype, &memid));
+    auto buffer_byte_size =
+        std::accumulate(output_shape.begin(), output_shape.end(), 1, std::multiplies<int>()) *
+        TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
+    TRITON_CALL_GUARD(
+        TRITONBACKEND_OutputBuffer(triton_output, &buffer, buffer_byte_size, &memtype, &memid));
     output_desc.device = to_dali(memtype);
-    output_desc.buffer =
-        make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
+    output_desc.buffer = make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
   }
   return ret;
 }

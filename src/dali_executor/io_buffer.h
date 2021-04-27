@@ -28,8 +28,8 @@
 namespace triton { namespace backend { namespace dali {
 
 
-void copyMem(device_type_t dst_dev, void *dst, device_type_t src_dev,
-             const void *src, size_t size, cudaStream_t stream = 0) {
+void copyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+             cudaStream_t stream = 0) {
   if (dst_dev == device_type_t::CPU && src_dev == device_type_t::CPU) {
     copyH2H(dst, src, size, stream);
   } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::CPU) {
@@ -65,18 +65,18 @@ class IOBufferI {
   IOBufferI() {}
 };
 
-template <typename T, device_type_t Dev>
+template<typename T, device_type_t Dev>
 using buffer_t = std::conditional_t<Dev == device_type_t::CPU, std::vector<T>, DeviceBuffer<T>>;
 
-template <device_type_t Dev>
-class IOBuffer: public IOBufferI {
+template<device_type_t Dev>
+class IOBuffer : public IOBufferI {
  public:
-  IOBuffer(size_t size = 0): buffer_(size) {
-    if (Dev == device_type_t:GPU) {
+  IOBuffer(size_t size = 0) : buffer_(size) {
+    if (Dev == device_type_t : GPU) {
       CUDA_CALL_GUARD(cudaGetDevice(&device_id));
     }
   }
-  
+
   uint8_t *Extend(size_t size) override {
     ENFORCE(filled + size < buffer_.size(), "Cannot extend the buffer beyond its capacity.");
     auto origin = buffer_.data() + filled;
