@@ -30,6 +30,13 @@
 #include <dali/core/tensor_shape_print.h>
 #include <dali/core/util.h>
 #include <dali/operators.h>
+#include <dali/core/device_guard.h>
+#include <dali/core/dev_buffer.h>
+#include <dali/pipeline/util/thread_pool.h>
+#include <dali/core/unique_handle.h>
+#include <dali/core/cuda_stream.h>
+
+namespace triton { namespace backend { namespace dali {
 
 using ::dali::DALIException;
 using ::dali::make_cspan;
@@ -39,8 +46,15 @@ using ::dali::span;
 using ::dali::TensorListShape;
 using ::dali::TensorShape;
 using ::dali::volume;
+using ::dali::DeviceBuffer;
+using ::dali::copyH2H;
+using ::dali::copyD2H;
+using ::dali::copyH2D;
+using ::dali::copyD2D;
+using ::dali::ThreadPool;
+using ::dali::UniqueHandle;
+using ::dali::CUDAStream;
 
-namespace triton { namespace backend { namespace dali {
 
 inline int64_t
 dali_type_size(dali_data_type_t type)

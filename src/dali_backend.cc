@@ -27,6 +27,8 @@
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
 #include "src/dali_executor/utils/utils.h"
+#include "src/dali_executor/utils/dali.h"
+#include "src/utils/triton.h"
 
 namespace triton { namespace backend { namespace dali {
 
@@ -175,6 +177,10 @@ DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state)
   return error;
 }
 
+struct RequestMeta {
+  uint64_t compute_start_ns, compute_end_ns;
+  int batch_size;
+};
 
 class DaliModelInstance : public ::triton::backend::BackendModelInstance {
  public:
@@ -187,10 +193,28 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   const DaliModel& GetDaliModel() const { return *dali_model_; }
 
+  RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TRITONBACKEND_Request* request) {
+    RequestMeta ret;
+    auto& outputs_indices = dali_model_.GetOutputOrder();
+
+    auto dali_inputs = GenerateInputs(request);
+    ret.batch_size =
+        dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
+                                            // same in every input
+    ret.compute_start_ns = detail::capture_time();
+    auto shapes_and_types = dali_executor_.Run(dali_inputs);
+    ret.compute_end_ns = detail::capture_time();
+    auto dali_outputs = detail::AllocateOutputs(
+        request, response, shapes_and_types, outputs_indices);
+    dali_executor_.PutOutputs(dali_outputs);
+    return ret;
+  }
+
  private:
   DaliModelInstance(
       DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance)
-      : BackendModelInstance(model, triton_model_instance), dali_model_(model)
+      : BackendModelInstance(model, triton_model_instance), dali_model_(model),
+        thread_pool_(dali_model_->GetModelParamters().GetNumThreads())
   {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
@@ -200,9 +224,46 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
+  std::vector<IODescr>
+  GenerateInputs(TRITONBACKEND_Request* raw_request)
+  {
+    TritonRequest request(raw_requst);
+    uint32_t input_cnt = request.InputCount();
+    std::vector<IODescr> ret;
+    for (uint32_t input_idx = 0; input_idx < input_cnt; ++input_idx) {
+      auto input = request.InputByIdx(input_idx);
+      auto input_byte_size = input.ByteSize();
+      auto input_buffer_count = input.BufferCount();
+      IOBufferI *input_buffer;
+      for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
+        auto buffer = input.GetBuffer(buffer_idx);
+        ENFORCE(buffer.device == device_type_t::CPU || buffer.device_id == device_id,
+                "GPU input must reside on the same device that the model instance.");
+        if (buffer_idx == 0) {
+          if (input_desc.device == device_type_t::CPU) {
+            input_buffer = &cpu_buffers_[input_desc.name];
+          } else {
+            input_buffer = &gpu_buffers_[input_desc.name];
+          }
+          buffer->Clear();
+          buffer->Reserve(input_byte_size);
+        }
+        auto origin = input_buffer->Extend(buffer_byte_size);
+        thread_pool_.AddWork([] (int) {
+          copyMem(input_buffer->DeviceType(), origin, buffer_memory_type, buffer);
+        });
+        ret.emplace_back(IODescr{input.Meta(), input_buffer->GetDescr()});
+      }
+    }
+    thread_pool_.RunAll();
+    return ret;
+  }
 
-  std::unique_ptr<DaliExecutor> dali_executor_;
   DaliModel* dali_model_;
+  ThreadPool thread_pool_;
+  std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
+  std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
+  std::unique_ptr<DaliExecutor> dali_executor_;
 };
 
 
@@ -235,35 +296,6 @@ DaliModelInstance::Create(
   }
 
   return error;  // success
-}
-
-
-struct RequestMeta {
-  uint64_t compute_start_ns, compute_end_ns;
-  int batch_size;
-};
-
-
-RequestMeta
-ProcessRequest(
-    TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
-    DaliModelInstance& model_instance)
-{
-  RequestMeta ret;
-  auto& executor = model_instance.GetDaliExecutor();
-  auto& outputs_indices = model_instance.GetDaliModel().GetOutputOrder();
-
-  auto dali_inputs = detail::GenerateInputs(request);
-  ret.batch_size =
-      dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
-                                           // same in every input
-  ret.compute_start_ns = detail::capture_time();
-  auto shapes_and_types = executor.Run(dali_inputs);
-  ret.compute_end_ns = detail::capture_time();
-  auto dali_outputs = detail::AllocateOutputs(
-      request, response, shapes_and_types, outputs_indices);
-  executor.PutOutputs(dali_outputs);
-  return ret;
 }
 
 extern "C" {

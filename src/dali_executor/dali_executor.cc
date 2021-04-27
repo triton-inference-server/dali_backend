@@ -24,22 +24,23 @@
 
 #include "src/dali_executor/utils/dali.h"
 
+#include "src/dali_executor/io_buffer.h"
+
 namespace triton { namespace backend { namespace dali {
 
-template <bool owns>
-void DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs)
+void DaliExecutor::SetupInputs(const std::vector<IODescr>& inputs)
 {
   assert(!inputs.empty());
-  int batch_size = inputs[0].shape.num_samples();
+  int batch_size = inputs[0].meta.shape.num_samples();
   for (size_t i = 1; i < inputs.size(); ++i) {
     assert(
-        inputs[i].shape.num_samples() == batch_size &&
+        inputs[i].meta.shape.num_samples() == batch_size &&
         "All inputs should have equal batch size.");
   }
   for (auto& inp : inputs) {
     assert(
-        inp.shape.num_elements() * dali_type_size(inp.type) <=
-        inp.buffer.size());
+        inp.meta.shape.num_elements() * dali_type_size(inp.meta.type) <=
+        inp.buffer.data.size());
     pipeline_.SetInput(
         inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
   }
