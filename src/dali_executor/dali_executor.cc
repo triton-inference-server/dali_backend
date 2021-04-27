@@ -26,36 +26,28 @@
 
 namespace triton { namespace backend { namespace dali {
 
-template <bool owns>
-void DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs)
-{
+template<bool owns>
+void DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs) {
   assert(!inputs.empty());
   int batch_size = inputs[0].shape.num_samples();
   for (size_t i = 1; i < inputs.size(); ++i) {
-    assert(
-        inputs[i].shape.num_samples() == batch_size &&
-        "All inputs should have equal batch size.");
+    assert(inputs[i].shape.num_samples() == batch_size &&
+           "All inputs should have equal batch size.");
   }
   for (auto& inp : inputs) {
-    assert(
-        inp.shape.num_elements() * dali_type_size(inp.type) <=
-        inp.buffer.size());
-    pipeline_.SetInput(
-        inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
+    assert(inp.shape.num_elements() * dali_type_size(inp.type) <= inp.buffer.size());
+    pipeline_.SetInput(inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
   }
 }
 
 
-template <bool owns>
-std::vector<shape_and_type_t>
-DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
-{
+template<bool owns>
+std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs) {
   SetupInputs(inputs);
   try {
     pipeline_.Run();
     pipeline_.Output();
-  }
-  catch (std::runtime_error& e) {
+  } catch (std::runtime_error& e) {
     pipeline_.Reset();
     throw e;
   }
@@ -68,10 +60,8 @@ DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs)
 }
 
 
-template <bool owns>
-void
-DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs)
-{
+template<bool owns>
+void DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
     auto data = outputs[output_idx].buffer.data();
     auto device_type = outputs[output_idx].device;

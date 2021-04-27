@@ -27,8 +27,7 @@
 namespace triton { namespace backend { namespace dali { namespace test {
 
 
-TEST_CASE("IODescriptor owning memory")
-{
+TEST_CASE("IODescriptor owning memory") {
   std::mt19937 g;
   std::uniform_int_distribution<int> buffer_values(0, 255);
   std::uniform_int_distribution<int> buffer_sizes(1, 1e6);
@@ -36,9 +35,8 @@ TEST_CASE("IODescriptor owning memory")
   auto n_buffers = 10;
   for (int i = 0; i < n_buffers; i++) {
     std::vector<char> buffer;
-    std::generate_n(std::back_inserter(buffer), buffer_sizes(g), [&]() {
-      return buffer_values(g);
-    });
+    std::generate_n(std::back_inserter(buffer), buffer_sizes(g),
+                    [&]() { return buffer_values(g); });
     buffers.push_back(buffer);
   }
   size_t stitched_buffer_size = 0;

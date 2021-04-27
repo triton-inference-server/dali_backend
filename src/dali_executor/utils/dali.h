@@ -42,9 +42,7 @@ using ::dali::volume;
 
 namespace triton { namespace backend { namespace dali {
 
-inline int64_t
-dali_type_size(dali_data_type_t type)
-{
+inline int64_t dali_type_size(dali_data_type_t type) {
   if (type == DALI_BOOL || type == DALI_UINT8 || type == DALI_INT8)
     return 1;
   if (type == DALI_UINT16 || type == DALI_INT16 || type == DALI_FLOAT16)

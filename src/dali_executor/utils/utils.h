@@ -29,15 +29,11 @@
 
 namespace triton { namespace backend { namespace dali {
 
-template <int ndims = -1>
-TensorShape<ndims>
-max(TensorListShape<ndims> tls)
-{
+template<int ndims = -1>
+TensorShape<ndims> max(TensorListShape<ndims> tls) {
   TensorShape<ndims> max = tls.tensor_shape(0);
   for (int i = 1; i < tls.num_samples(); i++) {
-    max = tls.tensor_shape(i).num_elements() > max.num_elements()
-              ? tls.tensor_shape(i)
-              : max;
+    max = tls.tensor_shape(i).num_elements() > max.num_elements() ? tls.tensor_shape(i) : max;
   }
   return max;
 }
@@ -47,10 +43,8 @@ max(TensorListShape<ndims> tls)
  * Reformats TensorListShape, so that returned array has the form:
  * [ batch_size, max_volume(TensorListShape)... ]
  */
-template <int ndims = -1>
-std::vector<int64_t>
-array_shape(TensorListShape<ndims> tls)
-{
+template<int ndims = -1>
+std::vector<int64_t> array_shape(TensorListShape<ndims> tls) {
   std::vector<int64_t> ret(tls.sample_dim() + 1);
   auto max_ts = max(tls);
   ret[0] = tls.num_samples();
@@ -60,10 +54,10 @@ array_shape(TensorListShape<ndims> tls)
   return ret;
 }
 
-template <typename T>
+template<typename T>
 T from_string(const std::string &str);
 
-template <>
+template<>
 inline int from_string<int>(const std::string &str) {
   return std::stoi(str);
 }
@@ -85,8 +79,7 @@ struct TimeRange {
   static const uint32_t kPantyPink = 0xBD8BC3;
 
 
-  TimeRange(std::string name, const uint32_t rgb = kPantyPink)
-  {  // NOLINT
+  TimeRange(std::string name, const uint32_t rgb = kPantyPink) {  // NOLINT
     nvtxEventAttributes_t att = {};
     att.version = NVTX_VERSION;
     att.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
@@ -100,11 +93,12 @@ struct TimeRange {
   }
 
 
-  ~TimeRange() { stop(); }
+  ~TimeRange() {
+    stop();
+  }
 
 
-  void stop()
-  {
+  void stop() {
     if (started) {
       started = false;
       nvtxRangePop();

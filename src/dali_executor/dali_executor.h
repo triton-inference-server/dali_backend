@@ -26,8 +26,8 @@
 #include <string>
 #include <utility>
 
-#include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/dali_pipeline.h"
+#include "src/dali_executor/io_descriptor.h"
 
 
 namespace triton { namespace backend { namespace dali {
@@ -40,23 +40,20 @@ struct shape_and_type_t {
 
 class DaliExecutor {
  public:
-  DaliExecutor(DaliPipeline pipeline)
-      : pipeline_(std::move(pipeline))
-  {
-  }
+  DaliExecutor(DaliPipeline pipeline) : pipeline_(std::move(pipeline)) {}
 
   /**
    * Run DALI pipeline and return the result descriptor
    */
-  template <bool owns>
+  template<bool owns>
   std::vector<shape_and_type_t> Run(const std::vector<IODescr<owns>>& inputs);
 
 
-  template <bool owns>
+  template<bool owns>
   void PutOutputs(const std::vector<IODescr<owns>>& outputs);
 
  private:
-  template <bool owns>
+  template<bool owns>
   void SetupInputs(const std::vector<IODescr<owns>>& inputs);
 
   DaliPipeline pipeline_;
