@@ -21,7 +21,7 @@
 
 name: "dali_multi_input"
 backend: "dali"
-max_batch_size: 64
+max_batch_size: 256
 default_model_filename: "model.dali"
 input [
   {
