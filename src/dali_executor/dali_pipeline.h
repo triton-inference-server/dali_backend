@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
 #include "src/error_handling.h"
@@ -115,6 +116,8 @@ class DaliPipeline {
 
   void SetInput(const void* ptr, const char* name, device_type_t source_device,
                 dali_data_type_t data_type, TensorListShape<> input_shape);
+
+  void SetInput(const IDescr& io_descr);
 
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 

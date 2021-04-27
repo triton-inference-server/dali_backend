@@ -20,42 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
-#define DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
-
-#include <string>
-#include <utility>
-
-#include "src/dali_executor/dali_pipeline.h"
-#include "src/dali_executor/io_descriptor.h"
-
+#include "src/dali_executor/io_buffer.h"
 
 namespace triton { namespace backend { namespace dali {
 
-
-struct shape_and_type_t {
-  TensorListShape<> shape;
-  dali_data_type_t type;
-};
-
-class DaliExecutor {
- public:
-  DaliExecutor(DaliPipeline pipeline) : pipeline_(std::move(pipeline)) {}
-
-  /**
-   * Run DALI pipeline and return the result descriptor
-   */
-  std::vector<shape_and_type_t> Run(const std::vector<IDescr>& inputs);
-
-
-  void PutOutputs(const std::vector<ODescr>& outputs);
-
- private:
-  void SetupInputs(const std::vector<IDescr>& inputs);
-
-  DaliPipeline pipeline_;
-};
+void CopyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+             cudaStream_t stream) {
+  auto src_c = reinterpret_cast<const char *>(src);
+  auto dst_c = reinterpret_cast<char *>(dst);
+  if (dst_dev == device_type_t::CPU && src_dev == device_type_t::CPU) {
+    copyH2H(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::CPU) {
+    copyH2D(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::CPU && src_dev == device_type_t::GPU) {
+    copyD2H(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::GPU) {
+    copyD2D(dst_c, src_c, size, stream);
+  }
+}
 
 }}}  // namespace triton::backend::dali
-
-#endif  // DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_

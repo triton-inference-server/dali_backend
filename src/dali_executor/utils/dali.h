@@ -24,23 +24,37 @@
 #define DALI_BACKEND_UTILS_DALI_H_
 
 #include <dali/c_api.h>
+#include <dali/core/cuda_stream.h>
+#include <dali/core/dev_buffer.h>
+#include <dali/core/device_guard.h>
 #include <dali/core/format.h>
 #include <dali/core/span.h>
 #include <dali/core/tensor_shape.h>
 #include <dali/core/tensor_shape_print.h>
+#include <dali/core/unique_handle.h>
 #include <dali/core/util.h>
 #include <dali/operators.h>
+#include <dali/pipeline/util/thread_pool.h>
 
+namespace triton { namespace backend { namespace dali {
+
+using ::dali::copyD2D;
+using ::dali::copyD2H;
+using ::dali::copyH2D;
+using ::dali::copyH2H;
+using ::dali::CUDAStream;
 using ::dali::DALIException;
+using ::dali::DeviceBuffer;
 using ::dali::make_cspan;
 using ::dali::make_span;
 using ::dali::make_string;
 using ::dali::span;
 using ::dali::TensorListShape;
 using ::dali::TensorShape;
+using ::dali::ThreadPool;
+using ::dali::UniqueHandle;
 using ::dali::volume;
 
-namespace triton { namespace backend { namespace dali {
 
 inline int64_t dali_type_size(dali_data_type_t type) {
   if (type == DALI_BOOL || type == DALI_UINT8 || type == DALI_INT8)
