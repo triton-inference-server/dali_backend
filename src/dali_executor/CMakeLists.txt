@@ -23,6 +23,7 @@ set(
     DALI_BACKEND_SRCS
         dali_executor.cc
         dali_pipeline.cc
+        io_buffer.cc
 )
 
 set(

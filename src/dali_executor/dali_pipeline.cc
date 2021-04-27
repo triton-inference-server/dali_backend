@@ -70,6 +70,13 @@ void DaliPipeline::SetInput(const void* ptr, const char* name, device_type_t sou
            input_shape.sample_dim());
 }
 
+void DaliPipeline::SetInput(const IDescr& io_descr) {
+  auto meta = io_descr.meta;
+  auto buffer = io_descr.buffer;
+  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape);
+}
+
+
 void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t destination_device) {
   assert(destination != nullptr);
   assert(output_idx >= 0);

@@ -28,22 +28,37 @@
 
 namespace triton { namespace backend { namespace dali {
 
+template<typename T>
 struct BufferDescr {
   device_type_t device;
   int device_id;
-  span<void> data;
-}
+  T* data;
+  size_t size;
+
+  template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>
+  BufferDescr(BufferDescr<S> other) :
+      device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
+
+  BufferDescr() = default;
+};
+
+using IBufferDescr = BufferDescr<const void>;
+using OBufferDescr = BufferDescr<void>;
 
 struct IOMeta {
   std::string name;
   dali_data_type_t type;
   TensorListShape<> shape;
-}
+};
 
+template<typename T>
 struct IODescr {
   IOMeta meta;
-  BufferDescr buffer;
+  BufferDescr<T> buffer;
 };
+
+using IDescr = IODescr<const void>;
+using ODescr = IODescr<void>;
 
 }}}  // namespace triton::backend::dali
 

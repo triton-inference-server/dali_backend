@@ -62,16 +62,17 @@ constexpr dali_data_type_t dali_data_type() {
 
 
 template<typename T, typename R>
-IODescr<false> RandomInput(std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
-                           const R& generator) {
+IDescr RandomInput(std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
+                   const R& generator) {
   buffer.clear();
   std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
-  IODescr<false> dscr;
-  dscr.name = name;
-  dscr.shape = shape;
-  dscr.type = dali_data_type<T>();
-  dscr.buffer = span<char>(reinterpret_cast<char*>(buffer.data()), sizeof(T) * buffer.size());
-  dscr.device = device_type_t::CPU;
+  IDescr dscr;
+  dscr.meta.name = name;
+  dscr.meta.shape = shape;
+  dscr.meta.type = dali_data_type<T>();
+  dscr.buffer.data = buffer.data();
+  dscr.buffer.size = sizeof(T) * buffer.size();
+  dscr.buffer.device = device_type_t::CPU;
   return dscr;
 }
 

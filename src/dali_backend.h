@@ -29,52 +29,10 @@
 #include "src/dali_executor/dali_executor.h"
 #include "src/error_handling.h"
 #include "src/model_provider/model_provider.h"
+#include "src/utils/triton.h"
 #include "triton/backend/backend_common.h"
 
 namespace triton { namespace backend { namespace dali { namespace detail {
-
-/**
- * Converts TRITONSERVER_DataType to dali_data_type_t
- */
-dali_data_type_t to_dali(TRITONSERVER_DataType t) {
-  assert(t >= 0 && t <= 13);
-  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
-  // types have more-or-less the same order, with few exceptions
-  if (t == 0)
-    return static_cast<dali_data_type_t>(-1);
-  if (t == 1)
-    return static_cast<dali_data_type_t>(11);
-  if (t == 13)
-    return static_cast<dali_data_type_t>(0);
-  return static_cast<dali_data_type_t>(t - 2);
-}
-
-/**
- * Converts dali_data_type_t to TRITONSERVER_DataType
- */
-TRITONSERVER_DataType to_triton(dali_data_type_t t) {
-  assert(-1 <= t && t <= 11);
-  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
-  // types have more-or-less the same order, with few exceptions
-  if (t == -1)
-    return static_cast<TRITONSERVER_DataType>(0);
-  if (t == 11)
-    return static_cast<TRITONSERVER_DataType>(1);
-  return static_cast<TRITONSERVER_DataType>(t + 2);
-}
-
-
-device_type_t to_dali(TRITONSERVER_MemoryType t) {
-  switch (t) {
-    case TRITONSERVER_MEMORY_CPU:
-    case TRITONSERVER_MEMORY_CPU_PINNED:
-      return device_type_t::CPU;
-    case TRITONSERVER_MEMORY_GPU:
-      return device_type_t::GPU;
-    default:
-      throw std::invalid_argument("Unknown memory type");
-  }
-}
 
 inline uint64_t capture_time() {
   return std::chrono::steady_clock::now().time_since_epoch().count();
@@ -90,10 +48,10 @@ inline uint64_t capture_time() {
  * processing.
  * @return A descriptor that wraps Triton output
  */
-std::vector<IODescr<false>> AllocateOutputs(
-    TRITONBACKEND_Request* request, TRITONBACKEND_Response* response,
-    const std::vector<shape_and_type_t>& shapes_and_types,
-    const std::unordered_map<std::string, int>& output_order) {
+std::vector<ODescr> AllocateOutputs(TRITONBACKEND_Request* request,
+                                    TRITONBACKEND_Response* response,
+                                    const std::vector<shape_and_type_t>& shapes_and_types,
+                                    const std::unordered_map<std::string, int>& output_order) {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
   ENFORCE(shapes_and_types.size() == output_cnt,
@@ -101,14 +59,14 @@ std::vector<IODescr<false>> AllocateOutputs(
                       ") does not match to the number of outputs from DALI pipeline (",
                       shapes_and_types.size(), ")"));
 
-  std::vector<IODescr<false>> ret(output_cnt);
+  std::vector<ODescr> ret(output_cnt);
   for (size_t i = 0; i < output_cnt; i++) {
     const char* name;
     TRITONBACKEND_RequestOutputName(request, i, &name);
     auto output_idx = output_order.at(std::string(name));
 
     auto& output_desc = ret[output_idx];
-    output_desc.name = name;
+    output_desc.meta.name = name;
     auto& snt = shapes_and_types[output_idx];
 
     auto output_shape = array_shape(snt.shape);
@@ -116,16 +74,13 @@ std::vector<IODescr<false>> AllocateOutputs(
     TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(response, &triton_output, name,
                                                    to_triton(snt.type), output_shape.data(),
                                                    output_shape.size()));
-    void* buffer;
     TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_GPU;
     int64_t memid = 0;
-    auto buffer_byte_size =
-        std::accumulate(output_shape.begin(), output_shape.end(), 1, std::multiplies<int>()) *
-        TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
-    TRITON_CALL_GUARD(
-        TRITONBACKEND_OutputBuffer(triton_output, &buffer, buffer_byte_size, &memtype, &memid));
-    output_desc.device = to_dali(memtype);
-    output_desc.buffer = make_span(reinterpret_cast<char*>(buffer), buffer_byte_size);
+    auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
+    output_desc.buffer.size = volume(output_shape.begin(), output_shape.end()) * t_size;
+    TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(triton_output, &output_desc.buffer.data,
+                                                 output_desc.buffer.size, &memtype, &memid));
+    output_desc.buffer.device = to_dali(memtype);
   }
   return ret;
 }

@@ -23,23 +23,14 @@
 #ifndef TRITONDALIBACKEND_IO_BUFFER_H
 #define TRITONDALIBACKEND_IO_BUFFER_H
 
+#include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/dali.h"
 
 namespace triton { namespace backend { namespace dali {
 
 
-void copyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
-             cudaStream_t stream = 0) {
-  if (dst_dev == device_type_t::CPU && src_dev == device_type_t::CPU) {
-    copyH2H(dst, src, size, stream);
-  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::CPU) {
-    copyH2D(dst, src, size, stream);
-  } else if (dst_dev == device_type_t::CPU && src_dev == device_type_t::GPU) {
-    copyD2H(dst, src, size, stream);
-  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::GPU) {
-    copyD2D(dst, src, size, stream);
-  }
-}
+void CopyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+             cudaStream_t stream = 0);
 
 class IOBufferI {
  public:
@@ -57,7 +48,9 @@ class IOBufferI {
 
   virtual device_type_t DeviceType() const = 0;
 
-  virtual BufferDescr GetDescr() const = 0;
+  virtual IBufferDescr GetDescr() const = 0;
+
+  virtual OBufferDescr GetDescr() = 0;
 
   virtual ~IOBufferI() {}
 
@@ -71,16 +64,17 @@ using buffer_t = std::conditional_t<Dev == device_type_t::CPU, std::vector<T>, D
 template<device_type_t Dev>
 class IOBuffer : public IOBufferI {
  public:
-  IOBuffer(size_t size = 0) : buffer_(size) {
-    if (Dev == device_type_t : GPU) {
+  IOBuffer(size_t size = 0) : buffer_() {
+    buffer_.resize(size);
+    if (Dev == device_type_t::GPU) {
       CUDA_CALL_GUARD(cudaGetDevice(&device_id));
     }
   }
 
   uint8_t *Extend(size_t size) override {
-    ENFORCE(filled + size < buffer_.size(), "Cannot extend the buffer beyond its capacity.");
-    auto origin = buffer_.data() + filled;
-    filled += size;
+    ENFORCE(filled_ + size < buffer_.size(), "Cannot extend the buffer beyond its capacity.");
+    auto origin = buffer_.data() + filled_;
+    filled_ += size;
     return origin;
   }
 
@@ -101,9 +95,19 @@ class IOBuffer : public IOBufferI {
     return Dev;
   }
 
-  BufferDescr GetDescr() const override {
-    BufferDescr descr;
-    descr.data = span<void>(buffer_.data(), filled_);
+  IBufferDescr GetDescr() const override {
+    IBufferDescr descr;
+    descr.data = buffer_.data();
+    descr.size = filled_;
+    descr.device = Dev;
+    descr.device_id = device_id;
+    return descr;
+  }
+
+  OBufferDescr GetDescr() override {
+    OBufferDescr descr;
+    descr.data = buffer_.data();
+    descr.size = filled_;
     descr.device = Dev;
     descr.device_id = device_id;
     return descr;

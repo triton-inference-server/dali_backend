@@ -28,7 +28,7 @@
 
 namespace triton { namespace backend { namespace dali {
 
-void DaliExecutor::SetupInputs(const std::vector<IODescr>& inputs) {
+void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   assert(!inputs.empty());
   int batch_size = inputs[0].meta.shape.num_samples();
   for (size_t i = 1; i < inputs.size(); ++i) {
@@ -36,14 +36,13 @@ void DaliExecutor::SetupInputs(const std::vector<IODescr>& inputs) {
            "All inputs should have equal batch size.");
   }
   for (auto& inp : inputs) {
-    assert(inp.meta.shape.num_elements() * dali_type_size(inp.meta.type) <= inp.buffer.data.size());
-    pipeline_.SetInput(inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
+    size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
+    assert(inp_size <= inp.buffer.size);
+    pipeline_.SetInput(inp);
   }
 }
 
-
-template<bool owns>
-std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs) {
+std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   SetupInputs(inputs);
   try {
     pipeline_.Run();
@@ -60,21 +59,12 @@ std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>
   return ret;
 }
 
-
-template<bool owns>
-void DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs) {
+void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-    auto data = outputs[output_idx].buffer.data();
-    auto device_type = outputs[output_idx].device;
+    auto data = outputs[output_idx].buffer.data;
+    auto device_type = outputs[output_idx].buffer.device;
     pipeline_.PutOutput(data, output_idx, device_type);
   }
 }
-
-
-// Handful of explicit instantiations to make the development less painful
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<true>>&);
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<false>>&);
-template void DaliExecutor::PutOutputs(const std::vector<IODescr<true>>&);
-template void DaliExecutor::PutOutputs(const std::vector<IODescr<false>>&);
 
 }}}  // namespace triton::backend::dali

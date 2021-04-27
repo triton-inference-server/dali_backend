@@ -30,6 +30,52 @@
 
 namespace triton { namespace backend { namespace dali {
 
+
+/**
+ * Converts TRITONSERVER_DataType to dali_data_type_t
+ */
+inline dali_data_type_t to_dali(TRITONSERVER_DataType t) {
+  assert(t >= 0 && t <= 13);
+  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
+  // types have more-or-less the same order, with few exceptions
+  if (t == 0)
+    return static_cast<dali_data_type_t>(-1);
+  if (t == 1)
+    return static_cast<dali_data_type_t>(11);
+  if (t == 13)
+    return static_cast<dali_data_type_t>(0);
+  return static_cast<dali_data_type_t>(t - 2);
+}
+
+/**
+ * Converts dali_data_type_t to TRITONSERVER_DataType
+ */
+inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
+  assert(-1 <= t && t <= 11);
+  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
+  // types have more-or-less the same order, with few exceptions
+  if (t == -1)
+    return static_cast<TRITONSERVER_DataType>(0);
+  if (t == 11)
+    return static_cast<TRITONSERVER_DataType>(1);
+  return static_cast<TRITONSERVER_DataType>(t + 2);
+}
+
+/**
+ * Converts TRITONSERVER_MemoryType to DALI device_type_t
+ */
+inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
+  switch (t) {
+    case TRITONSERVER_MEMORY_CPU:
+    case TRITONSERVER_MEMORY_CPU_PINNED:
+      return device_type_t::CPU;
+    case TRITONSERVER_MEMORY_GPU:
+      return device_type_t::GPU;
+    default:
+      throw std::invalid_argument("Unknown memory type");
+  }
+}
+
 class TritonInput {
  public:
   TritonInput(TRITONBACKEND_Input *handle) : handle_(handle) {
@@ -61,25 +107,18 @@ class TritonInput {
     return buffer_cnt_;
   }
 
-  size_t ByteSize();
-  {
-    size_t bute_size;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(handle_, nullptr, nullptr, nullptr, nullptr,
-                                                    &byte_size, nullptr));
-    return byte_size;
-  }
-
-  BufferDescr GetBuffer(uint32_t idx,
-                        TRITONSERVER_MemoryType mem_type = TRITONSERVER_MEMORY_CPU_PINNED) {
+  IBufferDescr GetBuffer(uint32_t idx,
+                         TRITONSERVER_MemoryType mem_type = TRITONSERVER_MEMORY_CPU_PINNED) {
     const void *data;
     size_t size;
     int64_t mem_type_id = 0;
     TRITON_CALL_GUARD(
         TRITONBACKEND_InputBuffer(handle_, idx, &data, &size, &mem_type, &mem_type_id));
-    BufferDescr descr;
+    IBufferDescr descr;
     descr.device = to_dali(mem_type);
     descr.device_id = mem_type_id;
-    descr.data = span<void>(data, size);
+    descr.data = data;
+    descr.size = size;
     return descr;
   }
 
@@ -88,11 +127,11 @@ class TritonInput {
   IOMeta meta_;
   size_t byte_size_;
   uint32_t buffer_cnt_;
-}
+};
 
 class TritonRequest : public UniqueHandle<TRITONBACKEND_Request *, TritonRequest> {
  public:
-  DALI_INHERIT_UNIQUE_HANDLE(TRITONBACKEND_Request, TritonRequest)
+  DALI_INHERIT_UNIQUE_HANDLE(TRITONBACKEND_Request *, TritonRequest)
 
   static void DestroyHandle(TRITONBACKEND_Request *request) {
     LOG_IF_ERROR(TRITONBACKEND_RequestRelease(
@@ -111,7 +150,7 @@ class TritonRequest : public UniqueHandle<TRITONBACKEND_Request *, TritonRequest
     TRITON_CALL_GUARD(TRITONBACKEND_RequestInputByIndex(handle_, idx, &input));
     return TritonInput(input);
   }
-}
+};
 
 }}}  // namespace triton::backend::dali
 
