@@ -29,9 +29,7 @@ namespace triton { namespace backend { namespace dali {
 std::once_flag DaliPipeline::dali_initialized_{};
 
 
-TensorListShape<>
-DaliPipeline::GetOutputShapeAt(int output_idx)
-{
+TensorListShape<> DaliPipeline::GetOutputShapeAt(int output_idx) {
   size_t batch_size = daliNumTensors(&handle_, output_idx);
   auto ndim = daliMaxDimTensors(&handle_, output_idx);
   TensorListShape<> result(batch_size, ndim);
@@ -44,9 +42,7 @@ DaliPipeline::GetOutputShapeAt(int output_idx)
 }
 
 
-std::vector<TensorListShape<>>
-DaliPipeline::GetOutputShapes()
-{
+std::vector<TensorListShape<>> DaliPipeline::GetOutputShapes() {
   auto n_outputs = GetNumOutput();
   std::vector<TensorListShape<>> ret;
   ret.reserve(n_outputs);
@@ -57,40 +53,28 @@ DaliPipeline::GetOutputShapes()
 }
 
 
-void
-DaliPipeline::SetInput(
-    const void* data_ptr, const char* name, device_type_t source_device,
-    dali_data_type_t data_type, span<const int64_t> inputs_shapes,
-    int sample_ndims)
-{
-  ENFORCE(
-      inputs_shapes.size() % sample_ndims == 0,
-      "Incorrect inputs shapes or sample ndims");
+void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_t source_device,
+                            dali_data_type_t data_type, span<const int64_t> inputs_shapes,
+                            int sample_ndims) {
+  ENFORCE(inputs_shapes.size() % sample_ndims == 0, "Incorrect inputs shapes or sample ndims");
   int batch_size = inputs_shapes.size() / sample_ndims;
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
-  daliSetExternalInput(
-      &handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
-      sample_ndims, nullptr, DALI_ext_default);
+  daliSetExternalInput(&handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
+                       sample_ndims, nullptr, DALI_ext_default);
 }
 
 
-void
-DaliPipeline::SetInput(
-    const void* ptr, const char* name, device_type_t source_device,
-    dali_data_type_t data_type, TensorListShape<> input_shape) {
-  SetInput(ptr, name, source_device, data_type,
-           make_span(input_shape.shapes), input_shape.sample_dim());
+void DaliPipeline::SetInput(const void* ptr, const char* name, device_type_t source_device,
+                            dali_data_type_t data_type, TensorListShape<> input_shape) {
+  SetInput(ptr, name, source_device, data_type, make_span(input_shape.shapes),
+           input_shape.sample_dim());
 }
 
-void
-DaliPipeline::PutOutput(
-    void* destination, int output_idx, device_type_t destination_device)
-{
+void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t destination_device) {
   assert(destination != nullptr);
   assert(output_idx >= 0);
-  daliOutputCopy(
-      &handle_, destination, output_idx, destination_device,
-      destination_device == CPU ? nullptr : output_stream_, 0);
+  daliOutputCopy(&handle_, destination, output_idx, destination_device,
+                 destination_device == CPU ? nullptr : output_stream_, 0);
 }
 
 }}}  // namespace triton::backend::dali

@@ -30,10 +30,7 @@
 namespace triton { namespace backend { namespace dali {
 
 struct DaliBackendException : public std::runtime_error {
-  explicit DaliBackendException(const std::string& msg)
-      : std::runtime_error(msg)
-  {
-  }
+  explicit DaliBackendException(const std::string& msg) : std::runtime_error(msg) {}
 };
 
 #define ENFORCE(predicate, message) \
@@ -41,39 +38,33 @@ struct DaliBackendException : public std::runtime_error {
   throw DaliBackendException(message)
 
 
-#define TRITON_CALL_GUARD(call_)                           \
-  do {                                                     \
-    auto err = call_;                                      \
-    if (err) {                                             \
-      std::stringstream ss;                                \
-      ss << "Error " << TRITONSERVER_ErrorCode(err) << "(" \
-         << TRITONSERVER_ErrorCodeString(err)              \
-         << "): " << TRITONSERVER_ErrorMessage(err);       \
-      throw DaliBackendException(ss.str());                \
-    }                                                      \
+#define TRITON_CALL_GUARD(call_)                                                                \
+  do {                                                                                          \
+    auto err = call_;                                                                           \
+    if (err) {                                                                                  \
+      std::stringstream ss;                                                                     \
+      ss << "Error " << TRITONSERVER_ErrorCode(err) << "(" << TRITONSERVER_ErrorCodeString(err) \
+         << "): " << TRITONSERVER_ErrorMessage(err);                                            \
+      throw DaliBackendException(ss.str());                                                     \
+    }                                                                                           \
   } while (false)
 
 
-inline void
-CudaResultCheck(cudaError_t err)
-{
+inline void CudaResultCheck(cudaError_t err) {
   switch (err) {
     case cudaSuccess:
       return;
     case cudaErrorMemoryAllocation:
     case cudaErrorInvalidValue:
     default:
-      throw DaliBackendException(make_string(
-          cudaGetErrorName(cudaGetLastError()), " --> ",
-          cudaGetErrorString(cudaGetLastError())));
+      throw DaliBackendException(make_string(cudaGetErrorName(cudaGetLastError()), " --> ",
+                                             cudaGetErrorString(cudaGetLastError())));
       cudaGetLastError();
   }
 }
 
-template <typename T>
-void
-CUDA_CALL_GUARD(T status)
-{
+template<typename T>
+void CUDA_CALL_GUARD(T status) {
   CudaResultCheck(status);
 }
 
