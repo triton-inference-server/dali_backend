@@ -72,7 +72,9 @@ class IOBuffer : public IOBufferI {
   }
 
   uint8_t *Extend(size_t size) override {
-    ENFORCE(filled_ + size < buffer_.size(), "Cannot extend the buffer beyond its capacity.");
+    ENFORCE(filled_ + size <= buffer_.size(),
+            make_string("Cannot extend the buffer with capacity of ", Capacity(), " to size ",
+                        filled_ + size));
     auto origin = buffer_.data() + filled_;
     filled_ += size;
     return origin;
