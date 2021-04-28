@@ -50,14 +50,14 @@ inline uint64_t capture_time() {
  */
 std::vector<ODescr> AllocateOutputs(TRITONBACKEND_Request* request,
                                     TRITONBACKEND_Response* response,
-                                    const std::vector<shape_and_type_t>& shapes_and_types,
+                                    const std::vector<OutputInfo>& outputs_info,
                                     const std::unordered_map<std::string, int>& output_order) {
   uint32_t output_cnt;
   TRITON_CALL_GUARD(TRITONBACKEND_RequestOutputCount(request, &output_cnt));
-  ENFORCE(shapes_and_types.size() == output_cnt,
+  ENFORCE(outputs_info.size() == output_cnt,
           make_string("Number of outputs in the model configuration (", output_cnt,
                       ") does not match to the number of outputs from DALI pipeline (",
-                      shapes_and_types.size(), ")"));
+                      outputs_info.size(), ")"));
 
   std::vector<ODescr> ret(output_cnt);
   for (size_t i = 0; i < output_cnt; i++) {
@@ -67,16 +67,16 @@ std::vector<ODescr> AllocateOutputs(TRITONBACKEND_Request* request,
 
     auto& output_desc = ret[output_idx];
     output_desc.meta.name = name;
-    auto& snt = shapes_and_types[output_idx];
+    auto& out_info = outputs_info[output_idx];
 
-    auto output_shape = array_shape(snt.shape);
+    auto output_shape = array_shape(out_info.shape);
     TRITONBACKEND_Output* triton_output;
     TRITON_CALL_GUARD(TRITONBACKEND_ResponseOutput(response, &triton_output, name,
-                                                   to_triton(snt.type), output_shape.data(),
+                                                   to_triton(out_info.type), output_shape.data(),
                                                    output_shape.size()));
-    TRITONSERVER_MemoryType memtype = TRITONSERVER_MEMORY_GPU;
+    TRITONSERVER_MemoryType memtype = to_triton(out_info.device);
     int64_t memid = 0;
-    auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(snt.type));
+    auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(out_info.type));
     output_desc.buffer.size = volume(output_shape.begin(), output_shape.end()) * t_size;
     TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(triton_output, &output_desc.buffer.data,
                                                  output_desc.buffer.size, &memtype, &memid));

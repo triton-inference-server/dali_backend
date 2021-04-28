@@ -33,9 +33,10 @@
 namespace triton { namespace backend { namespace dali {
 
 
-struct shape_and_type_t {
+struct OutputInfo {
   TensorListShape<> shape;
   dali_data_type_t type;
+  device_type_t device;
 };
 
 class DaliExecutor {
@@ -45,7 +46,7 @@ class DaliExecutor {
   /**
    * Run DALI pipeline and return the result descriptor
    */
-  std::vector<shape_and_type_t> Run(const std::vector<IDescr>& inputs);
+  std::vector<OutputInfo> Run(const std::vector<IDescr>& inputs);
 
 
   void PutOutputs(const std::vector<ODescr>& outputs);

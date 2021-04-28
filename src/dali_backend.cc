@@ -24,6 +24,7 @@
 
 #include <memory>
 
+#include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
 #include "src/utils/triton.h"
@@ -182,10 +183,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
                                                                // same in every input
     ret.compute_start_ns = detail::capture_time();
-    auto shapes_and_types = dali_executor_->Run(dali_inputs);
+    auto outputs_info = dali_executor_->Run(dali_inputs);
     ret.compute_end_ns = detail::capture_time();
-    auto dali_outputs =
-        detail::AllocateOutputs(request, response, shapes_and_types, outputs_indices);
+    auto dali_outputs = detail::AllocateOutputs(request, response, outputs_info, outputs_indices);
     dali_executor_->PutOutputs(dali_outputs);
     return ret;
   }
@@ -193,7 +193,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
  private:
   int GetNumThreads() {
     int param = dali_model_->GetModelParamters().GetNumThreads();
-    return (param > 0) ? param : 4;
+    return (param > 0) ? param : 1;
   }
 
   DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
@@ -215,9 +215,6 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       auto input_byte_size = input.ByteSize();
       auto input_buffer_count = input.BufferCount();
       IOBufferI* input_buffer;
-      std::cout << "Input: " << input.Meta().name << ", byte_size: " << input_byte_size
-                << std::endl;
-      std::cout << "Buffer count: " << input_buffer_count << std::endl;
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
         auto buffer = input.GetBuffer(buffer_idx);
         ENFORCE(buffer.device == device_type_t::CPU || buffer.device_id == device_id_,
@@ -231,14 +228,12 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
           input_buffer->Clear();
           input_buffer->Reserve(input_byte_size);
         }
-        std::cout << "buffer " << buffer_idx << ", size: " << buffer.size << std::endl;
         auto origin = input_buffer->Extend(buffer.size);
         thread_pool_.AddWork([origin, input_buffer, buffer](int) {
           CopyMem(input_buffer->DeviceType(), origin, buffer.device, buffer.data, buffer.size);
         });
       }
       ret.emplace_back(IDescr{input.Meta(), input_buffer->GetDescr()});
-      std::cout << std::endl;
     }
     thread_pool_.RunAll();
     return ret;
@@ -479,7 +474,6 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
   uint64_t exec_start_ns = 0, exec_end_ns = 0, batch_exec_start_ns = 0, batch_exec_end_ns = 0,
            batch_compute_start_ns = 0, batch_compute_end_ns = 0;
   batch_exec_start_ns = detail::capture_time();
-  std::cout << "req count " << request_count << std::endl;
   for (size_t i = 0; i < responses.size(); i++) {
     TritonRequest request(reqs[i]);
     TRITONSERVER_Error* error = nullptr;  // success

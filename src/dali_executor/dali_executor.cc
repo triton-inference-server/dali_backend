@@ -42,7 +42,7 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   }
 }
 
-std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
+std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   SetupInputs(inputs);
   try {
     pipeline_.Run();
@@ -51,10 +51,11 @@ std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IDescr>& input
     pipeline_.Reset();
     throw e;
   }
-  std::vector<shape_and_type_t> ret(pipeline_.GetNumOutput());
+  std::vector<OutputInfo> ret(pipeline_.GetNumOutput());
   auto outputs_shapes = pipeline_.GetOutputShapes();
   for (size_t out_idx = 0; out_idx < ret.size(); out_idx++) {
-    ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx)};
+    ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
+                    pipeline_.GetOutputDevice(out_idx)};
   }
   return ret;
 }

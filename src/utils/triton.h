@@ -48,6 +48,21 @@ inline dali_data_type_t to_dali(TRITONSERVER_DataType t) {
 }
 
 /**
+ * Converts TRITONSERVER_MemoryType to DALI device_type_t
+ */
+inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
+  switch (t) {
+    case TRITONSERVER_MEMORY_CPU:
+    case TRITONSERVER_MEMORY_CPU_PINNED:
+      return device_type_t::CPU;
+    case TRITONSERVER_MEMORY_GPU:
+      return device_type_t::GPU;
+    default:
+      throw std::invalid_argument("Unknown memory type");
+  }
+}
+
+/**
  * Converts dali_data_type_t to TRITONSERVER_DataType
  */
 inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
@@ -62,18 +77,16 @@ inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
 }
 
 /**
- * Converts TRITONSERVER_MemoryType to DALI device_type_t
+ * Converts device_type_t to TRITONSERVER_MemoryType
  */
-inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
-  switch (t) {
-    case TRITONSERVER_MEMORY_CPU:
-    case TRITONSERVER_MEMORY_CPU_PINNED:
-      return device_type_t::CPU;
-    case TRITONSERVER_MEMORY_GPU:
-      return device_type_t::GPU;
-    default:
-      throw std::invalid_argument("Unknown memory type");
+inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
+  switch (dev) {
+    case CPU:
+      return TRITONSERVER_MEMORY_CPU_PINNED;
+    case GPU:
+      return TRITONSERVER_MEMORY_GPU;
   }
+  assert(false);
 }
 
 class TritonInput {

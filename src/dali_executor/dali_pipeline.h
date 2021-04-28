@@ -109,6 +109,10 @@ class DaliPipeline {
     return daliTypeAt(&handle_, output_idx);
   }
 
+  device_type_t GetOutputDevice(int output_idx) {
+    return daliGetOutputDevice(&handle_, output_idx);
+  }
+
   std::vector<TensorListShape<>> GetOutputShapes();
 
   void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
