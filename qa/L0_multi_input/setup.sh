@@ -1,5 +1,9 @@
 #!/bin/bash -ex
 
 pushd model_repository
-source setup_multi_input_example.sh
+
+mkdir -p dali_multi_input/1
+python multi_input_pipeline.py dali_multi_input/1/model.dali
+echo "Multi-input model ready."
+
 popd
