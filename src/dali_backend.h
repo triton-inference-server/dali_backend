@@ -77,10 +77,13 @@ std::vector<ODescr> AllocateOutputs(TRITONBACKEND_Request* request,
     TRITONSERVER_MemoryType memtype = to_triton(out_info.device);
     int64_t memid = 0;
     auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(out_info.type));
-    output_desc.buffer.size = volume(output_shape.begin(), output_shape.end()) * t_size;
-    TRITON_CALL_GUARD(TRITONBACKEND_OutputBuffer(triton_output, &output_desc.buffer.data,
-                                                 output_desc.buffer.size, &memtype, &memid));
-    output_desc.buffer.device = to_dali(memtype);
+    OBufferDescr buffer;
+    buffer.size = volume(output_shape.begin(), output_shape.end()) * t_size;
+    TRITON_CALL_GUARD(
+        TRITONBACKEND_OutputBuffer(triton_output, &buffer.data, buffer.size, &memtype, &memid));
+    buffer.device = to_dali(memtype);
+    buffer.device_id = memid;
+    output_desc.buffers = {buffer};
   }
   return ret;
 }

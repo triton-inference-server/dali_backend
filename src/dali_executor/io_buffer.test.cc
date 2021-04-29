@@ -32,11 +32,11 @@ void test_buffer(IOBuffer<Dev> &buffer) {
   const uint8_t N = 10;
   const size_t size = N * (N + 1) / 2;
   buffer.Clear();
-  buffer.Reserve(size);
+  buffer.Allocate(size);
   REQUIRE(buffer.Capacity() >= size);
   for (uint8_t i = 1; i <= N; ++i) {
     std::vector<uint8_t> chunk(i, i);
-    auto origin = buffer.Extend(i);
+    auto origin = buffer.Reserve(i);
     CopyMem(Dev, origin, device_type_t::CPU, chunk.data(), i);
   }
   // validation
@@ -61,9 +61,9 @@ TEST_CASE("IOBuffer<CPU> extend & copy") {
     test_buffer(buffer);
   }
 
-  SECTION("Cannot extend beyond capacity") {
-    buffer.Reserve(100);
-    REQUIRE_THROWS(buffer.Extend(buffer.Capacity() + 1));
+  SECTION("Cannot reserve beyond capacity") {
+    buffer.Allocate(100);
+    REQUIRE_THROWS(buffer.Reserve(buffer.Capacity() + 1));
   }
 }
 
@@ -74,9 +74,9 @@ TEST_CASE("IOBuffer<GPU> extend & copy") {
     test_buffer(buffer);
   }
 
-  SECTION("Cannot extend beyond capacity") {
-    buffer.Reserve(100);
-    REQUIRE_THROWS(buffer.Extend(buffer.Capacity() + 1));
+  SECTION("Cannot reserve beyond capacity") {
+    buffer.Allocate(100);
+    REQUIRE_THROWS(buffer.Reserve(buffer.Capacity() + 1));
   }
 }
 

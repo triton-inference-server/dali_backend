@@ -35,14 +35,21 @@ void CopyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void
 class IOBufferI {
  public:
   /**
-   * Extend the buffer by the `size` of bytes and return a pointer
-   * to the beginning of the extension.
+   * Reserve a chunk of `size` of bytes and return a pointer
+   * to the beginning of the chunk.
    */
-  virtual uint8_t *Extend(size_t size) = 0;
+  virtual uint8_t *Reserve(size_t size) = 0;
 
+  /**
+   * Cancel all reservations. No memory is deallocated.
+   */
   virtual void Clear() = 0;
 
-  virtual void Reserve(size_t size) = 0;
+  /**
+   * Allocate `size` bytes of memory.
+   * If the buffer's capacity is greater or equal to size, this function is a no-op.
+   */
+  virtual void Allocate(size_t size) = 0;
 
   virtual size_t Capacity() const = 0;
 
@@ -71,10 +78,12 @@ class IOBuffer : public IOBufferI {
     }
   }
 
-  uint8_t *Extend(size_t size) override {
+  uint8_t *Reserve(size_t size) override {
     ENFORCE(filled_ + size <= buffer_.size(),
-            make_string("Cannot extend the buffer with capacity of ", Capacity(), " to size ",
-                        filled_ + size));
+            make_string("Not enough memory allocated (", Capacity(),
+                        " bytes) to reserve "
+                        "a chunk of size ",
+                        size));
     auto origin = buffer_.data() + filled_;
     filled_ += size;
     return origin;
@@ -84,7 +93,7 @@ class IOBuffer : public IOBufferI {
     filled_ = 0;
   }
 
-  void Reserve(size_t size) override {
+  void Allocate(size_t size) override {
     if (size > buffer_.size())
       buffer_.resize(size);
   }

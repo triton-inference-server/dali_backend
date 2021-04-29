@@ -197,9 +197,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
-      BackendModelInstance(model, triton_model_instance),
-      dali_model_(model),
-      thread_pool_(GetNumThreads(), device_id_, false) {
+      BackendModelInstance(model, triton_model_instance), dali_model_(model) {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
@@ -214,35 +212,19 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       auto input = request.InputByIdx(input_idx);
       auto input_byte_size = input.ByteSize();
       auto input_buffer_count = input.BufferCount();
-      IOBufferI* input_buffer;
+      std::vector<IBufferDescr> buffers;
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
         auto buffer = input.GetBuffer(buffer_idx);
         ENFORCE(buffer.device == device_type_t::CPU || buffer.device_id == device_id_,
                 "GPU input must reside on the same device that the model instance.");
-        if (buffer_idx == 0) {
-          if (buffer.device == device_type_t::CPU) {
-            input_buffer = &cpu_buffers_[input.Meta().name];
-          } else {
-            input_buffer = &gpu_buffers_[input.Meta().name];
-          }
-          input_buffer->Clear();
-          input_buffer->Reserve(input_byte_size);
-        }
-        auto origin = input_buffer->Extend(buffer.size);
-        thread_pool_.AddWork([origin, input_buffer, buffer](int) {
-          CopyMem(input_buffer->DeviceType(), origin, buffer.device, buffer.data, buffer.size);
-        });
+        buffers.push_back(buffer);
       }
-      ret.emplace_back(IDescr{input.Meta(), input_buffer->GetDescr()});
+      ret.push_back({input.Meta(), buffers});
     }
-    thread_pool_.RunAll();
     return ret;
   }
 
   DaliModel* dali_model_;
-  ThreadPool thread_pool_;
-  std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
-  std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
   std::unique_ptr<DaliExecutor> dali_executor_;
 };
 
@@ -383,13 +365,11 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
   DaliModel* model_state;
   RETURN_IF_ERROR(DaliModel::Create(model, &model_state));
   RETURN_IF_ERROR(TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state)));
-
   // One of the primary things to do in ModelInitialize is to examine
   // the model configuration to ensure that it is something that this
   // backend can support. If not, returning an error from this
   // function will prevent the model from loading.
   RETURN_IF_ERROR(model_state->ValidateModelConfig());
-
   model_state->ReadOutputsOrder();
 
   return nullptr;  // success

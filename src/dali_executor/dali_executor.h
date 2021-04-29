@@ -23,10 +23,12 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 
+#include <map>
 #include <string>
 #include <utility>
 
 #include "src/dali_executor/dali_pipeline.h"
+#include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/io_descriptor.h"
 
 
@@ -41,7 +43,8 @@ struct OutputInfo {
 
 class DaliExecutor {
  public:
-  DaliExecutor(DaliPipeline pipeline) : pipeline_(std::move(pipeline)) {}
+  DaliExecutor(DaliPipeline pipeline) :
+      pipeline_(std::move(pipeline)), thread_pool_(GetNumThreads(), pipeline_.DeviceId(), false) {}
 
   /**
    * Run DALI pipeline and return the result descriptor
@@ -54,7 +57,20 @@ class DaliExecutor {
  private:
   void SetupInputs(const std::vector<IDescr>& inputs);
 
+  /**
+   * Schedule copy to a continous buffer and return IDecr to the new buffer.
+   */
+  IDescr ScheduleInputCopy(const IDescr& buffers);
+
+  int GetNumThreads() {
+    auto n_threads = pipeline_.NumThreadsArg();
+    return (n_threads < 1) ? 1 : n_threads;
+  }
+
   DaliPipeline pipeline_;
+  ThreadPool thread_pool_;
+  std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
+  std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
 };
 
 }}}  // namespace triton::backend::dali

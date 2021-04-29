@@ -30,48 +30,61 @@
 namespace triton { namespace backend { namespace dali { namespace test {
 
 TEST_CASE("Scaling Pipeline") {
-  std::string pipeline_s((const char*)pipelines::scale_pipeline_str, pipelines::scale_pipeline_len);
+  std::string pipeline_s((const char *)pipelines::scale_pipeline_str,
+                         pipelines::scale_pipeline_len);
   DaliPipeline pipeline(pipeline_s, 8, 4, 0);
   DaliExecutor executor(std::move(pipeline));
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
   const std::string inp_name = "INPUT0";
-  auto scaling_test = [&](int batch_size) {
-    TensorListShape<> shape(batch_size, 2);
-    for (int i = 0; i < batch_size; ++i) {
-      shape.set_tensor_shape(i, TensorShape<>(i + 1, 50));
+  auto scaling_test = [&](const std::vector<int> &batch_sizes) {
+    std::vector<TensorListShape<>> shapes;
+    for (auto batch_size : batch_sizes) {
+      TensorListShape<> shape(batch_size, 2);
+      for (int i = 0; i < batch_size; ++i) {
+        shape.set_tensor_shape(i, TensorShape<>(i + 1, 50));
+      }
+      shapes.push_back(shape);
     }
-    std::vector<float> input_buffer;
-    auto input = RandomInput(input_buffer, inp_name, shape, [&]() { return dist(rand); });
-    std::vector<IDescr> input_vec;
-    input_vec.emplace_back(std::move(input));
-    auto output = executor.Run(input_vec);
-    REQUIRE(shape == output[0].shape);
-    std::vector<float> output_buffer(input_buffer.size());
+    std::vector<std::vector<float>> input_buffers(batch_sizes.size());
+    auto input = RandomInput(input_buffers, inp_name, shapes, [&]() { return dist(rand); });
+    auto output = executor.Run({input});
+    REQUIRE(cat_list_shapes(shapes) == output[0].shape);
+    size_t inp_size = 0;
+    for (auto &inp_buffer : input_buffers)
+      inp_size += inp_buffer.size();
+    std::vector<float> output_buffer(inp_size);
     std::vector<ODescr> output_vec(1);
-    auto& outdesc = output_vec[0];
-    outdesc.buffer.device = device_type_t::CPU;
-    outdesc.buffer.data = output_buffer.data();
-    outdesc.buffer.size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
+    auto &outdesc = output_vec[0];
+    OBufferDescr buf_descr;
+    buf_descr.device = device_type_t::CPU;
+    buf_descr.data = output_buffer.data();
+    buf_descr.size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
+    outdesc.buffers = {buf_descr};
     executor.PutOutputs(output_vec);
-    for (size_t i = 0; i < input_buffer.size(); ++i) {
-      REQUIRE(output_buffer[i] == input_buffer[i] * 2);
+    size_t out_i = 0;
+    int i = 0;
+    for (auto &inp_buffer : input_buffers) {
+      for (size_t i = 0; i < inp_buffer.size(); ++i) {
+        REQUIRE(output_buffer[out_i] == inp_buffer[i] * 2);
+        ++out_i;
+      }
     }
   };
 
   SECTION("Simple execute") {
-    scaling_test(2);
-    scaling_test(4);
+    scaling_test({3, 2, 1});
+    scaling_test({5});
   }
 
   SECTION("Repeat batch size") {
-    scaling_test(3);
-    scaling_test(3);
+    scaling_test({3, 3});
+    scaling_test({6});
   }
 }
 
 TEST_CASE("RN50 pipeline") {
-  std::string pipeline_s((const char*)pipelines::rn50_gpu_dali_chr, pipelines::rn50_gpu_dali_len);
+  std::string pipeline_s((const char *)pipelines::rn50_gpu_dali_chr, pipelines::rn50_gpu_dali_len);
   DaliPipeline pipeline(pipeline_s, 1, 3, 0);
   DaliExecutor executor(std::move(pipeline));
   IDescr input;
@@ -79,9 +92,11 @@ TEST_CASE("RN50 pipeline") {
   input.meta.type = dali_data_type_t::DALI_UINT8;
   input.meta.shape = TensorListShape<1>(1);
   input.meta.shape.set_tensor_shape(0, TensorShape<>(data::jpeg_image_len));
-  input.buffer.data = data::jpeg_image_str;
-  input.buffer.size = data::jpeg_image_len;
-  input.buffer.device = device_type_t::CPU;
+  IBufferDescr ibuffer;
+  ibuffer.data = data::jpeg_image_str;
+  ibuffer.size = data::jpeg_image_len;
+  ibuffer.device = device_type_t::CPU;
+  input.buffers = {ibuffer};
 
   auto execute_with_image = [&]() {
     const float expected_values[] = {-2.1179, -2.03571, -1.80444};  // 0 values after normalization
@@ -90,12 +105,13 @@ TEST_CASE("RN50 pipeline") {
     REQUIRE(output[0].shape.tensor_shape(0) == TensorShape<3>(output_c, output_h, output_w));
     std::vector<float> output_buffer(output[0].shape.num_elements());
     std::vector<ODescr> output_vec(1);
-    auto& outdesc = output_vec[0];
-    outdesc.buffer.device = device_type_t::CPU;
-    outdesc.buffer.device_id = 0;
-    auto byte_size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
-    outdesc.buffer.data = output_buffer.data();
-    outdesc.buffer.size = byte_size;
+    auto &outdesc = output_vec[0];
+    OBufferDescr obuffer;
+    obuffer.device = device_type_t::CPU;
+    obuffer.device_id = 0;
+    obuffer.data = output_buffer.data();
+    obuffer.size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
+    outdesc.buffers = {obuffer};
     executor.PutOutputs(output_vec);
     for (int c = 0; c < output_c; ++c) {
       for (int y = 0; y < output_h; ++y) {
@@ -113,13 +129,13 @@ TEST_CASE("RN50 pipeline") {
   SECTION("Recover from error") {
     auto rand_inp_shape = TensorListShape<1>(1);
     rand_inp_shape.set_tensor_shape(0, TensorShape<>(1024));
-    std::vector<uint8_t> rand_input_buffer;
+    std::vector<std::vector<uint8_t>> rand_input_buffer(1);
     std::mt19937 rand(1217);
     std::uniform_int_distribution<short> dist(0, 255);
     auto gen = [&]() {
       return dist(rand);
     };
-    auto rand_input = RandomInput(rand_input_buffer, input.meta.name, rand_inp_shape, gen);
+    auto rand_input = RandomInput(rand_input_buffer, input.meta.name, {rand_inp_shape}, gen);
     REQUIRE_THROWS(executor.Run(std::vector<IDescr>({rand_input})));
 
     REQUIRE_NOTHROW(execute_with_image());

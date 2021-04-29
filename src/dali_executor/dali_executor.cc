@@ -21,10 +21,7 @@
 // SOFTWARE.
 
 #include "src/dali_executor/dali_executor.h"
-
 #include "src/dali_executor/utils/dali.h"
-
-#include "src/dali_executor/io_buffer.h"
 
 namespace triton { namespace backend { namespace dali {
 
@@ -35,11 +32,42 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
     assert(inputs[i].meta.shape.num_samples() == batch_size &&
            "All inputs should have equal batch size.");
   }
+  std::vector<IDescr> c_inputs{};
   for (auto& inp : inputs) {
     size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
-    assert(inp_size <= inp.buffer.size);
+    if (inp.buffers.size() == 1) {
+      assert(inp_size <= inp.buffers[0].size);
+      c_inputs.push_back(inp);
+    } else {
+      c_inputs.push_back(ScheduleInputCopy(inp));
+      assert(inp_size <= c_inputs.back().buffers[0].size);
+    }
+  }
+  thread_pool_.RunAll();
+  for (auto& inp : c_inputs) {
     pipeline_.SetInput(inp);
   }
+}
+
+IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
+  assert(input.buffers.size() > 1);
+  IOBufferI* buffer;
+  if (input.buffers[0].device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[input.meta.name];
+  } else {
+    buffer = &gpu_buffers_[input.meta.name];
+  }
+  size_t size = 0;
+  for (auto& buf : input.buffers)
+    size += buf.size;
+  buffer->Allocate(size);
+  for (auto& buf : input.buffers) {
+    auto origin = buffer->Reserve(buf.size);
+    thread_pool_.AddWork([buffer, origin, buf](int) {
+      CopyMem(buffer->DeviceType(), origin, buf.device, buf.data, buf.size);
+    });
+  }
+  return IDescr{input.meta, {buffer->GetDescr()}};
 }
 
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
@@ -62,8 +90,11 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
 
 void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-    auto data = outputs[output_idx].buffer.data;
-    auto device_type = outputs[output_idx].buffer.device;
+    ENFORCE(outputs[output_idx].buffers.size() == 1,
+            "Ouptut can be copied only to a single buffer");
+    auto buffer = outputs[output_idx].buffers[0];
+    auto data = buffer.data;
+    auto device_type = buffer.device;
     pipeline_.PutOutput(data, output_idx, device_type);
   }
 }

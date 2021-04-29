@@ -54,7 +54,7 @@ struct IOMeta {
 template<typename T>
 struct IODescr {
   IOMeta meta;
-  BufferDescr<T> buffer;
+  std::vector<BufferDescr<T>> buffers;
 };
 
 using IDescr = IODescr<const void>;

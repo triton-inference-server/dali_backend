@@ -130,6 +130,14 @@ class DaliPipeline {
     CreatePipeline();
   }
 
+  int DeviceId() {
+    return device_id_;
+  }
+
+  int NumThreadsArg() {
+    return num_threads_;
+  }
+
  private:
   void CreatePipeline() {
     daliCreatePipeline(&handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),

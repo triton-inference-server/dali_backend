@@ -67,6 +67,25 @@ inline int64_t dali_type_size(dali_data_type_t type) {
     return 8;
 }
 
+template<typename Container, int Dims = -1>
+TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
+  if (shapes.empty())
+    return TensorListShape<Dims>(0);
+  int64_t num_samples = 0;
+  int64_t ndims = shapes.begin()->sample_dim();
+  for (auto &shape : shapes)
+    num_samples += shape.num_samples();
+  TensorListShape<Dims> result(num_samples, ndims);
+  int64_t ti = 0;
+  for (auto &shape : shapes) {
+    for (int64_t j = 0; j < shape.num_samples(); ++j) {
+      result.set_tensor_shape(ti, shape.tensor_shape_span(j));
+      ++ti;
+    }
+  }
+  return result;
+}
+
 }}}  // namespace triton::backend::dali
 
 

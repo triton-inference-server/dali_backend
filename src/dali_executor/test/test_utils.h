@@ -62,17 +62,26 @@ constexpr dali_data_type_t dali_data_type() {
 
 
 template<typename T, typename R>
-IDescr RandomInput(std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
-                   const R& generator) {
-  buffer.clear();
-  std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
+IDescr RandomInput(std::vector<std::vector<T>>& buffers, const std::string& name,
+                   const std::vector<TensorListShape<>>& shapes, const R& generator) {
+  std::vector<IBufferDescr> buf_descs;
+  assert(buffers.size() == shapes.size());
+  for (size_t i = 0; i < buffers.size(); ++i) {
+    auto& buffer = buffers[i];
+    auto& shape = shapes[i];
+    buffer.clear();
+    std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
+    IBufferDescr buf_dscr;
+    buf_dscr.data = buffer.data();
+    buf_dscr.size = sizeof(T) * buffer.size();
+    buf_dscr.device = device_type_t::CPU;
+    buf_descs.push_back(buf_dscr);
+  }
   IDescr dscr;
   dscr.meta.name = name;
-  dscr.meta.shape = shape;
+  dscr.meta.shape = cat_list_shapes(shapes);
   dscr.meta.type = dali_data_type<T>();
-  dscr.buffer.data = buffer.data();
-  dscr.buffer.size = sizeof(T) * buffer.size();
-  dscr.buffer.device = device_type_t::CPU;
+  dscr.buffers = buf_descs;
   return dscr;
 }
 
