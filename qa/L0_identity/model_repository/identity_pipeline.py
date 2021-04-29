@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2021 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -20,20 +20,25 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import nvidia.dali as dali
-import argparse
+
+
+def _parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
+    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
+    return parser.parse_args()
+
+
+@dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
+def pipe():
+    data = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+    return data
 
 
 def main(filename):
-    pipe = dali.pipeline.Pipeline(batch_size=3, num_threads=1, device_id=0)
-    with pipe:
-        data = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
-        pipe.set_outputs(data)
-
-    pipe.serialize(filename=filename)
+    pipe().serialize(filename=filename)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
-    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
-    args = parser.parse_args()
+    args = _parse_args()
     main(args.file_path)
