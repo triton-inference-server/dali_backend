@@ -191,11 +191,6 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
  private:
-  int GetNumThreads() {
-    int param = dali_model_->GetModelParamters().GetNumThreads();
-    return (param > 0) ? param : 1;
-  }
-
   DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
       BackendModelInstance(model, triton_model_instance), dali_model_(model) {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
@@ -223,9 +218,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     }
     return ret;
   }
-
-  DaliModel* dali_model_;
+  
   std::unique_ptr<DaliExecutor> dali_executor_;
+  DaliModel* dali_model_;
 };
 
 
