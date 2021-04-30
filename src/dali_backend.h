@@ -78,7 +78,7 @@ std::vector<ODescr> AllocateOutputs(TRITONBACKEND_Request* request,
     int64_t memid = 0;
     auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(out_info.type));
     OBufferDescr buffer;
-    buffer.size = volume(output_shape.begin(), output_shape.end()) * t_size;
+    buffer.size = volume(output_shape) * t_size;
     TRITON_CALL_GUARD(
         TRITONBACKEND_OutputBuffer(triton_output, &buffer.data, buffer.size, &memtype, &memid));
     buffer.device = to_dali(memtype);
