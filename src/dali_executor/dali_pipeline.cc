@@ -71,7 +71,7 @@ void DaliPipeline::SetInput(const void* ptr, const char* name, device_type_t sou
 }
 
 void DaliPipeline::SetInput(const IDescr& io_descr) {
-  ENFORCE(io_descr.buffers.size() == 1, "DALI pipeline input has to a single chunk of memory");
+  ENFORCE(io_descr.buffers.size() == 1, "DALI pipeline input has to be a single chunk of memory");
   auto meta = io_descr.meta;
   auto buffer = io_descr.buffers[0];
   SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape);
