@@ -24,7 +24,7 @@ import nvidia.dali.types as types
 import os
 
 
-def _parse_args():
+def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--save", default="./model_repository/dali/1/model.dali")
@@ -51,6 +51,6 @@ def main(filename):
 
 
 if __name__ == '__main__':
-    args = _parse_args()
+    args = parse_args()
     os.makedirs(os.path.dirname(args.save), exist_ok=True)
     main(args.save)
