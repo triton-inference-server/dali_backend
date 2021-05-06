@@ -62,6 +62,11 @@ class DaliExecutor {
    */
   IDescr ScheduleInputCopy(const IDescr& buffers);
 
+  /**
+   * Check if an input can be used without a copy.
+   */
+  bool IsNoCopy(const IDescr& input);
+
   int GetNumThreads() {
     auto n_threads = pipeline_.NumThreadsArg();
     return (n_threads < 1) ? 1 : n_threads;

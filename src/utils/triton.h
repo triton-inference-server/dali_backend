@@ -120,11 +120,17 @@ class TritonInput {
     return buffer_cnt_;
   }
 
-  IBufferDescr GetBuffer(uint32_t idx,
-                         TRITONSERVER_MemoryType mem_type = TRITONSERVER_MEMORY_CPU_PINNED) {
+  /**
+   * Request an input buffer.
+   * idx  number index
+   * device_type_t preferred device type
+   * device_id preferred device id
+   */
+  IBufferDescr GetBuffer(uint32_t idx, device_type_t device, int device_id) {
     const void *data;
     size_t size;
-    int64_t mem_type_id = 0;
+    TRITONSERVER_MemoryType mem_type = to_triton(device);
+    int64_t mem_type_id = device_id;
     TRITON_CALL_GUARD(
         TRITONBACKEND_InputBuffer(handle_, idx, &data, &size, &mem_type, &mem_type_id));
     IBufferDescr descr;

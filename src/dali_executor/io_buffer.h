@@ -51,12 +51,24 @@ class IOBufferI {
    */
   virtual void Allocate(size_t size) = 0;
 
+  /**
+   * Return allocation size.
+   */
   virtual size_t Capacity() const = 0;
 
+  /**
+   * Return device type of the allocated memory.
+   */
   virtual device_type_t DeviceType() const = 0;
 
+  /**
+   * Get a descriptor of the buffer.
+   */
   virtual IBufferDescr GetDescr() const = 0;
 
+  /**
+   * Get a descriptor of the buffer.
+   */
   virtual OBufferDescr GetDescr() = 0;
 
   virtual ~IOBufferI() {}
@@ -94,8 +106,10 @@ class IOBuffer : public IOBufferI {
   }
 
   void Allocate(size_t size) override {
-    if (size > buffer_.size())
+    if (size > buffer_.size()) {
+      ENFORCE(filled_ == 0, "Cannot allocate more memory for buffer that was already reserved.");
       buffer_.resize(size);
+    }
   }
 
   size_t Capacity() const override {

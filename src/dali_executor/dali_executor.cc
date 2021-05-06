@@ -35,7 +35,7 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   std::vector<IDescr> c_inputs{};
   for (auto& inp : inputs) {
     size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
-    if (inp.buffers.size() == 1) {
+    if (IsNoCopy(inp)) {
       assert(inp_size <= inp.buffers[0].size);
       c_inputs.push_back(inp);
     } else {
@@ -68,6 +68,11 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
     });
   }
   return IDescr{input.meta, {buffer->GetDescr()}};
+}
+
+bool DaliExecutor::IsNoCopy(const IDescr& input) {
+  return input.buffers.size() == 1 && (input.buffers[0].device == device_type_t::CPU ||
+                                       input.buffers[0].device_id == pipeline_.DeviceId());
 }
 
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {

@@ -209,16 +209,14 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       auto input_buffer_count = input.BufferCount();
       std::vector<IBufferDescr> buffers;
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-        auto buffer = input.GetBuffer(buffer_idx);
-        ENFORCE(buffer.device == device_type_t::CPU || buffer.device_id == device_id_,
-                "GPU input must reside on the same device that the model instance.");
+        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
         buffers.push_back(buffer);
       }
       ret.push_back({input.Meta(), buffers});
     }
     return ret;
   }
-  
+
   std::unique_ptr<DaliExecutor> dali_executor_;
   DaliModel* dali_model_;
 };
