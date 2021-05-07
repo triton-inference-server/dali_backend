@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2021 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -21,28 +21,33 @@
 
 import nvidia.dali as dali
 import nvidia.dali.types as types
-import argparse
+
+
+def _parse_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
+    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
+    return parser.parse_args()
+
+
+@dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
+def pipe():
+    images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+    images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)
+    images = dali.fn.resize(images, resize_x=299, resize_y=299)
+    images = dali.fn.crop_mirror_normalize(images,
+                                           dtype=types.FLOAT,
+                                           output_layout="HWC",
+                                           crop=(299, 299),
+                                           mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                           std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+    return images
 
 
 def main(filename):
-    pipe = dali.pipeline.Pipeline(batch_size=3, num_threads=1, device_id=0)
-    with pipe:
-        images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
-        images = dali.fn.image_decoder(images, device="mixed", output_type=types.RGB)
-        images = dali.fn.resize(images, resize_x=299, resize_y=299)
-        images = dali.fn.crop_mirror_normalize(images,
-                                               dtype=types.FLOAT,
-                                               output_layout="HWC",
-                                               crop=(299, 299),
-                                               mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                               std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
-        pipe.set_outputs(images)
-        pipe.serialize(filename=filename)
-
+    pipe().serialize(filename=filename)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
-    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
-    args = parser.parse_args()
+    args = _parse_args()
     main(args.file_path)
