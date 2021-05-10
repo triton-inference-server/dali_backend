@@ -68,10 +68,12 @@ WORKDIR /dali
 COPY . .
 
 RUN mkdir build_in_ci && cd build_in_ci && \
-    cmake                                          \
-      -D CMAKE_BUILD_TYPE=Debug                    \
-      -D TRITON_DALI_SKIP_DOWNLOAD=ON ..           \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver && \
+    cmake                                             \
+      -D WERROR=OFF                                   \
+      -D CMAKE_BUILD_TYPE=Debug                       \
+      -D TRITON_DALI_SKIP_DOWNLOAD=ON                 \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver       \
+      .. &&                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 WORKDIR /opt/tritonserver
