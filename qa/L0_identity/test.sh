@@ -1,4 +1,5 @@
 #!/bin/bash -ex
 
-echo "Test run"
-python identity_client.py
+: ${GRPC_ADDR:=${1:-"localhost:8001"}}
+
+python identity_client.py -u $GRPC_ADDR
