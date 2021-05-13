@@ -204,16 +204,18 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   std::vector<IDescr> GenerateInputs(TritonRequest& request) {
     uint32_t input_cnt = request.InputCount();
     std::vector<IDescr> ret;
+    ret.reserve(input_cnt);
     for (uint32_t input_idx = 0; input_idx < input_cnt; ++input_idx) {
       auto input = request.InputByIdx(input_idx);
       auto input_byte_size = input.ByteSize();
       auto input_buffer_count = input.BufferCount();
       std::vector<IBufferDescr> buffers;
+      buffers.reserve(input_buffer_count);
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
         auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
         buffers.push_back(buffer);
       }
-      ret.push_back({input.Meta(), buffers});
+      ret.push_back({input.Meta(), std::move(buffers)});
     }
     return ret;
   }
