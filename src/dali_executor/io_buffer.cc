@@ -24,7 +24,7 @@
 
 namespace triton { namespace backend { namespace dali {
 
-void CopyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
              cudaStream_t stream) {
   auto src_c = reinterpret_cast<const char *>(src);
   auto dst_c = reinterpret_cast<char *>(dst);

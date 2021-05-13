@@ -85,8 +85,9 @@ inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
       return TRITONSERVER_MEMORY_CPU_PINNED;
     case GPU:
       return TRITONSERVER_MEMORY_GPU;
+    default:
+      throw std::invalid_argument("Unknown memory type");
   }
-  assert(false);
 }
 
 class TritonInput {

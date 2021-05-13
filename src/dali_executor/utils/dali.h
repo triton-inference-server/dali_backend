@@ -45,6 +45,7 @@ using ::dali::copyH2H;
 using ::dali::CUDAStream;
 using ::dali::DALIException;
 using ::dali::DeviceBuffer;
+using ::dali::DeviceGuard;
 using ::dali::make_cspan;
 using ::dali::make_span;
 using ::dali::make_string;

@@ -77,6 +77,7 @@ class DaliPipeline {
       max_batch_size_(max_batch_size),
       num_threads_(num_threads),
       device_id_(device_id) {
+    DeviceGuard dg(device_id_);
     InitDali();
     InitStream();
     CreatePipeline();

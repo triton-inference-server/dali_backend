@@ -81,8 +81,9 @@ void DaliPipeline::SetInput(const IDescr& io_descr) {
 void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t destination_device) {
   assert(destination != nullptr);
   assert(output_idx >= 0);
-  daliOutputCopy(&handle_, destination, output_idx, destination_device,
-                 destination_device == CPU ? nullptr : output_stream_, 0);
+  DeviceGuard dg(device_id_);
+  daliOutputCopy(&handle_, destination, output_idx, destination_device, output_stream_, 0);
+  CUDA_CALL(cudaStreamSynchronize(output_stream_));
 }
 
 }}}  // namespace triton::backend::dali

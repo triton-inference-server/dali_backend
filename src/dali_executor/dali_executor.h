@@ -63,6 +63,11 @@ class DaliExecutor {
   IDescr ScheduleInputCopy(const IDescr& buffers);
 
   /**
+   * Run previously scheduled copy of input buffers.
+   */
+  void RunInputCopy();
+
+  /**
    * Check if an input can be used without a copy.
    */
   bool IsNoCopy(const IDescr& input);

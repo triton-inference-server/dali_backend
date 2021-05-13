@@ -24,7 +24,7 @@ import nvidia.dali.fn as fn
 import multiprocessing as mp
 import argparse
 
-@dali.pipeline_def(batch_size=1, num_threads=mp.cpu_count(), device_id=0)
+@dali.pipeline_def(batch_size=1, num_threads=min(mp.cpu_count(), 4), device_id=0)
 def pipeline():
   inp1 = fn.external_source(device='cpu', name='INPUT_0', no_copy=True)
   inp2 = fn.external_source(device='cpu', name='INPUT_1', no_copy=True)

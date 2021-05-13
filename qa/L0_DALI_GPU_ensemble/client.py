@@ -19,13 +19,12 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import nvidia.dali as dali
-import multiprocessing as mp
 import tritonclient.grpc as t_client
 import numpy as np
 from typing import Sequence
 from itertools import cycle, islice
 from numpy.random import randint
+import argparse
 
 # TODO: Extend and move to a separate file
 def type_to_string(dtype):
@@ -39,7 +38,7 @@ def type_to_string(dtype):
 # TODO: Extend and move to a separate file
 class TestClient:
   def __init__(self, model_name: str, input_names: Sequence[str], output_names: Sequence[str],
-               url = 'localhost:8001', concurrency=1, verbose=False):
+               url, concurrency=1, verbose=False):
     self.client = t_client.InferenceServerClient(url=url, verbose=verbose)
     self.input_names = input_names
     self.output_names = output_names
@@ -64,19 +63,19 @@ class TestClient:
 
   def run_tests(self, data, compare_to, n_infers=-1, eps=1e-7):
     generator = data if n_infers < 1 else islice(cycle(data), n_infers)
-    it = -1
-    for batches in generator:
-      it += 1
+    for it, batches in enumerate(generator):
       results = self.run_inference(batches)
       ref = compare_to(*batches)
       assert(len(results) == len(ref))
-      for out, ref_out in zip(results, ref):
+      for out_i, (out, ref_out) in enumerate(zip(results, ref)):
         assert out.shape == ref_out.shape
         if not np.allclose(out, ref_out, atol=eps):
           print("Test failure in iteration", it)
-          print("Expected output:\n", ref_out)
-          print("Actual output:\n", out)
+          print("Output", out_i)
+          print("Expected:\n", ref_out)
+          print("Actual:\n", out)
           return
+      print('PASS iteration:', it)
 
 
 # TODO: Use actual DALI pipelines to calculate ground truth
@@ -91,9 +90,18 @@ def random_gen(max_batch_size):
     yield np.random.random((bs, size1)).astype(np.single), \
           np.random.random((bs, size2)).astype(np.single)
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
+                        help='Inference server URL. Default is localhost:8001.')
+    parser.add_argument('--n_iters', type=int, required=False, default=1, help='Number of iterations')
+    parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=256)
+    return parser.parse_args()
+
 def main():
-  client = TestClient('dali_ensemble', ['INPUT0', 'INPUT1'], ['OUTPUT0', 'OUTPUT1'])
-  client.run_tests(random_gen(256), ref_func, n_infers=200)
+  args = parse_args()
+  client = TestClient('dali_ensemble', ['INPUT0', 'INPUT1'], ['OUTPUT0', 'OUTPUT1'], args.url)
+  client.run_tests(random_gen(args.max_batch_size), ref_func, n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':
   main()

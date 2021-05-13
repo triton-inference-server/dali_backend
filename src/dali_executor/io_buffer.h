@@ -29,16 +29,16 @@
 namespace triton { namespace backend { namespace dali {
 
 
-void CopyMem(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
              cudaStream_t stream = 0);
 
 class IOBufferI {
  public:
   /**
-   * Reserve a chunk of `size` of bytes and return a pointer
+   * Allocate a chunk of `size` of bytes and return a pointer
    * to the beginning of the chunk.
    */
-  virtual uint8_t *Reserve(size_t size) = 0;
+  virtual uint8_t *Allocate(size_t size) = 0;
 
   /**
    * Cancel all reservations. No memory is deallocated.
@@ -46,10 +46,10 @@ class IOBufferI {
   virtual void Clear() = 0;
 
   /**
-   * Allocate `size` bytes of memory.
+   * Reserve `size` bytes of memory.
    * If the buffer's capacity is greater or equal to size, this function is a no-op.
    */
-  virtual void Allocate(size_t size) = 0;
+  virtual void Reserve(size_t size) = 0;
 
   /**
    * Return allocation size.
@@ -90,10 +90,10 @@ class IOBuffer : public IOBufferI {
     }
   }
 
-  uint8_t *Reserve(size_t size) override {
+  uint8_t *Allocate(size_t size) override {
     ENFORCE(filled_ + size <= buffer_.size(),
-            make_string("Not enough memory allocated (", Capacity(),
-                        " bytes) to reserve "
+            make_string("Not enough memory reserved (", Capacity(),
+                        " bytes) to allocate "
                         "a chunk of size ",
                         size));
     auto origin = buffer_.data() + filled_;
@@ -105,9 +105,9 @@ class IOBuffer : public IOBufferI {
     filled_ = 0;
   }
 
-  void Allocate(size_t size) override {
+  void Reserve(size_t size) override {
     if (size > buffer_.size()) {
-      ENFORCE(filled_ == 0, "Cannot allocate more memory for buffer that was already reserved.");
+      ENFORCE(filled_ == 0, "Cannot reserve more memory for buffer that was already reserved.");
       buffer_.resize(size);
     }
   }

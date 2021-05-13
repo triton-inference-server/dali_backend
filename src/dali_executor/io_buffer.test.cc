@@ -32,19 +32,19 @@ void test_buffer(IOBuffer<Dev> &buffer) {
   const uint8_t N = 10;
   const size_t size = N * (N + 1) / 2;
   buffer.Clear();
-  buffer.Allocate(size);
-  REQUIRE(buffer.Capacity() >= size);
+  buffer.Reserve(size);
+  REQUIRE(buffer.Capacity() == size);
   for (uint8_t i = 1; i <= N; ++i) {
     std::vector<uint8_t> chunk(i, i);
-    auto origin = buffer.Reserve(i);
-    CopyMem(Dev, origin, device_type_t::CPU, chunk.data(), i);
+    auto dst = buffer.Allocate(i);
+    MemCopy(Dev, dst, device_type_t::CPU, chunk.data(), i);
   }
   // validation
   std::vector<uint8_t> result(size);
   auto descr = buffer.GetDescr();
   REQUIRE(descr.device == Dev);
   REQUIRE(descr.size == size);
-  CopyMem(device_type_t::CPU, result.data(), Dev, descr.data, size);
+  MemCopy(device_type_t::CPU, result.data(), Dev, descr.data, size);
   size_t it = 0;
   for (uint8_t i = 1; i <= N; ++i) {
     for (uint8_t j = 0; j < i; ++j) {
@@ -62,8 +62,8 @@ TEST_CASE("IOBuffer<CPU> extend & copy") {
   }
 
   SECTION("Cannot reserve beyond capacity") {
-    buffer.Allocate(100);
-    REQUIRE_THROWS(buffer.Reserve(buffer.Capacity() + 1));
+    buffer.Reserve(100);
+    REQUIRE_THROWS(buffer.Allocate(buffer.Capacity() + 1));
   }
 }
 
@@ -75,8 +75,8 @@ TEST_CASE("IOBuffer<GPU> extend & copy") {
   }
 
   SECTION("Cannot reserve beyond capacity") {
-    buffer.Allocate(100);
-    REQUIRE_THROWS(buffer.Reserve(buffer.Capacity() + 1));
+    buffer.Reserve(100);
+    REQUIRE_THROWS(buffer.Allocate(buffer.Capacity() + 1));
   }
 }
 

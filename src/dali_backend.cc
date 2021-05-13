@@ -176,6 +176,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TritonRequest& request) {
+    DeviceGuard dg(device_id_);
     RequestMeta ret;
     auto& outputs_indices = dali_model_->GetOutputOrder();
 

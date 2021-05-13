@@ -39,35 +39,41 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
       assert(inp_size <= inp.buffers[0].size);
       c_inputs.push_back(inp);
     } else {
+      // Copy buffers to a contiguous buffer on the proper device
       c_inputs.push_back(ScheduleInputCopy(inp));
       assert(inp_size <= c_inputs.back().buffers[0].size);
     }
   }
-  thread_pool_.RunAll();
+  RunInputCopy();
   for (auto& inp : c_inputs) {
     pipeline_.SetInput(inp);
   }
 }
 
 IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
-  assert(input.buffers.size() > 1);
+  assert(input.buffers.size() > 0);
   IOBufferI* buffer;
   if (input.buffers[0].device == device_type_t::CPU) {
     buffer = &cpu_buffers_[input.meta.name];
   } else {
     buffer = &gpu_buffers_[input.meta.name];
   }
+  buffer->Clear();
   size_t size = 0;
   for (auto& buf : input.buffers)
     size += buf.size;
-  buffer->Allocate(size);
+  buffer->Reserve(size);
   for (auto& buf : input.buffers) {
-    auto origin = buffer->Reserve(buf.size);
-    thread_pool_.AddWork([buffer, origin, buf](int) {
-      CopyMem(buffer->DeviceType(), origin, buf.device, buf.data, buf.size);
+    auto dst = buffer->Allocate(buf.size);
+    thread_pool_.AddWork([buffer, dst, buf](int) {
+      MemCopy(buffer->DeviceType(), dst, buf.device, buf.data, buf.size);
     });
   }
   return IDescr{input.meta, {buffer->GetDescr()}};
+}
+
+void DaliExecutor::RunInputCopy() {
+  thread_pool_.RunAll();
 }
 
 bool DaliExecutor::IsNoCopy(const IDescr& input) {
