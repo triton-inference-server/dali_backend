@@ -20,20 +20,20 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # -------------------------------------------------- #
-# This is a Docker image dedicated to develop
-# DALI Backend. If you don't want to build the
-# backend together with tritonserver, start from here
+# This Docker image presents an out-of-source build.
+# If you want a release build of dali_backend
+# inside the tritonserver and you don't want to build
+# the whole tritonserver, start from here.
 # -------------------------------------------------- #
 
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:20.12-py3
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:21.04-py3
 FROM ${BASE_IMAGE} as builder
 
-RUN apt-get update && \
-    apt-get install -y software-properties-common
-
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y  \
+RUN apt-get update                                && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa         && \
+    apt-get update                                && \
+    apt-get install -y         \
               zip              \
               wget             \
               build-essential  \
@@ -43,8 +43,8 @@ RUN add-apt-repository ppa:deadsnakes/ppa && \
               python3.8        \
               python3-pip      \
               libboost-all-dev \
-              rapidjson-dev    \
-              gdb
+              rapidjson-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # pip version in apt packages is ancient - we need to update it
 RUN pip3 install -U pip
@@ -68,10 +68,10 @@ WORKDIR /dali
 COPY . .
 
 RUN mkdir build_in_ci && cd build_in_ci && \
-    cmake                                          \
-      -D CMAKE_BUILD_TYPE=Debug                    \
-      -D TRITON_DALI_SKIP_DOWNLOAD=ON ..           \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver && \
+    cmake                                             \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver       \
+      -D CMAKE_BUILD_TYPE=Release                     \
+      .. &&                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 WORKDIR /opt/tritonserver
