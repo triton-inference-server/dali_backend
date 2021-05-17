@@ -24,28 +24,28 @@ platform: "ensemble"
 max_batch_size: 256
 input [
   {
-    name: "INPUT0"
+    name: "INPUT_0"
     data_type: TYPE_FP32
     dims: [ -1 ]
   }
 ]
 input [
   {
-    name: "INPUT1"
+    name: "INPUT_1"
     data_type: TYPE_FP32
     dims: [ -1 ]
   }
 ]
 output [
   {
-    name: "OUTPUT0"
+    name: "OUTPUT_0"
     data_type: TYPE_FP32
     dims: [ -1 ]
   }
 ]
 output [
   {
-    name: "OUTPUT1"
+    name: "OUTPUT_1"
     data_type: TYPE_FP32
     dims: [ -1 ]
   }
@@ -56,40 +56,40 @@ ensemble_scheduling {
       model_name: "dali_1"
       model_version: -1
       input_map {
-        key: "INPUT_0"
-        value: "INPUT0"
+        key: "DALI_INPUT_0"
+        value: "INPUT_0"
       }
       input_map {
-        key: "INPUT_1"
-        value: "INPUT1"
+        key: "DALI_INPUT_1"
+        value: "INPUT_1"
       }
       output_map {
-        key: "OUTPUT_0"
-        value: "interm_0"
+        key: "DALI_OUTPUT_0"
+        value: "intermediate_0"
       }
       output_map {
-        key: "OUTPUT_1"
-        value: "interm_1"
+        key: "DALI_OUTPUT_1"
+        value: "intermediate_1"
       }
     },
     {
       model_name: "dali_2"
       model_version: -1
       input_map {
-        key: "INPUT_0"
-        value: "interm_0"
+        key: "DALI_INPUT_0"
+        value: "intermediate_0"
       }
       input_map {
-        key: "INPUT_1"
-        value: "interm_1"
+        key: "DALI_INPUT_1"
+        value: "intermediate_1"
       }
       output_map {
-        key: "OUTPUT_0"
-        value: "OUTPUT0"
+        key: "DALI_OUTPUT_0"
+        value: "OUTPUT_0"
       }
       output_map {
-        key: "OUTPUT_1"
-        value: "OUTPUT1"
+        key: "DALI_OUTPUT_1"
+        value: "OUTPUT_1"
       }
     }
   ]

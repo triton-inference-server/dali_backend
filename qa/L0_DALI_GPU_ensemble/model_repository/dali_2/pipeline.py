@@ -26,8 +26,8 @@ import argparse
 
 @dali.pipeline_def(batch_size=1, num_threads=min(mp.cpu_count(), 4), device_id=0)
 def pipeline():
-  inp1 = fn.external_source(device='cpu', name='INPUT_0', no_copy=True)
-  inp2 = fn.external_source(device='gpu', name='INPUT_1', no_copy=True)
+  inp1 = fn.external_source(device='cpu', name='DALI_INPUT_0', no_copy=True)
+  inp2 = fn.external_source(device='gpu', name='DALI_INPUT_1', no_copy=True)
   return inp1.gpu() / 3, fn.cast(inp2, dtype=dali.types.FLOAT) / 2
 
 

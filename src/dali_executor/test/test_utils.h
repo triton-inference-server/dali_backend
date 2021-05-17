@@ -61,6 +61,18 @@ constexpr dali_data_type_t dali_data_type() {
 }
 
 
+/**
+ * @brief Generate a test input.
+ *
+ * @tparam T Data type.
+ * @tparam R Data generator type.
+ *
+ * @param buffers Collection of buffer chunks to fill with data.
+ * @param name Input name.
+ * @param shapes Shapes of the data chunks.
+ * @param generator Data generator.
+ * @return Input descriptor.
+ */
 template<typename T, typename R>
 IDescr RandomInput(std::vector<std::vector<T>>& buffers, const std::string& name,
                    const std::vector<TensorListShape<>>& shapes, const R& generator) {

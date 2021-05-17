@@ -100,7 +100,7 @@ def parse_args():
 
 def main():
   args = parse_args()
-  client = TestClient('dali_ensemble', ['INPUT0', 'INPUT1'], ['OUTPUT0', 'OUTPUT1'], args.url)
+  client = TestClient('dali_ensemble', ['INPUT_0', 'INPUT_1'], ['OUTPUT_0', 'OUTPUT_1'], args.url)
   client.run_tests(random_gen(args.max_batch_size), ref_func, n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':

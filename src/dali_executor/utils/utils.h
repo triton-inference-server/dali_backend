@@ -54,6 +54,30 @@ std::vector<int64_t> array_shape(TensorListShape<ndims> tls) {
   return ret;
 }
 
+template<typename Container, int Dims = -1>
+TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
+  if (shapes.empty())
+    return TensorListShape<Dims>(0);
+  int64_t num_samples = 0;
+  int64_t ndims = shapes.begin()->sample_dim();
+  for (auto &shape : shapes)
+    num_samples += shape.num_samples();
+  ENFORCE(Dims == -1 || Dims == ndims,
+          make_string("Cannot convert shape with ", ndims,
+                      " dimensions to shape with ", Dims, " dimensions."));
+  TensorListShape<Dims> result(num_samples, ndims);
+  int64_t ti = 0;
+  for (auto &shape : shapes) {
+    ENFORCE(shape.sample_dim() == ndims,
+            "Cannot concatenate shapes of different dimensionality");
+    for (int64_t j = 0; j < shape.num_samples(); ++j) {
+      result.set_tensor_shape(ti, shape.tensor_shape_span(j));
+      ++ti;
+    }
+  }
+  return result;
+}
+
 template<typename T>
 T from_string(const std::string &str);
 
