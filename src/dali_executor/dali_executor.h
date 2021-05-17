@@ -47,28 +47,31 @@ class DaliExecutor {
       pipeline_(std::move(pipeline)), thread_pool_(GetNumThreads(), pipeline_.DeviceId(), false) {}
 
   /**
-   * Run DALI pipeline and return the result descriptor
+   * @brief Run DALI pipeline.
+   * @return Outputs descriptors.
    */
   std::vector<OutputInfo> Run(const std::vector<IDescr>& inputs);
 
-
+  /**
+   * @brief Copy pipeline outputs to the external buffers.
+   */
   void PutOutputs(const std::vector<ODescr>& outputs);
 
  private:
   void SetupInputs(const std::vector<IDescr>& inputs);
 
   /**
-   * Schedule copy to a continous buffer and return IDecr to the new buffer.
+   * @brief Schedule copy to a continous buffer and return IDecr to the new buffer.
    */
   IDescr ScheduleInputCopy(const IDescr& buffers);
 
   /**
-   * Run previously scheduled copy of input buffers.
+   * @brief Run copies scheduled by ScheduleInputCopy and wait for them to finish.
    */
   void RunInputCopy();
 
   /**
-   * Check if an input can be used without a copy.
+   * @brief Check if an input can be used without a copy.
    */
   bool IsNoCopy(const IDescr& input);
 

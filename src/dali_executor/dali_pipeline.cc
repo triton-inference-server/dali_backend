@@ -77,13 +77,15 @@ void DaliPipeline::SetInput(const IDescr& io_descr) {
   SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape);
 }
 
+void DaliPipeline::SyncOutputStream() {
+  DeviceGuard dg(device_id_);
+  CUDA_CALL(cudaStreamSynchronize(output_stream_));
+}
 
 void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t destination_device) {
   assert(destination != nullptr);
   assert(output_idx >= 0);
-  DeviceGuard dg(device_id_);
   daliOutputCopy(&handle_, destination, output_idx, destination_device, output_stream_, 0);
-  CUDA_CALL(cudaStreamSynchronize(output_stream_));
 }
 
 }}}  // namespace triton::backend::dali

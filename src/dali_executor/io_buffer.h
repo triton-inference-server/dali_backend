@@ -35,39 +35,47 @@ void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void
 class IOBufferI {
  public:
   /**
-   * Allocate a chunk of `size` of bytes and return a pointer
-   * to the beginning of the chunk.
+   * @brief Allocate a chunk of `size` of bytes and return a pointer
+   *        to the beginning of the chunk.
+   * @param size Size of the allocation in bytes.
+   * @return Pointer to the beggining of the allocated chunk.
    */
   virtual uint8_t *Allocate(size_t size) = 0;
 
   /**
-   * Cancel all reservations. No memory is deallocated.
+   * @brief Cancel all reservations. No memory is deallocated.
    */
   virtual void Clear() = 0;
 
   /**
-   * Reserve `size` bytes of memory.
+   * @brief Reserve `size` bytes of memory.
+   *
    * If the buffer's capacity is greater or equal to size, this function is a no-op.
+   * @param size Amount of memory to reserve in bytes.
    */
   virtual void Reserve(size_t size) = 0;
 
   /**
-   * Return allocation size.
+   * @brief Get the the amount of allocated memory.
+   * @return Allocation size in bytes.
    */
   virtual size_t Capacity() const = 0;
 
   /**
-   * Return device type of the allocated memory.
+   * @brief Get device type of the allocated memory.
+   * @return Device type.
    */
   virtual device_type_t DeviceType() const = 0;
 
   /**
-   * Get a descriptor of the buffer.
+   * @brief Get an immutable descriptor of the buffer.
+   * @return Input buffer descriptor.
    */
   virtual IBufferDescr GetDescr() const = 0;
 
   /**
-   * Get a descriptor of the buffer.
+   * @brief Get a mutable descriptor of the buffer.
+   * @return Output buffer descriptor.
    */
   virtual OBufferDescr GetDescr() = 0;
 
@@ -86,16 +94,14 @@ class IOBuffer : public IOBufferI {
   IOBuffer(size_t size = 0) : buffer_() {
     buffer_.resize(size);
     if (Dev == device_type_t::GPU) {
-      CUDA_CALL_GUARD(cudaGetDevice(&device_id));
+      CUDA_CALL_GUARD(cudaGetDevice(&device_id_));
     }
   }
 
   uint8_t *Allocate(size_t size) override {
     ENFORCE(filled_ + size <= buffer_.size(),
-            make_string("Not enough memory reserved (", Capacity(),
-                        " bytes) to allocate "
-                        "a chunk of size ",
-                        size));
+            make_string("Not enough memory reserved (", Capacity(), " bytes) to allocate ",
+                        "a chunk of size ", size));
     auto origin = buffer_.data() + filled_;
     filled_ += size;
     return origin;
@@ -125,7 +131,7 @@ class IOBuffer : public IOBufferI {
     descr.data = buffer_.data();
     descr.size = filled_;
     descr.device = Dev;
-    descr.device_id = device_id;
+    descr.device_id = device_id_;
     return descr;
   }
 
@@ -134,14 +140,14 @@ class IOBuffer : public IOBufferI {
     descr.data = buffer_.data();
     descr.size = filled_;
     descr.device = Dev;
-    descr.device_id = device_id;
+    descr.device_id = device_id_;
     return descr;
   }
 
  private:
   buffer_t<uint8_t, Dev> buffer_;
   size_t filled_ = 0;
-  int device_id = 0;
+  int device_id_ = 0;
 };
 
 }}}  // namespace triton::backend::dali

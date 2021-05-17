@@ -74,7 +74,7 @@ class TestClient:
           print("Output", out_i)
           print("Expected:\n", ref_out)
           print("Actual:\n", out)
-          return
+          assert False
       print('PASS iteration:', it)
 
 
@@ -93,7 +93,7 @@ def random_gen(max_batch_size):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server URL. Default is localhost:8001.')
+                        help='Inference server GRPC URL. Default is localhost:8001.')
     parser.add_argument('--n_iters', type=int, required=False, default=1, help='Number of iterations')
     parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=256)
     return parser.parse_args()

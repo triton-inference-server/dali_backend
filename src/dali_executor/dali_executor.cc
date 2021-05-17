@@ -65,9 +65,11 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   buffer->Reserve(size);
   for (auto& buf : input.buffers) {
     auto dst = buffer->Allocate(buf.size);
-    thread_pool_.AddWork([buffer, dst, buf](int) {
-      MemCopy(buffer->DeviceType(), dst, buf.device, buf.data, buf.size);
-    });
+    thread_pool_.AddWork(
+        [buffer, dst, buf](int) {
+          MemCopy(buffer->DeviceType(), dst, buf.device, buf.data, buf.size);
+        },
+        buf.size, true);
   }
   return IDescr{input.meta, {buffer->GetDescr()}};
 }
@@ -108,6 +110,7 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
     auto device_type = buffer.device;
     pipeline_.PutOutput(data, output_idx, device_type);
   }
+  pipeline_.SyncOutputStream();
 }
 
 }}}  // namespace triton::backend::dali

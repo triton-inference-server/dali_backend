@@ -32,7 +32,7 @@ namespace triton { namespace backend { namespace dali {
 
 
 /**
- * Converts TRITONSERVER_DataType to dali_data_type_t
+ * @brief Converts TRITONSERVER_DataType to dali_data_type_t
  */
 inline dali_data_type_t to_dali(TRITONSERVER_DataType t) {
   assert(t >= 0 && t <= 13);
@@ -48,7 +48,7 @@ inline dali_data_type_t to_dali(TRITONSERVER_DataType t) {
 }
 
 /**
- * Converts TRITONSERVER_MemoryType to DALI device_type_t
+ * @brief Converts TRITONSERVER_MemoryType to DALI device_type_t
  */
 inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
   switch (t) {
@@ -63,7 +63,7 @@ inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
 }
 
 /**
- * Converts dali_data_type_t to TRITONSERVER_DataType
+ * @brief Converts dali_data_type_t to TRITONSERVER_DataType
  */
 inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
   assert(-1 <= t && t <= 11);
@@ -77,7 +77,7 @@ inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
 }
 
 /**
- * Converts device_type_t to TRITONSERVER_MemoryType
+ * @brief Converts device_type_t to TRITONSERVER_MemoryType
  */
 inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
   switch (dev) {
@@ -122,10 +122,10 @@ class TritonInput {
   }
 
   /**
-   * Request an input buffer.
-   * idx  number index
-   * device_type_t preferred device type
-   * device_id preferred device id
+   * @brief Request an input buffer.
+   * @param idx Input index.
+   * @param device_type_t Preferred device type.
+   * @param device_id Preferred device id.
    */
   IBufferDescr GetBuffer(uint32_t idx, device_type_t device, int device_id) {
     const void *data;
@@ -149,6 +149,9 @@ class TritonInput {
   uint32_t buffer_cnt_;
 };
 
+/**
+ * @brief RAII wrapper for a Triton request.
+ */
 class TritonRequest : public UniqueHandle<TRITONBACKEND_Request *, TritonRequest> {
  public:
   DALI_INHERIT_UNIQUE_HANDLE(TRITONBACKEND_Request *, TritonRequest)
