@@ -30,31 +30,31 @@ namespace triton { namespace backend { namespace dali {
 
 template<typename T>
 struct BufferDescr {
-  device_type_t device;
-  int device_id;
-  T* data;
-  size_t size;
+  device_type_t device{};
+  int device_id = 0;
+  T* data = nullptr;
+  size_t size = 0;
 
   template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>
   BufferDescr(BufferDescr<S> other) :
       device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
 
-  BufferDescr() = default;
+  BufferDescr() {};
 };
 
 using IBufferDescr = BufferDescr<const void>;
 using OBufferDescr = BufferDescr<void>;
 
 struct IOMeta {
-  std::string name;
-  dali_data_type_t type;
-  TensorListShape<> shape;
+  std::string name{};
+  dali_data_type_t type{};
+  TensorListShape<> shape{};
 };
 
 template<typename T>
 struct IODescr {
-  IOMeta meta;
-  std::vector<BufferDescr<T>> buffers;
+  IOMeta meta{};
+  std::vector<BufferDescr<T>> buffers{};
 };
 
 using IDescr = IODescr<const void>;

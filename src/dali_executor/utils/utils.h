@@ -63,13 +63,12 @@ TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
   for (auto &shape : shapes)
     num_samples += shape.num_samples();
   ENFORCE(Dims == -1 || Dims == ndims,
-          make_string("Cannot convert shape with ", ndims,
-                      " dimensions to shape with ", Dims, " dimensions."));
+          make_string("Cannot convert shape with ", ndims, " dimensions to shape with ", Dims,
+                      " dimensions."));
   TensorListShape<Dims> result(num_samples, ndims);
   int64_t ti = 0;
   for (auto &shape : shapes) {
-    ENFORCE(shape.sample_dim() == ndims,
-            "Cannot concatenate shapes of different dimensionality");
+    ENFORCE(shape.sample_dim() == ndims, "Cannot concatenate shapes of different dimensionality");
     for (int64_t j = 0; j < shape.num_samples(); ++j) {
       result.set_tensor_shape(ti, shape.tensor_shape_span(j));
       ++ti;

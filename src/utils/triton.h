@@ -126,6 +126,7 @@ class TritonInput {
    * @param idx Input index.
    * @param device_type_t Preferred device type.
    * @param device_id Preferred device id.
+   * @return Input buffer descriptor.
    */
   IBufferDescr GetBuffer(uint32_t idx, device_type_t device, int device_id) {
     const void *data;
@@ -143,16 +144,47 @@ class TritonInput {
   }
 
  private:
-  TRITONBACKEND_Input *handle_;
-  IOMeta meta_;
-  size_t byte_size_;
-  uint32_t buffer_cnt_;
+  TRITONBACKEND_Input *handle_ = nullptr;
+  IOMeta meta_{};
+  size_t byte_size_ = 0;
+  uint32_t buffer_cnt_ = 0;
 };
 
-/**
- * @brief RAII wrapper for a Triton request.
- */
-class TritonRequest : public UniqueHandle<TRITONBACKEND_Request *, TritonRequest> {
+template<class Actual>
+class TritonRequestWrapper {
+ public:
+  /**
+   * @brief Fetch the number of inputs provided by the request.
+   */
+  uint32_t InputCount() const {
+    uint32_t input_cnt;
+    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(This(), &input_cnt));
+    return input_cnt;
+  }
+
+  /**
+   * @brief Get the input with a given index.
+   */
+  TritonInput InputByIdx(uint32_t idx) const {
+    TRITONBACKEND_Input *input;
+    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputByIndex(This(), idx, &input));
+    return TritonInput(input);
+  }
+
+ private:
+  Actual &This() noexcept {
+    return static_cast<Actual &>(*this);
+  }
+
+  const Actual &This() const noexcept {
+    return static_cast<const Actual &>(*this);
+  }
+};
+
+/** @brief Owning handle for a Triton request. */
+class TritonRequest :
+    public UniqueHandle<TRITONBACKEND_Request *, TritonRequest>,
+    public TritonRequestWrapper<TritonRequest> {
  public:
   DALI_INHERIT_UNIQUE_HANDLE(TRITONBACKEND_Request *, TritonRequest)
 
@@ -161,18 +193,21 @@ class TritonRequest : public UniqueHandle<TRITONBACKEND_Request *, TritonRequest
                      request, TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL),
                  make_string("Failed releasing a request."));
   }
+};
 
-  uint32_t InputCount() {
-    uint32_t input_cnt;
-    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(handle_, &input_cnt));
-    return input_cnt;
+/** @brief Non-owning handle for a Triton request. */
+class TritonRequestView : public TritonRequestWrapper<TritonRequestView> {
+ public:
+  TritonRequestView() = default;
+
+  TritonRequestView(TRITONBACKEND_Request *req) : handle_(req) {}
+
+  operator TRITONBACKEND_Request *() const noexcept {
+    return handle_;
   }
 
-  TritonInput InputByIdx(uint32_t idx) {
-    TRITONBACKEND_Input *input;
-    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputByIndex(handle_, idx, &input));
-    return TritonInput(input);
-  }
+ private:
+  TRITONBACKEND_Request *handle_ = nullptr;
 };
 
 }}}  // namespace triton::backend::dali
