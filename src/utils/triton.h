@@ -202,6 +202,8 @@ class TritonRequestView : public TritonRequestWrapper<TritonRequestView> {
 
   TritonRequestView(TRITONBACKEND_Request *req) : handle_(req) {}
 
+  TritonRequestView(const TritonRequest &req) : handle_(req) {}
+
   operator TRITONBACKEND_Request *() const noexcept {
     return handle_;
   }

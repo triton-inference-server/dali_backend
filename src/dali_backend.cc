@@ -201,7 +201,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
-  std::vector<IDescr> GenerateInputs(TritonRequest& request) {
+  std::vector<IDescr> GenerateInputs(TritonRequestView request) {
     uint32_t input_cnt = request.InputCount();
     std::vector<IDescr> ret;
     ret.reserve(input_cnt);

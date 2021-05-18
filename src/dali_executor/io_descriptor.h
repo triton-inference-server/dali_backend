@@ -39,7 +39,7 @@ struct BufferDescr {
   BufferDescr(BufferDescr<S> other) :
       device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
 
-  BufferDescr() {};
+  BufferDescr(){};
 };
 
 using IBufferDescr = BufferDescr<const void>;
