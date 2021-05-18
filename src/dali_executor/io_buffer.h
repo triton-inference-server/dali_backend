@@ -35,49 +35,28 @@ void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void
 class IOBufferI {
  public:
   /**
-   * @brief Allocate a chunk of `size` of bytes and return a pointer
-   *        to the beginning of the chunk.
-   * @param size Size of the allocation in bytes.
-   * @return Pointer to the beggining of the allocated chunk.
+   * @brief Resize the buffer to a given szie.
+   * @param size New size.
    */
-  virtual uint8_t *Allocate(size_t size) = 0;
-
-  /**
-   * @brief Cancel all reservations. No memory is deallocated.
-   */
-  virtual void Clear() = 0;
-
-  /**
-   * @brief Reserve `size` bytes of memory.
-   *
-   * If the buffer's capacity is greater or equal to size, this function is a no-op.
-   * @param size Amount of memory to reserve in bytes.
-   */
-  virtual void Reserve(size_t size) = 0;
-
-  /**
-   * @brief Get the the amount of allocated memory.
-   * @return Allocation size in bytes.
-   */
-  virtual size_t Capacity() const = 0;
+  virtual void resize(size_t size) = 0;
 
   /**
    * @brief Get device type of the allocated memory.
    * @return Device type.
    */
-  virtual device_type_t DeviceType() const = 0;
+  virtual device_type_t device_type() const = 0;
 
   /**
    * @brief Get an immutable descriptor of the buffer.
    * @return Input buffer descriptor.
    */
-  virtual IBufferDescr GetDescr() const = 0;
+  virtual IBufferDescr get_descr() const = 0;
 
   /**
    * @brief Get a mutable descriptor of the buffer.
    * @return Output buffer descriptor.
    */
-  virtual OBufferDescr GetDescr() = 0;
+  virtual OBufferDescr get_descr() = 0;
 
   virtual ~IOBufferI() {}
 
@@ -91,54 +70,34 @@ using buffer_t = std::conditional_t<Dev == device_type_t::CPU, std::vector<T>, D
 template<device_type_t Dev>
 class IOBuffer : public IOBufferI {
  public:
-  IOBuffer(size_t size = 0) : buffer_() {
-    buffer_.resize(size);
+  explicit IOBuffer(size_t size = 0) : buffer_() {
+    resize(size);
     if (Dev == device_type_t::GPU) {
       CUDA_CALL_GUARD(cudaGetDevice(&device_id_));
     }
   }
 
-  uint8_t *Allocate(size_t size) override {
-    ENFORCE(filled_ + size <= buffer_.size(),
-            make_string("Not enough memory reserved (", Capacity(), " bytes) to allocate ",
-                        "a chunk of size ", size));
-    auto origin = buffer_.data() + filled_;
-    filled_ += size;
-    return origin;
+  void resize(size_t size) override {
+    buffer_.resize(size);
   }
 
-  void Clear() override {
-    filled_ = 0;
-  }
-
-  void Reserve(size_t size) override {
-    if (size > buffer_.size()) {
-      ENFORCE(filled_ == 0, "Cannot reserve more memory for buffer that was already reserved.");
-      buffer_.resize(size);
-    }
-  }
-
-  size_t Capacity() const override {
-    return buffer_.size();
-  }
-
-  device_type_t DeviceType() const override {
+  device_type_t device_type() const override {
     return Dev;
   }
 
-  IBufferDescr GetDescr() const override {
+  IBufferDescr get_descr() const override {
     IBufferDescr descr;
     descr.data = buffer_.data();
-    descr.size = filled_;
+    descr.size = buffer_.size();
     descr.device = Dev;
     descr.device_id = device_id_;
     return descr;
   }
 
-  OBufferDescr GetDescr() override {
+  OBufferDescr get_descr() override {
     OBufferDescr descr;
     descr.data = buffer_.data();
-    descr.size = filled_;
+    descr.size = buffer_.size();
     descr.device = Dev;
     descr.device_id = device_id_;
     return descr;
@@ -146,7 +105,6 @@ class IOBuffer : public IOBufferI {
 
  private:
   buffer_t<uint8_t, Dev> buffer_;
-  size_t filled_ = 0;
   int device_id_ = 0;
 };
 

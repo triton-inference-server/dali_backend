@@ -58,20 +58,21 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   } else {
     buffer = &gpu_buffers_[input.meta.name];
   }
-  buffer->Clear();
   size_t size = 0;
   for (auto& buf : input.buffers)
     size += buf.size;
-  buffer->Reserve(size);
+  buffer->resize(size);
+  auto descriptor = buffer->get_descr();
+  char* dst = reinterpret_cast<char*>(descriptor.data);
   for (auto& buf : input.buffers) {
-    auto dst = buffer->Allocate(buf.size);
     thread_pool_.AddWork(
-        [buffer, dst, buf](int) {
-          MemCopy(buffer->DeviceType(), dst, buf.device, buf.data, buf.size);
+        [descriptor, dst, buf](int) {
+          MemCopy(descriptor.device, dst, buf.device, buf.data, buf.size);
         },
         buf.size, true);
+    dst += buf.size;
   }
-  return IDescr{input.meta, {buffer->GetDescr()}};
+  return IDescr{input.meta, {descriptor}};
 }
 
 void DaliExecutor::RunInputCopy() {
