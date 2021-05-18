@@ -26,7 +26,8 @@
 # the whole tritonserver, start from here.
 # -------------------------------------------------- #
 
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:21.04-py3
+ARG TRITON_VERSION=21.04
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
 RUN apt-get update                                && \
@@ -67,10 +68,15 @@ WORKDIR /dali
 
 COPY . .
 
+ARG TRITON_VERSION
+
 RUN mkdir build_in_ci && cd build_in_ci && \
     cmake                                             \
       -D CMAKE_INSTALL_PREFIX=/opt/tritonserver       \
       -D CMAKE_BUILD_TYPE=Release                     \
+      -D TRITON_COMMON_REPO_TAG="r$TRITON_VERSION"    \
+      -D TRITON_CORE_REPO_TAG="r$TRITON_VERSION"      \
+      -D TRITON_BACKEND_REPO_TAG="r$TRITON_VERSION"   \
       .. &&                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
