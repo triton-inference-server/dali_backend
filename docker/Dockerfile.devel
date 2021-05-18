@@ -67,6 +67,8 @@ WORKDIR /dali
 
 COPY . .
 
+ARG TRITON_VERSION
+
 RUN mkdir build_in_ci && cd build_in_ci && \
     cmake                                             \
       -D WERROR=OFF                                   \
