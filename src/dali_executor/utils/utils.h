@@ -70,8 +70,7 @@ TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
   for (auto &shape : shapes) {
     ENFORCE(shape.sample_dim() == ndims, "Cannot concatenate shapes of different dimensionality");
     for (int64_t j = 0; j < shape.num_samples(); ++j) {
-      result.set_tensor_shape(ti, shape.tensor_shape_span(j));
-      ++ti;
+      result.set_tensor_shape(ti++, shape.tensor_shape_span(j));
     }
   }
   return result;
