@@ -46,7 +46,7 @@ TEST_CASE("Scaling Pipeline") {
       }
       shapes.push_back(shape);
     }
-    std::vector<std::vector<float>> input_buffers(batch_sizes.size());
+    std::vector<std::vector<float>> input_buffers;
     auto input = RandomInput(input_buffers, inp_name, shapes, [&]() { return dist(rand); });
     auto output = executor.Run({input});
     REQUIRE(cat_list_shapes(shapes) == output[0].shape);
@@ -129,7 +129,7 @@ TEST_CASE("RN50 pipeline") {
   SECTION("Recover from error") {
     auto rand_inp_shape = TensorListShape<1>(1);
     rand_inp_shape.set_tensor_shape(0, TensorShape<>(1024));
-    std::vector<std::vector<uint8_t>> rand_input_buffer(1);
+    std::vector<std::vector<uint8_t>> rand_input_buffer;
     std::mt19937 rand(1217);
     std::uniform_int_distribution<short> dist(0, 255);
     auto gen = [&]() {
