@@ -32,8 +32,6 @@
 #include "src/dali_executor/utils/utils.h"
 #include "src/error_handling.h"
 
-using std::cout;
-using std::endl;
 
 namespace triton { namespace backend { namespace dali {
 
@@ -138,15 +136,25 @@ class DaliPipeline {
     CreatePipeline();
   }
 
-  int DeviceId() {
+
+  int DeviceId() const {
     return device_id_;
   }
 
-  int NumThreadsArg() {
+
+  int NumThreadsArg() const {
     return num_threads_;
   }
 
+
  private:
+  /**
+   * @return True, if this DALI Pipeline does not have GPU available
+   */
+  bool NoGpu() const noexcept {
+    return device_id_ < 0;
+  }
+
   void CreatePipeline() {
     daliCreatePipeline(&handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),
                        max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
@@ -160,9 +168,11 @@ class DaliPipeline {
   }
 
   void ReleaseStream() {
+    if (NoGpu())
+      return;
     if (output_stream_) {
-      CUDA_CALL(cudaStreamSynchronize(output_stream_));
-      CUDA_CALL(cudaStreamDestroy(output_stream_));
+      CUDA_CALL_GUARD(cudaStreamSynchronize(output_stream_));
+      CUDA_CALL_GUARD(cudaStreamDestroy(output_stream_));
       output_stream_ = nullptr;
     }
   }
@@ -175,7 +185,9 @@ class DaliPipeline {
   }
 
   void InitStream() {
-    CUDA_CALL(cudaStreamCreate(&output_stream_));
+    if (NoGpu())
+      return;
+    CUDA_CALL_GUARD(cudaStreamCreate(&output_stream_));
   }
 
   std::string serialized_pipeline_{};

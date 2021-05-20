@@ -178,7 +178,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   void Execute(const std::vector<TritonRequest>& requests) {
-    DeviceGuard dg(device_id_);
+    DeviceGuard dg(DetermineDeviceId());
     int total_batch_size = 0;
     TimeInterval batch_compute_interval{};
     TimeInterval batch_exec_interval{};
@@ -215,7 +215,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, DetermineDeviceId());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
@@ -268,6 +268,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     }
     return ret;
   }
+
+  int32_t DetermineDeviceId() {
+    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;}
 
   /**
    * @brief Allocate outputs required by a given request.

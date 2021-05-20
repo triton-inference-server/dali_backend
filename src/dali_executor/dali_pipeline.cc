@@ -78,8 +78,10 @@ void DaliPipeline::SetInput(const IDescr& io_descr) {
 }
 
 void DaliPipeline::SyncOutputStream() {
+  if (NoGpu())
+    return;
   DeviceGuard dg(device_id_);
-  CUDA_CALL(cudaStreamSynchronize(output_stream_));
+  CUDA_CALL_GUARD(cudaStreamSynchronize(output_stream_));
 }
 
 void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t destination_device) {
