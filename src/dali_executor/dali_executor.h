@@ -23,40 +23,67 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_
 
+#include <map>
 #include <string>
 #include <utility>
 
 #include "src/dali_executor/dali_pipeline.h"
+#include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/io_descriptor.h"
 
 
 namespace triton { namespace backend { namespace dali {
 
 
-struct shape_and_type_t {
+struct OutputInfo {
   TensorListShape<> shape;
   dali_data_type_t type;
+  device_type_t device;
 };
 
 class DaliExecutor {
  public:
-  DaliExecutor(DaliPipeline pipeline) : pipeline_(std::move(pipeline)) {}
+  DaliExecutor(DaliPipeline pipeline) :
+      pipeline_(std::move(pipeline)), thread_pool_(GetNumThreads(), pipeline_.DeviceId(), false) {}
 
   /**
-   * Run DALI pipeline and return the result descriptor
+   * @brief Run DALI pipeline.
+   * @return Outputs descriptors.
    */
-  template<bool owns>
-  std::vector<shape_and_type_t> Run(const std::vector<IODescr<owns>>& inputs);
+  std::vector<OutputInfo> Run(const std::vector<IDescr>& inputs);
 
-
-  template<bool owns>
-  void PutOutputs(const std::vector<IODescr<owns>>& outputs);
+  /**
+   * @brief Copy pipeline outputs to the external buffers.
+   */
+  void PutOutputs(const std::vector<ODescr>& outputs);
 
  private:
-  template<bool owns>
-  void SetupInputs(const std::vector<IODescr<owns>>& inputs);
+  void SetupInputs(const std::vector<IDescr>& inputs);
+
+  /**
+   * @brief Schedule copy to a continous buffer and return IDecr to the new buffer.
+   */
+  IDescr ScheduleInputCopy(const IDescr& buffers);
+
+  /**
+   * @brief Run copies scheduled by ScheduleInputCopy and wait for them to finish.
+   */
+  void RunInputCopy();
+
+  /**
+   * @brief Check if an input can be used without a copy.
+   */
+  bool IsNoCopy(const IDescr& input);
+
+  int GetNumThreads() {
+    auto n_threads = pipeline_.NumThreadsArg();
+    return (n_threads < 1) ? 1 : n_threads;
+  }
 
   DaliPipeline pipeline_;
+  ThreadPool thread_pool_;
+  std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
+  std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
 };
 
 }}}  // namespace triton::backend::dali

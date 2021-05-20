@@ -21,28 +21,70 @@
 // SOFTWARE.
 
 #include "src/dali_executor/dali_executor.h"
-
 #include "src/dali_executor/utils/dali.h"
 
 namespace triton { namespace backend { namespace dali {
 
-template<bool owns>
-void DaliExecutor::SetupInputs(const std::vector<IODescr<owns>>& inputs) {
+void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   assert(!inputs.empty());
-  int batch_size = inputs[0].shape.num_samples();
+  int batch_size = inputs[0].meta.shape.num_samples();
   for (size_t i = 1; i < inputs.size(); ++i) {
-    assert(inputs[i].shape.num_samples() == batch_size &&
+    assert(inputs[i].meta.shape.num_samples() == batch_size &&
            "All inputs should have equal batch size.");
   }
+  std::vector<IDescr> c_inputs{};
   for (auto& inp : inputs) {
-    assert(inp.shape.num_elements() * dali_type_size(inp.type) <= inp.buffer.size());
-    pipeline_.SetInput(inp.buffer.data(), inp.name.c_str(), inp.device, inp.type, inp.shape);
+    size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
+    if (IsNoCopy(inp)) {
+      assert(inp_size <= inp.buffers[0].size);
+      c_inputs.push_back(inp);
+    } else {
+      // Copy buffers to a contiguous buffer on the proper device
+      c_inputs.push_back(ScheduleInputCopy(inp));
+      assert(inp_size <= c_inputs.back().buffers[0].size);
+    }
+  }
+  RunInputCopy();
+  for (auto& inp : c_inputs) {
+    pipeline_.SetInput(inp);
   }
 }
 
+IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
+  assert(input.buffers.size() > 0);
+  IOBufferI* buffer;
+  if (input.buffers[0].device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[input.meta.name];
+  } else {
+    buffer = &gpu_buffers_[input.meta.name];
+  }
+  size_t size = 0;
+  for (auto& buf : input.buffers)
+    size += buf.size;
+  buffer->resize(size);
+  auto descriptor = buffer->get_descr();
+  char* dst = reinterpret_cast<char*>(descriptor.data);
+  for (auto& buf : input.buffers) {
+    thread_pool_.AddWork(
+        [descriptor, dst, buf](int) {
+          MemCopy(descriptor.device, dst, buf.device, buf.data, buf.size);
+        },
+        buf.size, true);
+    dst += buf.size;
+  }
+  return IDescr{input.meta, {descriptor}};
+}
 
-template<bool owns>
-std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>& inputs) {
+void DaliExecutor::RunInputCopy() {
+  thread_pool_.RunAll();
+}
+
+bool DaliExecutor::IsNoCopy(const IDescr& input) {
+  return input.buffers.size() == 1 && (input.buffers[0].device == device_type_t::CPU ||
+                                       input.buffers[0].device_id == pipeline_.DeviceId());
+}
+
+std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   SetupInputs(inputs);
   try {
     pipeline_.Run();
@@ -51,29 +93,25 @@ std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<owns>>
     pipeline_.Reset();
     throw e;
   }
-  std::vector<shape_and_type_t> ret(pipeline_.GetNumOutput());
+  std::vector<OutputInfo> ret(pipeline_.GetNumOutput());
   auto outputs_shapes = pipeline_.GetOutputShapes();
   for (size_t out_idx = 0; out_idx < ret.size(); out_idx++) {
-    ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx)};
+    ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
+                    pipeline_.GetOutputDevice(out_idx)};
   }
   return ret;
 }
 
-
-template<bool owns>
-void DaliExecutor::PutOutputs(const std::vector<IODescr<owns>>& outputs) {
+void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-    auto data = outputs[output_idx].buffer.data();
-    auto device_type = outputs[output_idx].device;
+    ENFORCE(outputs[output_idx].buffers.size() == 1,
+            "Ouptut can be copied only to a single buffer");
+    auto buffer = outputs[output_idx].buffers[0];
+    auto data = buffer.data;
+    auto device_type = buffer.device;
     pipeline_.PutOutput(data, output_idx, device_type);
   }
+  pipeline_.SyncOutputStream();
 }
-
-
-// Handful of explicit instantiations to make the development less painful
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<true>>&);
-template std::vector<shape_and_type_t> DaliExecutor::Run(const std::vector<IODescr<false>>&);
-template void DaliExecutor::PutOutputs(const std::vector<IODescr<true>>&);
-template void DaliExecutor::PutOutputs(const std::vector<IODescr<false>>&);
 
 }}}  // namespace triton::backend::dali

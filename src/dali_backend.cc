@@ -24,7 +24,10 @@
 
 #include <memory>
 
+#include "src/dali_executor/io_buffer.h"
+#include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
+#include "src/utils/triton.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
 
@@ -153,6 +156,10 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
   return error;
 }
 
+struct RequestMeta {
+  uint64_t compute_start_ns, compute_end_ns;
+  int batch_size;
+};
 
 class DaliModelInstance : public ::triton::backend::BackendModelInstance {
  public:
@@ -168,6 +175,22 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return *dali_model_;
   }
 
+  RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TritonRequest& request) {
+    DeviceGuard dg(device_id_);
+    RequestMeta ret;
+    auto& outputs_indices = dali_model_->GetOutputOrder();
+
+    auto dali_inputs = GenerateInputs(request);
+    ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
+                                                               // same in every input
+    ret.compute_start_ns = detail::capture_time();
+    auto outputs_info = dali_executor_->Run(dali_inputs);
+    ret.compute_end_ns = detail::capture_time();
+    auto dali_outputs = detail::AllocateOutputs(request, response, outputs_info, outputs_indices);
+    dali_executor_->PutOutputs(dali_outputs);
+    return ret;
+  }
+
  private:
   DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
       BackendModelInstance(model, triton_model_instance), dali_model_(model) {
@@ -178,6 +201,24 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
+  std::vector<IDescr> GenerateInputs(TritonRequestView request) {
+    uint32_t input_cnt = request.InputCount();
+    std::vector<IDescr> ret;
+    ret.reserve(input_cnt);
+    for (uint32_t input_idx = 0; input_idx < input_cnt; ++input_idx) {
+      auto input = request.InputByIdx(input_idx);
+      auto input_byte_size = input.ByteSize();
+      auto input_buffer_count = input.BufferCount();
+      std::vector<IBufferDescr> buffers;
+      buffers.reserve(input_buffer_count);
+      for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
+        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
+        buffers.push_back(buffer);
+      }
+      ret.push_back({input.Meta(), std::move(buffers)});
+    }
+    return ret;
+  }
 
   std::unique_ptr<DaliExecutor> dali_executor_;
   DaliModel* dali_model_;
@@ -206,30 +247,6 @@ TRITONSERVER_Error* DaliModelInstance::Create(DaliModel* model_state,
   }
 
   return error;  // success
-}
-
-
-struct RequestMeta {
-  uint64_t compute_start_ns, compute_end_ns;
-  int batch_size;
-};
-
-
-RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TRITONBACKEND_Request* request,
-                           DaliModelInstance& model_instance) {
-  RequestMeta ret;
-  auto& executor = model_instance.GetDaliExecutor();
-  auto& outputs_indices = model_instance.GetDaliModel().GetOutputOrder();
-
-  auto dali_inputs = detail::GenerateInputs(request);
-  ret.batch_size = dali_inputs[0].shape.num_samples();  // Batch size is expected to be the
-                                                        // same in every input
-  ret.compute_start_ns = detail::capture_time();
-  auto shapes_and_types = executor.Run(dali_inputs);
-  ret.compute_end_ns = detail::capture_time();
-  auto dali_outputs = detail::AllocateOutputs(request, response, shapes_and_types, outputs_indices);
-  executor.PutOutputs(dali_outputs);
-  return ret;
 }
 
 extern "C" {
@@ -344,13 +361,11 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
   DaliModel* model_state;
   RETURN_IF_ERROR(DaliModel::Create(model, &model_state));
   RETURN_IF_ERROR(TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state)));
-
   // One of the primary things to do in ModelInitialize is to examine
   // the model configuration to ensure that it is something that this
   // backend can support. If not, returning an error from this
   // function will prevent the model from loading.
   RETURN_IF_ERROR(model_state->ValidateModelConfig());
-
   model_state->ReadOutputsOrder();
 
   return nullptr;  // success
@@ -429,7 +444,6 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
   DaliModelInstance* instance_state;
   RETURN_IF_ERROR(
       TRITONBACKEND_ModelInstanceState(instance, reinterpret_cast<void**>(&instance_state)));
-  std::vector<TRITONBACKEND_Request*> requests(reqs, reqs + request_count);
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
   int total_batch_size = 0;
@@ -437,16 +451,17 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
            batch_compute_start_ns = 0, batch_compute_end_ns = 0;
   batch_exec_start_ns = detail::capture_time();
   for (size_t i = 0; i < responses.size(); i++) {
+    TritonRequest request(reqs[i]);
     TRITONSERVER_Error* error = nullptr;  // success
     exec_start_ns = detail::capture_time();
     // TODO Do not process requests one by one, but gather all
     //     into one buffer and process it in DALI all together
-    LOG_IF_ERROR(TRITONBACKEND_ResponseNew(&responses[i], requests[i]),
+    LOG_IF_ERROR(TRITONBACKEND_ResponseNew(&responses[i], request),
                  make_string("Failed creating a response, idx: ", i));
     RequestMeta request_meta;
 
     try {
-      request_meta = ProcessRequest(responses[i], requests[i], *instance_state);
+      request_meta = instance_state->ProcessRequest(responses[i], request);
     } catch (DaliBackendException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
       error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
@@ -475,7 +490,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
                                  batch_compute_start_ns;  // Ternary to please the compiler
 
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
-                     instance, requests[i], !error, exec_start_ns, request_meta.compute_start_ns,
+                     instance, request, !error, exec_start_ns, request_meta.compute_start_ns,
                      request_meta.compute_end_ns, exec_end_ns),
                  make_string("Failed reporting statistics for response idx ", i));
 
@@ -484,10 +499,6 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
             responses[i], TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
             error),
         make_string("Failed sending response, idx ", i));
-    LOG_IF_ERROR(
-        TRITONBACKEND_RequestRelease(
-            requests[i], TRITONSERVER_RequestReleaseFlag::TRITONSERVER_REQUEST_RELEASE_ALL),
-        make_string("Failed releasing request idx ", i));
 
     total_batch_size += request_meta.batch_size;
     batch_exec_end_ns = exec_end_ns;

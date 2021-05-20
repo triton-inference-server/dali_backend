@@ -20,46 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef TRITONDALIBACKEND_IO_DESCRIPTOR_H
-#define TRITONDALIBACKEND_IO_DESCRIPTOR_H
-
-#include "src/dali_executor/utils/dali.h"
-#include "src/error_handling.h"
+#include "src/dali_executor/io_buffer.h"
 
 namespace triton { namespace backend { namespace dali {
 
-template<typename T>
-struct BufferDescr {
-  device_type_t device{};
-  int device_id = 0;
-  T* data = nullptr;
-  size_t size = 0;
-
-  template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>
-  BufferDescr(BufferDescr<S> other) :
-      device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
-
-  BufferDescr(){};
-};
-
-using IBufferDescr = BufferDescr<const void>;
-using OBufferDescr = BufferDescr<void>;
-
-struct IOMeta {
-  std::string name{};
-  dali_data_type_t type{};
-  TensorListShape<> shape{};
-};
-
-template<typename T>
-struct IODescr {
-  IOMeta meta{};
-  std::vector<BufferDescr<T>> buffers{};
-};
-
-using IDescr = IODescr<const void>;
-using ODescr = IODescr<void>;
+void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+             cudaStream_t stream) {
+  auto src_c = reinterpret_cast<const char *>(src);
+  auto dst_c = reinterpret_cast<char *>(dst);
+  if (dst_dev == device_type_t::CPU && src_dev == device_type_t::CPU) {
+    copyH2H(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::CPU) {
+    copyH2D(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::CPU && src_dev == device_type_t::GPU) {
+    copyD2H(dst_c, src_c, size, stream);
+  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::GPU) {
+    copyD2D(dst_c, src_c, size, stream);
+  }
+}
 
 }}}  // namespace triton::backend::dali
-
-#endif  // TRITONDALIBACKEND_IO_DESCRIPTOR_H

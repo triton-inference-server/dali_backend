@@ -23,13 +23,14 @@ set(
     DALI_BACKEND_SRCS
         dali_executor.cc
         dali_pipeline.cc
+        io_buffer.cc
 )
 
 set(
     DALI_EXECUTOR_TEST_SRCS
         main.test.cc
         executor.test.cc
-        io_descriptor.test.cc
+        io_buffer.test.cc
 )
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
@@ -49,7 +50,7 @@ if (${TRITON_DALI_SKIP_DOWNLOAD})
 else ()
     set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali/include)
     set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali)
-    set(DALI_LIBRARIES dali dali_kernels dali_operators)
+    set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
 endif ()  # TRITON_DALI_SKIP_DOWNLOAD
 
 message(STATUS "DALI includes dir: " ${DALI_INCLUDE_DIR})

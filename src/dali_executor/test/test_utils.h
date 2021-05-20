@@ -61,17 +61,39 @@ constexpr dali_data_type_t dali_data_type() {
 }
 
 
+/**
+ * @brief Generate a test input.
+ *
+ * @tparam T Data type.
+ * @tparam R Data generator type.
+ *
+ * @param[out] buffers Collection of buffer chunks to be filled with data.
+ * @param name Input name.
+ * @param shapes Shapes of the data chunks.
+ * @param generator Data generator.
+ * @return Input descriptor.
+ */
 template<typename T, typename R>
-IODescr<false> RandomInput(std::vector<T>& buffer, const std::string& name, TensorListShape<> shape,
-                           const R& generator) {
-  buffer.clear();
-  std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
-  IODescr<false> dscr;
-  dscr.name = name;
-  dscr.shape = shape;
-  dscr.type = dali_data_type<T>();
-  dscr.buffer = span<char>(reinterpret_cast<char*>(buffer.data()), sizeof(T) * buffer.size());
-  dscr.device = device_type_t::CPU;
+IDescr RandomInput(std::vector<std::vector<T>>& buffers, const std::string& name,
+                   const std::vector<TensorListShape<>>& shapes, const R& generator) {
+  std::vector<IBufferDescr> buf_descs;
+  buffers = std::vector<std::vector<T>>(shapes.size());
+  for (size_t i = 0; i < buffers.size(); ++i) {
+    auto& buffer = buffers[i];
+    auto& shape = shapes[i];
+    buffer.clear();
+    std::generate_n(std::back_inserter(buffer), shape.num_elements(), generator);
+    IBufferDescr buf_dscr;
+    buf_dscr.data = buffer.data();
+    buf_dscr.size = sizeof(T) * buffer.size();
+    buf_dscr.device = device_type_t::CPU;
+    buf_descs.push_back(buf_dscr);
+  }
+  IDescr dscr;
+  dscr.meta.name = name;
+  dscr.meta.shape = cat_list_shapes(shapes);
+  dscr.meta.type = dali_data_type<T>();
+  dscr.buffers = buf_descs;
   return dscr;
 }
 

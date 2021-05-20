@@ -44,5 +44,5 @@ function(get_dali_paths DALI_INCLUDE_DIR_VAR DALI_LIB_DIR_VAR DALI_LIBRARIES_VAR
 
     set(${DALI_INCLUDE_DIR_VAR} ${DALI_INCLUDE_DIR} PARENT_SCOPE)
     set(${DALI_LIB_DIR_VAR} ${DALI_LIB_DIR} PARENT_SCOPE)
-    set(${DALI_LIBRARIES_VAR} dali dali_kernels dali_operators PARENT_SCOPE)
+    set(${DALI_LIBRARIES_VAR} dali dali_core dali_kernels dali_operators PARENT_SCOPE)
 endfunction()

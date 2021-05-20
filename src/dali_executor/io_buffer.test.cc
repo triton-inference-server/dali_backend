@@ -22,41 +22,50 @@
 
 #include <catch2/catch.hpp>
 
-#include "src/dali_executor/io_descriptor.h"
+#include "src/dali_executor/io_buffer.h"
+#include "src/dali_executor/utils/dali.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {
 
-
-TEST_CASE("IODescriptor owning memory") {
-  std::mt19937 g;
-  std::uniform_int_distribution<int> buffer_values(0, 255);
-  std::uniform_int_distribution<int> buffer_sizes(1, 1e6);
-  std::vector<std::vector<char>> buffers;
-  auto n_buffers = 10;
-  for (int i = 0; i < n_buffers; i++) {
-    std::vector<char> buffer;
-    std::generate_n(std::back_inserter(buffer), buffer_sizes(g),
-                    [&]() { return buffer_values(g); });
-    buffers.push_back(buffer);
+template<device_type_t Dev>
+void test_buffer(IOBuffer<Dev> &buffer) {
+  const uint8_t N = 10;
+  const size_t size = N * (N + 1) / 2;
+  buffer.resize(size);
+  auto descriptor = buffer.get_descr();
+  REQUIRE(descriptor.size == size);
+  char *dst = reinterpret_cast<char *>(descriptor.data);
+  for (uint8_t i = 1; i <= N; ++i) {
+    std::vector<uint8_t> chunk(i, i);
+    MemCopy(Dev, dst, device_type_t::CPU, chunk.data(), i);
+    dst += i;
   }
-  size_t stitched_buffer_size = 0;
-  for (const auto& buf : buffers) {
-    stitched_buffer_size += buf.size();
-  }
-  IODescr<true> desc(stitched_buffer_size);
-  REQUIRE(desc.capacity() == stitched_buffer_size);
-
-  for (const auto& buf : buffers) {
-    desc.append(make_span(buf));
-  }
-
-  auto* ptr = desc.buffer.data();
-  REQUIRE(static_cast<size_t>(desc.buffer.size()) == stitched_buffer_size);
-  for (size_t i = 0; i < buffers.size(); i++) {
-    auto& buf = buffers[i];
-    for (size_t j = 0; j < buf.size(); j++) {
-      REQUIRE(buf[j] == *ptr++);
+  // validation
+  std::vector<uint8_t> result(size);
+  REQUIRE(descriptor.device == Dev);
+  MemCopy(device_type_t::CPU, result.data(), Dev, descriptor.data, size);
+  size_t it = 0;
+  for (uint8_t i = 1; i <= N; ++i) {
+    for (uint8_t j = 0; j < i; ++j) {
+      REQUIRE(result[it] == i);
+      ++it;
     }
+  }
+}
+
+TEST_CASE("IOBuffer<CPU> extend & copy") {
+  IOBuffer<device_type_t::CPU> buffer;
+
+  SECTION("Copy") {
+    test_buffer(buffer);
+  }
+}
+
+TEST_CASE("IOBuffer<GPU> extend & copy") {
+  IOBuffer<device_type_t::GPU> buffer;
+
+  SECTION("Copy") {
+    test_buffer(buffer);
   }
 }
 
