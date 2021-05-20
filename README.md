@@ -104,7 +104,7 @@ Building DALI Backend with docker is as simple as:
 
     git clone --recursive https://github.com/triton-inference-server/dali_backend.git
     cd dali_backend
-    docker build -t tritonserver:dali-latest .
+    docker build -f docker/Dockerfile.release -t tritonserver:dali-latest .
 
 And `tritonserver:dali-latest` becomes your new `tritonserver` docker image
 
