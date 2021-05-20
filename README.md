@@ -42,14 +42,14 @@ resizing pipeline:
 
         import nvidia.dali as dali
 
-        pipe = dali.pipeline.Pipeline(batch_size=256, num_threads=4, device_id=0)
-        with pipe:
+        @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0)
+        def pipe():
             images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
             images = dali.fn.image_decoder(images, device="mixed")
             images = dali.fn.resize(images, resize_x=224, resize_y=224)
-            pipe.set_outputs(images)
+            return images
 
-        pipe.serialize(filename="/my/model/repository/path/dali/1/model.dali")
+        pipe().serialize(filename="/my/model/repository/path/dali/1/model.dali")
 
 1. Model file shall be incorporated in Triton's [Model
 Repository](https://github.com/triton-inference-server/server/blob/master/docs/model_repository.md).
@@ -104,7 +104,7 @@ Building DALI Backend with docker is as simple as:
 
     git clone --recursive https://github.com/triton-inference-server/dali_backend.git
     cd dali_backend
-    docker build -t tritonserver:dali-latest .
+    docker build -f docker/Dockerfile.release -t tritonserver:dali-latest .
 
 And `tritonserver:dali-latest` becomes your new `tritonserver` docker image
 
