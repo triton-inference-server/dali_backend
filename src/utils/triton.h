@@ -322,6 +322,7 @@ class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
   TRITONBACKEND_Response *handle_ = nullptr;
 };
 
+/** @brief Consume and send response and error. */
 void SendResponse(TritonResponse response, TritonError error);
 
 }}}  // namespace triton::backend::dali

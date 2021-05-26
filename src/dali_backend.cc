@@ -222,21 +222,6 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
   }
 
-  RequestMeta ProcessRequest(TritonResponseView response, TritonRequestView request) {
-    DeviceGuard dg(device_id_);
-    RequestMeta ret;
-
-    auto dali_inputs = GenerateInputs(request);
-    ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
-                                                               // same in every input
-    Timer timer{};
-    auto outputs_info = dali_executor_->Run(dali_inputs);
-    ret.compute_interval = timer.Interval();
-    auto dali_outputs = AllocateOutputs(request, response, outputs_info);
-    dali_executor_->PutOutputs(dali_outputs);
-    return ret;
-  }
-
   void ReportStats(TritonRequestView request, TimeInt exec, TimeInt compute, bool success) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(triton_model_instance_, request,
                                                              success, exec.start, compute.start,
@@ -261,6 +246,23 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
+  /** Run inference for a given \p request and prepare a response. */
+  RequestMeta ProcessRequest(TritonResponseView response, TritonRequestView request) {
+    DeviceGuard dg(device_id_);
+    RequestMeta ret;
+
+    auto dali_inputs = GenerateInputs(request);
+    ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
+                                                               // same in every input
+    Timer timer{};
+    auto outputs_info = dali_executor_->Run(dali_inputs);
+    ret.compute_interval = timer.Interval();
+    auto dali_outputs = AllocateOutputs(request, response, outputs_info);
+    dali_executor_->PutOutputs(dali_outputs);
+    return ret;
+  }
+
+  /** @brief Generate descriptors of inputs provided by a given request. */
   std::vector<IDescr> GenerateInputs(TritonRequestView request) {
     uint32_t input_cnt = request.InputCount();
     std::vector<IDescr> ret;
@@ -280,6 +282,11 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return ret;
   }
 
+  /**
+   * @brief Allocate outputs required by a given request.
+   *
+   * Lifetime of the created buffer is bound to the \p response
+   */
   std::vector<ODescr> AllocateOutputs(TritonRequestView request, TritonResponseView response,
                                       const std::vector<OutputInfo>& outputs_info) {
     uint32_t output_cnt = request.OutputCount();
