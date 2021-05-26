@@ -25,8 +25,17 @@
 
 #include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/dali.h"
+#include "src/dali_executor/utils/utils.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
+
+#define TRITON_CALL(expr)     \
+  do {                        \
+    auto err = expr;          \
+    if (err) {                \
+      throw TritonError(err); \
+    }                         \
+  } while (false)
 
 namespace triton { namespace backend { namespace dali {
 
@@ -90,6 +99,25 @@ inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
   }
 }
 
+class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, public std::exception {
+ public:
+  DALI_INHERIT_UNIQUE_HANDLE(TRITONSERVER_Error *, TritonError);
+
+  static TritonError Unknown(const std::string &msg) {
+    auto err =
+        TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN, msg.c_str());
+    return TritonError(err);
+  }
+
+  static void DestroyHandle(TRITONSERVER_Error *error) {
+    TRITONSERVER_ErrorDelete(error);
+  }
+
+  const char *what() const noexcept override {
+    return TRITONSERVER_ErrorMessage(handle_);
+  }
+};
+
 class TritonInput {
  public:
   TritonInput(TRITONBACKEND_Input *handle) : handle_(handle) {
@@ -99,8 +127,8 @@ class TritonInput {
     uint64_t input_byte_size;
     uint32_t input_buffer_count;
     const char *name;
-    TRITON_CALL_GUARD(TRITONBACKEND_InputProperties(handle_, &name, &input_datatype, &input_shape,
-                                                    &input_dims_count, &byte_size_, &buffer_cnt_));
+    TRITON_CALL(TRITONBACKEND_InputProperties(handle_, &name, &input_datatype, &input_shape,
+                                              &input_dims_count, &byte_size_, &buffer_cnt_));
     meta_.name = std::string(name);
     meta_.type = to_dali(input_datatype);
     auto batch_size = input_shape[0];
@@ -133,8 +161,7 @@ class TritonInput {
     size_t size;
     TRITONSERVER_MemoryType mem_type = to_triton(device);
     int64_t mem_type_id = device_id;
-    TRITON_CALL_GUARD(
-        TRITONBACKEND_InputBuffer(handle_, idx, &data, &size, &mem_type, &mem_type_id));
+    TRITON_CALL(TRITONBACKEND_InputBuffer(handle_, idx, &data, &size, &mem_type, &mem_type_id));
     IBufferDescr descr;
     descr.device = to_dali(mem_type);
     descr.device_id = mem_type_id;
@@ -158,8 +185,23 @@ class TritonRequestWrapper {
    */
   uint32_t InputCount() const {
     uint32_t input_cnt;
-    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputCount(This(), &input_cnt));
+    TRITON_CALL(TRITONBACKEND_RequestInputCount(This(), &input_cnt));
     return input_cnt;
+  }
+
+  /**
+   * @brief Fetch the number of outputs required by the request.
+   */
+  uint32_t OutputCount() const {
+    uint32_t output_cnt;
+    TRITON_CALL(TRITONBACKEND_RequestOutputCount(This(), &output_cnt));
+    return output_cnt;
+  }
+
+  const char *OutputName(uint32_t idx) const {
+    const char *name;
+    TRITONBACKEND_RequestOutputName(This(), idx, &name);
+    return name;
   }
 
   /**
@@ -167,7 +209,7 @@ class TritonRequestWrapper {
    */
   TritonInput InputByIdx(uint32_t idx) const {
     TRITONBACKEND_Input *input;
-    TRITON_CALL_GUARD(TRITONBACKEND_RequestInputByIndex(This(), idx, &input));
+    TRITON_CALL(TRITONBACKEND_RequestInputByIndex(This(), idx, &input));
     return TritonInput(input);
   }
 
@@ -211,6 +253,76 @@ class TritonRequestView : public TritonRequestWrapper<TritonRequestView> {
  private:
   TRITONBACKEND_Request *handle_ = nullptr;
 };
+
+
+template<class Actual>
+class TritonResponseWrapper {
+ public:
+  OBufferDescr AllocateOutputBuffer(const IOMeta &out_info, device_type_t preferred_device) {
+    auto output_shape = array_shape(out_info.shape);
+    TRITONBACKEND_Output *triton_output;
+    TRITON_CALL(TRITONBACKEND_ResponseOutput(This(), &triton_output, out_info.name.c_str(),
+                                             to_triton(out_info.type), output_shape.data(),
+                                             output_shape.size()));
+    TRITONSERVER_MemoryType memtype = to_triton(preferred_device);
+    int64_t memid = 0;
+    auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(out_info.type));
+    OBufferDescr buffer{};
+    buffer.size = volume(output_shape) * t_size;
+    TRITON_CALL(
+        TRITONBACKEND_OutputBuffer(triton_output, &buffer.data, buffer.size, &memtype, &memid));
+    buffer.device = to_dali(memtype);
+    buffer.device_id = memid;
+    return buffer;
+  }
+
+ private:
+  Actual &This() noexcept {
+    return static_cast<Actual &>(*this);
+  }
+
+  const Actual &This() const noexcept {
+    return static_cast<const Actual &>(*this);
+  }
+};
+
+/** @brief Owning handle for a Triton response. */
+class TritonResponse :
+    public UniqueHandle<TRITONBACKEND_Response *, TritonResponse>,
+    public TritonResponseWrapper<TritonResponse> {
+ public:
+  DALI_INHERIT_UNIQUE_HANDLE(TRITONBACKEND_Response *, TritonResponse)
+
+  static TritonResponse New(TritonRequestView request) {
+    TRITONBACKEND_Response *handle;
+    TRITON_CALL(TRITONBACKEND_ResponseNew(&handle, request));
+    return TritonResponse(handle);
+  }
+
+  static void DestroyHandle(TRITONBACKEND_Response *response) {
+    LOG_IF_ERROR(TRITONBACKEND_ResponseDelete(response),
+                 make_string("Failed releasing a response."));
+  }
+};
+
+/** @brief Non-owning handle for a Triton response. */
+class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
+ public:
+  TritonResponseView() = default;
+
+  TritonResponseView(TRITONBACKEND_Response *req) : handle_(req) {}
+
+  TritonResponseView(const TritonResponse &req) : handle_(req) {}
+
+  operator TRITONBACKEND_Response *() const noexcept {
+    return handle_;
+  }
+
+ private:
+  TRITONBACKEND_Response *handle_ = nullptr;
+};
+
+void SendResponse(TritonResponse response, TritonError error);
 
 }}}  // namespace triton::backend::dali
 

@@ -20,14 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "src/dali_backend.h"
-
 #include <memory>
 
+#include "src/dali_executor/dali_executor.h"
 #include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
+#include "src/model_provider/model_provider.h"
+#include "src/utils/timing.h"
 #include "src/utils/triton.h"
+#include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
 
@@ -157,7 +159,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
 }
 
 struct RequestMeta {
-  uint64_t compute_start_ns, compute_end_ns;
+  TimeInt compute_interval;
   int batch_size;
 };
 
@@ -175,20 +177,78 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return *dali_model_;
   }
 
-  RequestMeta ProcessRequest(TRITONBACKEND_Response* response, TritonRequest& request) {
+  void Execute(std::vector<TritonRequest> requests) {
+    int total_batch_size = 0;
+    TimeInt batch_compute_interval{};
+    Timer batch_exec_timer{};
+    for (size_t i = 0; i < requests.size(); i++) {
+      auto response = TritonResponse::New(requests[i]);
+      RequestMeta request_meta;
+      TritonError error{};
+      TimeInt req_exec_interval;
+      try {
+        Timer req_timer{};
+        request_meta = ProcessRequest(response, requests[i]);
+        req_exec_interval = req_timer.Interval();
+      } catch (DaliBackendException& e) {
+        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+        error = TritonError::Unknown(make_string("DALI Backend error: ", e.what()));
+      } catch (DALIException& e) {
+        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+        error = TritonError::Unknown(make_string("DALI error: ", e.what()));
+      } catch (std::runtime_error& e) {
+        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+        error = TritonError::Unknown(make_string("Runtime error: ", e.what()));
+      } catch (std::exception& e) {
+        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+        error = TritonError::Unknown(make_string("Exception: ", e.what()));
+      } catch (...) {
+        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
+        error = TritonError::Unknown("Unknown error");
+      }
+
+      if (i == 0) {
+        batch_compute_interval.start = request_meta.compute_interval.start;
+      } else if (i == requests.size() - 1) {
+        batch_compute_interval.end = request_meta.compute_interval.end;
+      }
+
+      ReportStats(requests[i], req_exec_interval, request_meta.compute_interval, !error);
+      SendResponse(std::move(response), std::move(error));
+
+      total_batch_size += request_meta.batch_size;
+    }
+    TimeInt batch_exec_interval = batch_exec_timer.Interval();
+    ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
+  }
+
+  RequestMeta ProcessRequest(TritonResponseView response, TritonRequestView request) {
     DeviceGuard dg(device_id_);
     RequestMeta ret;
-    auto& outputs_indices = dali_model_->GetOutputOrder();
 
     auto dali_inputs = GenerateInputs(request);
     ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
                                                                // same in every input
-    ret.compute_start_ns = detail::capture_time();
+    Timer timer{};
     auto outputs_info = dali_executor_->Run(dali_inputs);
-    ret.compute_end_ns = detail::capture_time();
-    auto dali_outputs = detail::AllocateOutputs(request, response, outputs_info, outputs_indices);
+    ret.compute_interval = timer.Interval();
+    auto dali_outputs = AllocateOutputs(request, response, outputs_info);
     dali_executor_->PutOutputs(dali_outputs);
     return ret;
+  }
+
+  void ReportStats(TritonRequestView request, TimeInt exec, TimeInt compute, bool success) {
+    LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(triton_model_instance_, request,
+                                                             success, exec.start, compute.start,
+                                                             compute.end, exec.end),
+                 "Failed reporting request statistics.");
+  }
+
+  void ReportBatchStats(uint32_t total_batch_size, TimeInt exec, TimeInt compute) {
+    LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
+                     triton_model_instance_, total_batch_size, exec.start, compute.start,
+                     compute.end, exec.end),
+                 "Failed reporting batch statistics.");
   }
 
  private:
@@ -218,6 +278,29 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       ret.push_back({input.Meta(), std::move(buffers)});
     }
     return ret;
+  }
+
+  std::vector<ODescr> AllocateOutputs(TritonRequestView request, TritonResponseView response,
+                                      const std::vector<OutputInfo>& outputs_info) {
+    uint32_t output_cnt = request.OutputCount();
+    ENFORCE(outputs_info.size() == output_cnt,
+            make_string("Number of outputs in the model configuration (", output_cnt,
+                        ") does not match to the number of outputs from DALI pipeline (",
+                        outputs_info.size(), ")"));
+    const auto& output_indices = dali_model_->GetOutputOrder();
+    std::vector<ODescr> outputs;
+    outputs.reserve(output_cnt);
+    for (uint32_t i = 0; i < output_cnt; ++i) {
+      auto name = request.OutputName(i);
+      int output_idx = output_indices.at(name);
+      IOMeta out_meta{};
+      out_meta.name = name;
+      out_meta.type = outputs_info[output_idx].type;
+      out_meta.shape = outputs_info[output_idx].shape;
+      auto buffer = response.AllocateOutputBuffer(out_meta, outputs_info[output_idx].device);
+      outputs.push_back({out_meta, {buffer}});
+    }
+    return outputs;
   }
 
   std::unique_ptr<DaliExecutor> dali_executor_;
@@ -441,76 +524,18 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceFinalize(TRITONBACKEND_ModelInsta
 TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstance* instance,
                                                        TRITONBACKEND_Request** reqs,
                                                        const uint32_t request_count) {
-  DaliModelInstance* instance_state;
+  std::vector<TritonRequest> requests;
+  for (uint32_t idx = 0; idx < request_count; ++idx) {
+    requests.push_back(TritonRequest(reqs[idx]));
+  }
+  DaliModelInstance* dali_instance;
   RETURN_IF_ERROR(
-      TRITONBACKEND_ModelInstanceState(instance, reinterpret_cast<void**>(&instance_state)));
+      TRITONBACKEND_ModelInstanceState(instance, reinterpret_cast<void**>(&dali_instance)));
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
-  int total_batch_size = 0;
-  uint64_t exec_start_ns = 0, exec_end_ns = 0, batch_exec_start_ns = 0, batch_exec_end_ns = 0,
-           batch_compute_start_ns = 0, batch_compute_end_ns = 0;
-  batch_exec_start_ns = detail::capture_time();
-  for (size_t i = 0; i < responses.size(); i++) {
-    TritonRequest request(reqs[i]);
-    TRITONSERVER_Error* error = nullptr;  // success
-    exec_start_ns = detail::capture_time();
-    // TODO Do not process requests one by one, but gather all
-    //     into one buffer and process it in DALI all together
-    LOG_IF_ERROR(TRITONBACKEND_ResponseNew(&responses[i], request),
-                 make_string("Failed creating a response, idx: ", i));
-    RequestMeta request_meta;
-
-    try {
-      request_meta = instance_state->ProcessRequest(responses[i], request);
-    } catch (DaliBackendException& e) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-                                    make_string("DALI Backend error: ", e.what()).c_str());
-    } catch (DALIException& e) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-                                    make_string("DALI error: ", e.what()).c_str());
-    } catch (std::runtime_error& e) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-                                    make_string("runtime error: ", e.what()).c_str());
-    } catch (std::exception& e) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-                                    make_string("exception: ", e.what()).c_str());
-    } catch (...) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
-      error = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN,
-                                    "Unknown error");
-    }
-
-    exec_end_ns = detail::capture_time();
-    batch_compute_start_ns = batch_compute_start_ns == 0 ?
-                                 request_meta.compute_start_ns :
-                                 batch_compute_start_ns;  // Ternary to please the compiler
-
-    LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(
-                     instance, request, !error, exec_start_ns, request_meta.compute_start_ns,
-                     request_meta.compute_end_ns, exec_end_ns),
-                 make_string("Failed reporting statistics for response idx ", i));
-
-    LOG_IF_ERROR(
-        TRITONBACKEND_ResponseSend(
-            responses[i], TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL,
-            error),
-        make_string("Failed sending response, idx ", i));
-
-    total_batch_size += request_meta.batch_size;
-    batch_exec_end_ns = exec_end_ns;
-    batch_compute_end_ns = request_meta.compute_end_ns;
-  }
-  if (batch_exec_end_ns == 0)
-    batch_exec_end_ns = detail::capture_time();
-
-  LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
-                   instance, total_batch_size, batch_exec_start_ns, batch_compute_start_ns,
-                   batch_compute_end_ns, batch_exec_end_ns),
-               make_string("Failed reporting batch statistics"));
+  try {
+    dali_instance->Execute(std::move(requests));
+  } catch (TritonError& err) { return err.release(); }
 
   return nullptr;
 }
