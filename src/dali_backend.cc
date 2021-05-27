@@ -191,22 +191,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
         Timer req_timer{};
         request_meta = ProcessRequest(response, requests[i]);
         req_exec_interval = req_timer.Interval();
-      } catch (DaliBackendException& e) {
-        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-        error = TritonError::Unknown(make_string("DALI Backend error: ", e.what()));
-      } catch (DALIException& e) {
-        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-        error = TritonError::Unknown(make_string("DALI error: ", e.what()));
-      } catch (std::runtime_error& e) {
-        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-        error = TritonError::Unknown(make_string("Runtime error: ", e.what()));
-      } catch (std::exception& e) {
-        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
-        error = TritonError::Unknown(make_string("Exception: ", e.what()));
-      } catch (...) {
-        LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
-        error = TritonError::Unknown("Unknown error");
-      }
+      } catch (...) { error = ErrorHandler(); }
 
       if (i == 0) {
         batch_compute_interval.start = request_meta.compute_interval.start;
@@ -308,6 +293,32 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;
+  }
+
+  TritonError ErrorHandler() {
+    TritonError error;
+    try {
+      throw;
+    } catch (TritonError& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = std::move(e);
+    } catch (DaliBackendException& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = TritonError::Unknown(make_string("DALI Backend error: ", e.what()));
+    } catch (DALIException& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = TritonError::Unknown(make_string("DALI error: ", e.what()));
+    } catch (std::runtime_error& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = TritonError::Unknown(make_string("Runtime error: ", e.what()));
+    } catch (std::exception& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+      error = TritonError::Unknown(make_string("Exception: ", e.what()));
+    } catch (...) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, ("Unknown error"));
+      error = TritonError::Unknown("Unknown error");
+    }
+    return error;
   }
 
   std::unique_ptr<DaliExecutor> dali_executor_;
