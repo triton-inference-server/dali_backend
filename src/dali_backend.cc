@@ -178,6 +178,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   void Execute(std::vector<TritonRequest> requests) {
+    DeviceGuard dg(device_id_);
     int total_batch_size = 0;
     TimeInt batch_compute_interval{};
     Timer batch_exec_timer{};
@@ -222,6 +223,16 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
   }
 
+ private:
+  DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
+      BackendModelInstance(model, triton_model_instance), dali_model_(model) {
+    auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
+    auto max_batch_size = dali_model_->MaxBatchSize();
+    auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
+    dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
+  }
+
   void ReportStats(TritonRequestView request, TimeInt exec, TimeInt compute, bool success) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(triton_model_instance_, request,
                                                              success, exec.start, compute.start,
@@ -236,19 +247,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
                  "Failed reporting batch statistics.");
   }
 
- private:
-  DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
-      BackendModelInstance(model, triton_model_instance), dali_model_(model) {
-    auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
-    auto max_batch_size = dali_model_->MaxBatchSize();
-    auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
-    dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
-  }
-
   /** Run inference for a given \p request and prepare a response. */
   RequestMeta ProcessRequest(TritonResponseView response, TritonRequestView request) {
-    DeviceGuard dg(device_id_);
     RequestMeta ret;
 
     auto dali_inputs = GenerateInputs(request);
@@ -295,7 +295,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
                         ") does not match to the number of outputs from DALI pipeline (",
                         outputs_info.size(), ")"));
     const auto& output_indices = dali_model_->GetOutputOrder();
-    std::vector<ODescr> outputs;
+    std::vector<ODescr> outputs(output_cnt);
     outputs.reserve(output_cnt);
     for (uint32_t i = 0; i < output_cnt; ++i) {
       auto name = request.OutputName(i);
@@ -305,7 +305,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       out_meta.type = outputs_info[output_idx].type;
       out_meta.shape = outputs_info[output_idx].shape;
       auto buffer = response.AllocateOutputBuffer(out_meta, outputs_info[output_idx].device);
-      outputs.push_back({out_meta, {buffer}});
+      outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;
   }
