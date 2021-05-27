@@ -261,7 +261,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       std::vector<IBufferDescr> buffers;
       buffers.reserve(input_buffer_count);
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
+        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, DetermineDeviceId());
         buffers.push_back(buffer);
       }
       ret.push_back({input.Meta(), std::move(buffers)});
@@ -270,7 +270,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   int32_t DetermineDeviceId() {
-    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;}
+    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;
+  }
 
   /**
    * @brief Allocate outputs required by a given request.
@@ -295,7 +296,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       out_meta.type = outputs_info[output_idx].type;
       out_meta.shape = outputs_info[output_idx].shape;
       auto output = response.GetOutput(out_meta);
-      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, device_id_);
+      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, DetermineDeviceId());
       outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;
