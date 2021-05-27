@@ -26,6 +26,7 @@ add_subdirectory(dali_executor)
 add_library(
         triton-dali-backend SHARED
         dali_backend.cc
+        utils/triton.cc
 )
 
 add_library(
