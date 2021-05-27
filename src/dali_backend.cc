@@ -159,7 +159,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
 }
 
 struct RequestMeta {
-  TimeInt compute_interval;
+  TimeInt compute_interval;  // nanoseconds
   int batch_size;
 };
 
@@ -177,20 +177,20 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return *dali_model_;
   }
 
-  void Execute(std::vector<TritonRequest> requests) {
+  void Execute(const std::vector<TritonRequest>& requests) {
     DeviceGuard dg(device_id_);
     int total_batch_size = 0;
     TimeInt batch_compute_interval{};
-    Timer batch_exec_timer{};
+    TimeInt batch_exec_interval{};
+    start_timer_ns(batch_exec_interval);
     for (size_t i = 0; i < requests.size(); i++) {
+      TimeInt req_exec_interval{};
+      start_timer_ns(req_exec_interval);
       auto response = TritonResponse::New(requests[i]);
       RequestMeta request_meta;
       TritonError error{};
-      TimeInt req_exec_interval;
       try {
-        Timer req_timer{};
         request_meta = ProcessRequest(response, requests[i]);
-        req_exec_interval = req_timer.Interval();
       } catch (...) { error = ErrorHandler(); }
 
       if (i == 0) {
@@ -199,12 +199,13 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
         batch_compute_interval.end = request_meta.compute_interval.end;
       }
 
+      end_timer_ns(req_exec_interval);
       ReportStats(requests[i], req_exec_interval, request_meta.compute_interval, !error);
       SendResponse(std::move(response), std::move(error));
 
       total_batch_size += request_meta.batch_size;
     }
-    TimeInt batch_exec_interval = batch_exec_timer.Interval();
+    end_timer_ns(batch_exec_interval);
     ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
   }
 
@@ -239,9 +240,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto dali_inputs = GenerateInputs(request);
     ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
                                                                // same in every input
-    Timer timer{};
+    start_timer_ns(ret.compute_interval);
     auto outputs_info = dali_executor_->Run(dali_inputs);
-    ret.compute_interval = timer.Interval();
+    end_timer_ns(ret.compute_interval);
     auto dali_outputs = AllocateOutputs(request, response, outputs_info);
     dali_executor_->PutOutputs(dali_outputs);
     return ret;
@@ -296,7 +297,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   TritonError ErrorHandler() {
-    TritonError error;
+    TritonError error{};
     try {
       throw;
     } catch (TritonError& e) {
@@ -544,7 +545,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
                                                        const uint32_t request_count) {
   std::vector<TritonRequest> requests;
   for (uint32_t idx = 0; idx < request_count; ++idx) {
-    requests.push_back(TritonRequest(reqs[idx]));
+    requests.emplace_back(reqs[idx]);
   }
   DaliModelInstance* dali_instance;
   RETURN_IF_ERROR(
@@ -552,7 +553,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
   try {
-    dali_instance->Execute(std::move(requests));
+    dali_instance->Execute(requests);
   } catch (TritonError& err) { return err.release(); }
 
   return nullptr;

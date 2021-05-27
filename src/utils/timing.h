@@ -34,22 +34,12 @@ struct TimeInt {
   uint64_t end = 0;
 };
 
-class Timer {
- public:
-  Timer() {
-    Reset();
-  }
+inline void start_timer_ns(TimeInt &interval) {
+  interval.start = capture_time();
+}
 
-  void Reset() {
-    start = capture_time();
-  }
-
-  TimeInt Interval() const {
-    return TimeInt{start, capture_time()};
-  }
-
- private:
-  uint64_t start = 0;
-};
+inline void end_timer_ns(TimeInt &interval) {
+  interval.end = capture_time();
+}
 
 }}}  // namespace triton::backend::dali
