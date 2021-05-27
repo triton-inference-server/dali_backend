@@ -159,7 +159,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
 }
 
 struct RequestMeta {
-  TimeInt compute_interval;  // nanoseconds
+  TimeInterval compute_interval;  // nanoseconds
   int batch_size;
 };
 
@@ -180,11 +180,11 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   void Execute(const std::vector<TritonRequest>& requests) {
     DeviceGuard dg(device_id_);
     int total_batch_size = 0;
-    TimeInt batch_compute_interval{};
-    TimeInt batch_exec_interval{};
+    TimeInterval batch_compute_interval{};
+    TimeInterval batch_exec_interval{};
     start_timer_ns(batch_exec_interval);
     for (size_t i = 0; i < requests.size(); i++) {
-      TimeInt req_exec_interval{};
+      TimeInterval req_exec_interval{};
       start_timer_ns(req_exec_interval);
       auto response = TritonResponse::New(requests[i]);
       RequestMeta request_meta;
@@ -219,14 +219,15 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
-  void ReportStats(TritonRequestView request, TimeInt exec, TimeInt compute, bool success) {
+  void ReportStats(TritonRequestView request, TimeInterval exec, TimeInterval compute,
+                   bool success) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(triton_model_instance_, request,
                                                              success, exec.start, compute.start,
                                                              compute.end, exec.end),
                  "Failed reporting request statistics.");
   }
 
-  void ReportBatchStats(uint32_t total_batch_size, TimeInt exec, TimeInt compute) {
+  void ReportBatchStats(uint32_t total_batch_size, TimeInterval exec, TimeInterval compute) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
                      triton_model_instance_, total_batch_size, exec.start, compute.start,
                      compute.end, exec.end),
@@ -290,7 +291,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       out_meta.name = name;
       out_meta.type = outputs_info[output_idx].type;
       out_meta.shape = outputs_info[output_idx].shape;
-      auto buffer = response.AllocateOutputBuffer(out_meta, outputs_info[output_idx].device);
+      auto output = response.GetOutput(out_meta);
+      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, device_id_);
       outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;

@@ -25,20 +25,21 @@
 
 namespace triton { namespace backend { namespace dali {
 
-inline uint64_t capture_time() {
-  return std::chrono::steady_clock::now().time_since_epoch().count();
+inline int64_t capture_time() {
+  auto time = std::chrono::high_resolution_clock::now().time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(time).count();
 }
 
-struct TimeInt {
-  uint64_t start = 0;
-  uint64_t end = 0;
+struct TimeInterval {
+  int64_t start = 0;
+  int64_t end = 0;
 };
 
-inline void start_timer_ns(TimeInt &interval) {
+inline void start_timer_ns(TimeInterval &interval) {
   interval.start = capture_time();
 }
 
-inline void end_timer_ns(TimeInt &interval) {
+inline void end_timer_ns(TimeInterval &interval) {
   interval.end = capture_time();
 }
 

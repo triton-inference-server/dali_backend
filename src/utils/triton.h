@@ -31,7 +31,7 @@
 
 #define TRITON_CALL(expr)     \
   do {                        \
-    auto err = expr;          \
+    auto err = (expr);        \
     if (err) {                \
       throw TritonError(err); \
     }                         \
@@ -114,7 +114,11 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
   }
 
   const char *what() const noexcept override {
-    return TRITONSERVER_ErrorMessage(handle_);
+    if (handle_) {
+      return TRITONSERVER_ErrorMessage(handle_);
+    } else {
+      return "";
+    }
   }
 };
 
@@ -254,26 +258,39 @@ class TritonRequestView : public TritonRequestWrapper<TritonRequestView> {
   TRITONBACKEND_Request *handle_ = nullptr;
 };
 
+class TritonOutput {
+ public:
+  TritonOutput(TRITONBACKEND_Output *handle, uint64_t buffer_size) :
+      handle_(handle), buffer_size_(buffer_size) {}
+
+  OBufferDescr AllocateBuffer(device_type_t preferred_device, int preferred_device_id) const {
+    int64_t memid = preferred_device_id;
+    TRITONSERVER_MemoryType memtype = to_triton(preferred_device);
+    OBufferDescr buffer{};
+    buffer.size = buffer_size_;
+    TRITON_CALL(TRITONBACKEND_OutputBuffer(handle_, &buffer.data, buffer.size, &memtype, &memid));
+    buffer.device = to_dali(memtype);
+    buffer.device_id = memid;
+    return buffer;
+  }
+
+ private:
+  TRITONBACKEND_Output *handle_;
+  uint64_t buffer_size_;
+};
 
 template<class Actual>
 class TritonResponseWrapper {
  public:
-  OBufferDescr AllocateOutputBuffer(const IOMeta &out_info, device_type_t preferred_device) {
+  TritonOutput GetOutput(const IOMeta &out_info) const {
     auto output_shape = array_shape(out_info.shape);
     TRITONBACKEND_Output *triton_output;
     TRITON_CALL(TRITONBACKEND_ResponseOutput(This(), &triton_output, out_info.name.c_str(),
                                              to_triton(out_info.type), output_shape.data(),
                                              output_shape.size()));
-    TRITONSERVER_MemoryType memtype = to_triton(preferred_device);
-    int64_t memid = 0;
     auto t_size = TRITONSERVER_DataTypeByteSize(to_triton(out_info.type));
-    OBufferDescr buffer{};
-    buffer.size = volume(output_shape) * t_size;
-    TRITON_CALL(
-        TRITONBACKEND_OutputBuffer(triton_output, &buffer.data, buffer.size, &memtype, &memid));
-    buffer.device = to_dali(memtype);
-    buffer.device_id = memid;
-    return buffer;
+    uint64_t buffer_size = volume(output_shape) * t_size;
+    return TritonOutput(triton_output, buffer_size);
   }
 
  private:
