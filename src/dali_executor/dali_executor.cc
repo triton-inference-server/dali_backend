@@ -55,9 +55,9 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   assert(input.buffers.size() > 0);
   IOBufferI* buffer;
   if (input.buffers[0].device == device_type_t::CPU) {
-    buffer = &cpu_buffers_[input.meta.name];
+    buffer = &cpu_buffers_[input.meta.name + "_inp"];
   } else {
-    buffer = &gpu_buffers_[input.meta.name];
+    buffer = &gpu_buffers_[input.meta.name + "_inp"];
   }
   size_t size = 0;
   for (auto& buf : input.buffers)
@@ -106,14 +106,38 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
 
 void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-    ENFORCE(outputs[output_idx].buffers.size() == 1,
-            "Ouptut can be copied only to a single buffer");
-    auto buffer = outputs[output_idx].buffers[0];
-    auto data = buffer.data;
-    auto device_type = buffer.device;
-    pipeline_.PutOutput(data, output_idx, device_type);
+    if (outputs[output_idx].buffers.size() == 1) {
+      auto buffer = outputs[output_idx].buffers[0];
+      pipeline_.PutOutput(buffer.data, output_idx, buffer.device);
+    } else {
+      const auto& name = outputs[output_idx].meta.name;
+      const auto& out_buffers = outputs[output_idx].buffers;
+      size_t size = 0;
+      for (auto& out_buff : out_buffers) {
+        size += out_buff.size;
+      }
+      IOBufferI* interm_buffer;
+      if (pipeline_.GetOutputDevice(output_idx) == device_type_t::CPU) {
+        interm_buffer = &cpu_buffers_[name + "_inp"];
+      } else {
+        interm_buffer = &gpu_buffers_[name + "_inp"];
+      }
+      interm_buffer->resize(size);
+      auto interm_descr = interm_buffer->get_descr();
+      pipeline_.PutOutput(interm_descr.data, output_idx, interm_descr.device);
+      char* src = reinterpret_cast<char*>(interm_descr.data);
+      for (auto& buf : out_buffers) {
+        thread_pool_.AddWork(
+            [src, buf, interm_descr](int) {
+              MemCopy(buf.device, buf.data, interm_descr.device, src, buf.size);
+            },
+            buf.size, false);  // deferred execution
+        src += buf.size;
+      }
+    }
   }
   pipeline_.SyncOutputStream();
+  thread_pool_.RunAll();
 }
 
 }}}  // namespace triton::backend::dali

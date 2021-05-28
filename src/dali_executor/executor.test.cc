@@ -37,7 +37,8 @@ TEST_CASE("Scaling Pipeline") {
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
   const std::string inp_name = "INPUT0";
-  auto scaling_test = [&](const std::vector<int> &batch_sizes) {
+  auto scaling_test = [&](const std::vector<int> &batch_sizes,
+                          const std::vector<int> &out_batch_sizes) {
     std::vector<TensorListShape<>> shapes;
     for (auto batch_size : batch_sizes) {
       TensorListShape<> shape(batch_size, 2);
@@ -53,33 +54,53 @@ TEST_CASE("Scaling Pipeline") {
     size_t inp_size = 0;
     for (auto &inp_buffer : input_buffers)
       inp_size += inp_buffer.size();
-    std::vector<float> output_buffer(inp_size);
+    std::vector<std::vector<float>> output_buffers;
+    int ti = 0;
+    for (auto bs : out_batch_sizes) {
+      int64_t buffer_vol = 0;
+      for (int i = 0; i < bs; ++i) {
+        buffer_vol += volume(output[0].shape[ti]);
+        ti++;
+      }
+      output_buffers.emplace_back(buffer_vol);
+    }
     std::vector<ODescr> output_vec(1);
     auto &outdesc = output_vec[0];
-    OBufferDescr buf_descr;
-    buf_descr.device = device_type_t::CPU;
-    buf_descr.data = output_buffer.data();
-    buf_descr.size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
-    outdesc.buffers = {buf_descr};
+    for (auto &out_buffer : output_buffers) {
+      OBufferDescr buf_descr;
+      buf_descr.device = device_type_t::CPU;
+      buf_descr.data = out_buffer.data();
+      buf_descr.size = out_buffer.size() * sizeof(float);
+      outdesc.buffers.push_back(buf_descr);
+    }
     executor.PutOutputs(output_vec);
+    size_t inp_buff_i = 0;
+    size_t inp_i = 0;
+    size_t out_buff_i = 0;
     size_t out_i = 0;
-    int i = 0;
-    for (auto &inp_buffer : input_buffers) {
-      for (size_t i = 0; i < inp_buffer.size(); ++i) {
-        REQUIRE(output_buffer[out_i] == inp_buffer[i] * 2);
-        ++out_i;
+    for (size_t i = 0; i < inp_size; ++i) {
+      if (inp_i == input_buffers[inp_buff_i].size()) {
+        inp_i = 0;
+        inp_buff_i++;
       }
+      if (out_i == output_buffers[out_buff_i].size()) {
+        out_i = 0;
+        out_buff_i++;
+      }
+      REQUIRE(output_buffers[out_buff_i][out_i] == input_buffers[inp_buff_i][inp_i] * 2);
+      out_i++;
+      inp_i++;
     }
   };
 
   SECTION("Simple execute") {
-    scaling_test({3, 2, 1});
-    scaling_test({5});
+    scaling_test({3, 2, 1}, {6});
+    scaling_test({5}, {5});
   }
 
-  SECTION("Repeat batch size") {
-    scaling_test({3, 3});
-    scaling_test({6});
+  SECTION("Chunked output") {
+    scaling_test({3, 3}, {3, 3});
+    scaling_test({6}, {3, 3});
   }
 }
 
@@ -110,7 +131,7 @@ TEST_CASE("RN50 pipeline") {
     obuffer.device = device_type_t::CPU;
     obuffer.device_id = 0;
     obuffer.data = output_buffer.data();
-    obuffer.size = output_buffer.size() * sizeof(decltype(output_buffer)::size_type);
+    obuffer.size = output_buffer.size() * sizeof(decltype(output_buffer)::value_type);
     outdesc.buffers = {obuffer};
     executor.PutOutputs(output_vec);
     for (int c = 0; c < output_c; ++c) {

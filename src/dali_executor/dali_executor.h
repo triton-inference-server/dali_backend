@@ -86,6 +86,7 @@ class DaliExecutor {
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
   std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
+  std::map<std::string, std::unique_ptr<IOBufferI>> out_buffers_;
 };
 
 }}}  // namespace triton::backend::dali
