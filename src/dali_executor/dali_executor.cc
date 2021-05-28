@@ -50,6 +50,7 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   }
 }
 
+
 IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   assert(input.buffers.size() > 0);
   IOBufferI* buffer;
@@ -78,6 +79,7 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
 void DaliExecutor::RunInputCopy() {
   thread_pool_.RunAll();
 }
+
 
 bool DaliExecutor::IsNoCopy(const IDescr& input) {
   return input.buffers.size() == 1 && (input.buffers[0].device == device_type_t::CPU ||

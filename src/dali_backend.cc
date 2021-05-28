@@ -178,7 +178,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   void Execute(const std::vector<TritonRequest>& requests) {
-    DeviceGuard dg(device_id_);
+    DeviceGuard dg(DetermineDeviceId());
     int total_batch_size = 0;
     TimeInterval batch_compute_interval{};
     TimeInterval batch_exec_interval{};
@@ -215,7 +215,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, DetermineDeviceId());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
@@ -261,12 +261,16 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       std::vector<IBufferDescr> buffers;
       buffers.reserve(input_buffer_count);
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
+        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, DetermineDeviceId());
         buffers.push_back(buffer);
       }
       ret.push_back({input.Meta(), std::move(buffers)});
     }
     return ret;
+  }
+
+  int32_t DetermineDeviceId() {
+    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;
   }
 
   /**
@@ -292,7 +296,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       out_meta.type = outputs_info[output_idx].type;
       out_meta.shape = outputs_info[output_idx].shape;
       auto output = response.GetOutput(out_meta);
-      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, device_id_);
+      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, DetermineDeviceId());
       outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;
