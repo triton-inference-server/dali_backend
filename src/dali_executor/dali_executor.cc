@@ -126,18 +126,19 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
       auto interm_descr = interm_buffer->get_descr();
       pipeline_.PutOutput(interm_descr.data, output_idx, interm_descr.device);
       char* src = reinterpret_cast<char*>(interm_descr.data);
+      auto stream = pipeline_.OutputStream();
       for (auto& buf : out_buffers) {
         thread_pool_.AddWork(
-            [src, buf, interm_descr](int) {
-              MemCopy(buf.device, buf.data, interm_descr.device, src, buf.size);
+            [stream, src, buf, interm_descr](int) {
+              MemCopy(buf.device, buf.data, interm_descr.device, src, buf.size, stream);
             },
             buf.size, false);  // deferred execution
         src += buf.size;
       }
     }
   }
-  pipeline_.SyncOutputStream();
   thread_pool_.RunAll();
+  pipeline_.SyncOutputStream();
 }
 
 }}}  // namespace triton::backend::dali

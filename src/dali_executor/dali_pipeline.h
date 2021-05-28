@@ -131,6 +131,10 @@ class DaliPipeline {
    */
   void SyncOutputStream();
 
+  cudaStream_t OutputStream() {
+    return output_stream_;
+  }
+
   void Reset() {
     ReleasePipeline();
     CreatePipeline();
