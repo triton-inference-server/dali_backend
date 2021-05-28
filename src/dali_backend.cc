@@ -159,7 +159,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
 }
 
 struct RequestMeta {
-  TimeInt compute_interval;
+  TimeInterval compute_interval;  // nanoseconds
   int batch_size;
 };
 
@@ -177,20 +177,20 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return *dali_model_;
   }
 
-  void Execute(std::vector<TritonRequest> requests) {
-    DeviceGuard dg(device_id_);
+  void Execute(const std::vector<TritonRequest>& requests) {
+    DeviceGuard dg(GetDaliDeviceId());
     int total_batch_size = 0;
-    TimeInt batch_compute_interval{};
-    Timer batch_exec_timer{};
+    TimeInterval batch_compute_interval{};
+    TimeInterval batch_exec_interval{};
+    start_timer_ns(batch_exec_interval);
     for (size_t i = 0; i < requests.size(); i++) {
+      TimeInterval req_exec_interval{};
+      start_timer_ns(req_exec_interval);
       auto response = TritonResponse::New(requests[i]);
       RequestMeta request_meta;
       TritonError error{};
-      TimeInt req_exec_interval;
       try {
-        Timer req_timer{};
         request_meta = ProcessRequest(response, requests[i]);
-        req_exec_interval = req_timer.Interval();
       } catch (...) { error = ErrorHandler(); }
 
       if (i == 0) {
@@ -199,12 +199,13 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
         batch_compute_interval.end = request_meta.compute_interval.end;
       }
 
+      end_timer_ns(req_exec_interval);
       ReportStats(requests[i], req_exec_interval, request_meta.compute_interval, !error);
       SendResponse(std::move(response), std::move(error));
 
       total_batch_size += request_meta.batch_size;
     }
-    TimeInt batch_exec_interval = batch_exec_timer.Interval();
+    end_timer_ns(batch_exec_interval);
     ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
   }
 
@@ -214,18 +215,19 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, device_id_);
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
-  void ReportStats(TritonRequestView request, TimeInt exec, TimeInt compute, bool success) {
+  void ReportStats(TritonRequestView request, TimeInterval exec, TimeInterval compute,
+                   bool success) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportStatistics(triton_model_instance_, request,
                                                              success, exec.start, compute.start,
                                                              compute.end, exec.end),
                  "Failed reporting request statistics.");
   }
 
-  void ReportBatchStats(uint32_t total_batch_size, TimeInt exec, TimeInt compute) {
+  void ReportBatchStats(uint32_t total_batch_size, TimeInterval exec, TimeInterval compute) {
     LOG_IF_ERROR(TRITONBACKEND_ModelInstanceReportBatchStatistics(
                      triton_model_instance_, total_batch_size, exec.start, compute.start,
                      compute.end, exec.end),
@@ -239,9 +241,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto dali_inputs = GenerateInputs(request);
     ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
                                                                // same in every input
-    Timer timer{};
+    start_timer_ns(ret.compute_interval);
     auto outputs_info = dali_executor_->Run(dali_inputs);
-    ret.compute_interval = timer.Interval();
+    end_timer_ns(ret.compute_interval);
     auto dali_outputs = AllocateOutputs(request, response, outputs_info);
     dali_executor_->PutOutputs(dali_outputs);
     return ret;
@@ -259,12 +261,16 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       std::vector<IBufferDescr> buffers;
       buffers.reserve(input_buffer_count);
       for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, device_id_);
+        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
         buffers.push_back(buffer);
       }
       ret.push_back({input.Meta(), std::move(buffers)});
     }
     return ret;
+  }
+
+  int32_t GetDaliDeviceId() {
+    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;
   }
 
   /**
@@ -289,14 +295,15 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       out_meta.name = name;
       out_meta.type = outputs_info[output_idx].type;
       out_meta.shape = outputs_info[output_idx].shape;
-      auto buffer = response.AllocateOutputBuffer(out_meta, outputs_info[output_idx].device);
+      auto output = response.GetOutput(out_meta);
+      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, GetDaliDeviceId());
       outputs[output_idx] = {out_meta, {buffer}};
     }
     return outputs;
   }
 
   TritonError ErrorHandler() {
-    TritonError error;
+    TritonError error{};
     try {
       throw;
     } catch (TritonError& e) {
@@ -544,7 +551,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
                                                        const uint32_t request_count) {
   std::vector<TritonRequest> requests;
   for (uint32_t idx = 0; idx < request_count; ++idx) {
-    requests.push_back(TritonRequest(reqs[idx]));
+    requests.emplace_back(reqs[idx]);
   }
   DaliModelInstance* dali_instance;
   RETURN_IF_ERROR(
@@ -552,7 +559,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
   std::vector<TRITONBACKEND_Response*> responses(request_count);
 
   try {
-    dali_instance->Execute(std::move(requests));
+    dali_instance->Execute(requests);
   } catch (TritonError& err) { return err.release(); }
 
   return nullptr;
