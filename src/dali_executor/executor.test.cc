@@ -30,7 +30,7 @@
 namespace triton { namespace backend { namespace dali { namespace test {
 
 template<typename T, typename Op>
-void pointwise_compare(const std::vector<OBufferDescr> &obuffers,
+void coalesced_compare(const std::vector<OBufferDescr> &obuffers,
                        const std::vector<std::vector<T>> &ibuffers, size_t inp_size, const Op &op) {
   size_t inp_buff_i = 0;
   size_t inp_i = 0;
@@ -107,7 +107,7 @@ TEST_CASE("Scaling Pipeline") {
       outdesc.buffers.push_back(out_buffer->get_descr());
     }
     executor.PutOutputs(output_vec);
-    pointwise_compare(outdesc.buffers, input_buffers, inp_size, [](float a) { return a * 2; });
+    coalesced_compare(outdesc.buffers, input_buffers, inp_size, [](float a) { return a * 2; });
   };
 
   SECTION("Simple execute") {
