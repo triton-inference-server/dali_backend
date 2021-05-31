@@ -51,14 +51,31 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
 }
 
 
+IOBufferI* DaliExecutor::GetInputBuffer(const std::string& name, device_type_t device) {
+  IOBufferI* buffer;
+  if (device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[name + "_inp"];
+  } else {
+    buffer = &gpu_buffers_[name + "_inp"];
+  }
+  return buffer;
+}
+
+
+IOBufferI* DaliExecutor::GetOutputBuffer(const std::string& name, device_type_t device) {
+  IOBufferI* buffer;
+  if (device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[name + "_out"];
+  } else {
+    buffer = &gpu_buffers_[name + "_out"];
+  }
+  return buffer;
+}
+
+
 IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   assert(input.buffers.size() > 0);
-  IOBufferI* buffer;
-  if (input.buffers[0].device == device_type_t::CPU) {
-    buffer = &cpu_buffers_[input.meta.name + "_inp"];
-  } else {
-    buffer = &gpu_buffers_[input.meta.name + "_inp"];
-  }
+  IOBufferI* buffer = GetInputBuffer(input.meta.name, input.buffers[0].device);
   size_t size = 0;
   for (auto& buf : input.buffers)
     size += buf.size;
@@ -84,12 +101,7 @@ void DaliExecutor::ScheduleOutputCopy(const ODescr& output, int output_idx) {
   for (auto& out_buff : out_buffers) {
     size += out_buff.size;
   }
-  IOBufferI* interm_buffer;
-  if (pipeline_.GetOutputDevice(output_idx) == device_type_t::CPU) {
-    interm_buffer = &cpu_buffers_[name + "_out"];
-  } else {
-    interm_buffer = &gpu_buffers_[name + "_out"];
-  }
+  IOBufferI* interm_buffer = GetOutputBuffer(name, pipeline_.GetOutputDevice(output_idx));
   interm_buffer->resize(size);
   auto interm_descr = interm_buffer->get_descr();
   pipeline_.PutOutput(interm_descr.data, output_idx, interm_descr.device);

@@ -89,6 +89,16 @@ class DaliExecutor {
     return (n_threads < 1) ? 1 : n_threads;
   }
 
+  /**
+   * @brief Get an intermediate buffer located on the \p device for an input with a given \p name
+   */
+  IOBufferI* GetInputBuffer(const std::string& name, device_type_t device);
+
+  /**
+   * @brief Get an intermediate buffer located on the \p device for an output with a given \p name
+   */
+  IOBufferI* GetOutputBuffer(const std::string& name, device_type_t device);
+
   DaliPipeline pipeline_;
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
