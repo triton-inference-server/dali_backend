@@ -62,14 +62,14 @@ class DaliExecutor {
 
   /**
    * @brief Schedule a copy of all buffers within input IDescr to a continuous buffer.
-   *        Call RunInputCopy() to wait for the copy to finish.
+   *        Call WaitForCopies() to wait for the copy to finish.
    * @return IDecr to the new, continuous, buffer.
    */
   IDescr ScheduleInputCopy(const IDescr& buffers);
 
   /**
    * @brief Schedule a copy to a chunked output through an intermediate buffer.
-   *        Call RunInputCopy() to wait for the copy to finish.
+   *        Call WaitForCopies() to wait for the copy to finish.
    */
   void ScheduleOutputCopy(const ODescr& output, int output_idx);
 
