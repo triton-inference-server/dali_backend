@@ -44,31 +44,49 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
       assert(inp_size <= c_inputs.back().buffers[0].size);
     }
   }
-  RunInputCopy();
+  WaitForCopies();
   for (auto& inp : c_inputs) {
     pipeline_.SetInput(inp);
   }
 }
 
 
+IOBufferI* DaliExecutor::GetInputBuffer(const std::string& name, device_type_t device) {
+  IOBufferI* buffer;
+  if (device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[name + "_inp"];
+  } else {
+    buffer = &gpu_buffers_[name + "_inp"];
+  }
+  return buffer;
+}
+
+
+IOBufferI* DaliExecutor::GetOutputBuffer(const std::string& name, device_type_t device) {
+  IOBufferI* buffer;
+  if (device == device_type_t::CPU) {
+    buffer = &cpu_buffers_[name + "_out"];
+  } else {
+    buffer = &gpu_buffers_[name + "_out"];
+  }
+  return buffer;
+}
+
+
 IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   assert(input.buffers.size() > 0);
-  IOBufferI* buffer;
-  if (input.buffers[0].device == device_type_t::CPU) {
-    buffer = &cpu_buffers_[input.meta.name];
-  } else {
-    buffer = &gpu_buffers_[input.meta.name];
-  }
+  IOBufferI* buffer = GetInputBuffer(input.meta.name, input.buffers[0].device);
   size_t size = 0;
   for (auto& buf : input.buffers)
     size += buf.size;
   buffer->resize(size);
   auto descriptor = buffer->get_descr();
   char* dst = reinterpret_cast<char*>(descriptor.data);
+  auto stream = pipeline_.CopyStream();
   for (auto& buf : input.buffers) {
     thread_pool_.AddWork(
-        [descriptor, dst, buf](int) {
-          MemCopy(descriptor.device, dst, buf.device, buf.data, buf.size);
+        [stream, descriptor, dst, buf](int) {
+          MemCopy(descriptor.device, dst, buf.device, buf.data, buf.size, stream);
         },
         buf.size, true);
     dst += buf.size;
@@ -76,8 +94,32 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   return IDescr{input.meta, {descriptor}};
 }
 
-void DaliExecutor::RunInputCopy() {
+void DaliExecutor::ScheduleOutputCopy(const ODescr& output, int output_idx) {
+  const auto& name = output.meta.name;
+  const auto& out_buffers = output.buffers;
+  size_t size = 0;
+  for (auto& out_buff : out_buffers) {
+    size += out_buff.size;
+  }
+  IOBufferI* interm_buffer = GetOutputBuffer(name, pipeline_.GetOutputDevice(output_idx));
+  interm_buffer->resize(size);
+  auto interm_descr = interm_buffer->get_descr();
+  pipeline_.PutOutput(interm_descr.data, output_idx, interm_descr.device);
+  char* src = reinterpret_cast<char*>(interm_descr.data);
+  auto stream = pipeline_.CopyStream();
+  for (auto& buf : out_buffers) {
+    thread_pool_.AddWork(
+        [stream, src, buf, interm_descr](int) {
+          MemCopy(buf.device, buf.data, interm_descr.device, src, buf.size, stream);
+        },
+        buf.size);
+    src += buf.size;
+  }
+}
+
+void DaliExecutor::WaitForCopies() {
   thread_pool_.RunAll();
+  pipeline_.SyncStream();
 }
 
 
@@ -106,14 +148,14 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
 
 void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   for (uint32_t output_idx = 0; output_idx < outputs.size(); ++output_idx) {
-    ENFORCE(outputs[output_idx].buffers.size() == 1,
-            "Ouptut can be copied only to a single buffer");
-    auto buffer = outputs[output_idx].buffers[0];
-    auto data = buffer.data;
-    auto device_type = buffer.device;
-    pipeline_.PutOutput(data, output_idx, device_type);
+    if (outputs[output_idx].buffers.size() == 1) {
+      auto buffer = outputs[output_idx].buffers[0];
+      pipeline_.PutOutput(buffer.data, output_idx, buffer.device);
+    } else {
+      ScheduleOutputCopy(outputs[output_idx], output_idx);
+    }
   }
-  pipeline_.SyncOutputStream();
+  WaitForCopies();
 }
 
 }}}  // namespace triton::backend::dali
