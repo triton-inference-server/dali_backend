@@ -61,16 +61,23 @@ class DaliExecutor {
   void SetupInputs(const std::vector<IDescr>& inputs);
 
   /**
-   * @brief Schedule a copy off all buffers within input IDescr to a continuous buffer.
-   *        The copy will be performed after calling RunInputCopy().
+   * @brief Schedule a copy of all buffers within input IDescr to a continuous buffer.
+   *        Call RunInputCopy() to wait for the copy to finish.
    * @return IDecr to the new, continuous, buffer.
    */
   IDescr ScheduleInputCopy(const IDescr& buffers);
 
   /**
-   * @brief Run copies scheduled by ScheduleInputCopy and wait for them to finish.
+   * @brief Schedule a copy to a chunked output through an intermediate buffer.
+   *        Call RunInputCopy() to wait for the copy to finish.
    */
-  void RunInputCopy();
+  void ScheduleOutputCopy(const ODescr& output, int output_idx);
+
+  /**
+   * @brief Wait for the copies scheduled by ScheduleInputCopy or ScheduleOutputCopy
+   *        and wait for them to finish.
+   */
+  void WaitForCopies();
 
   /**
    * @brief Check if an input can be used without a copy.

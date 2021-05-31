@@ -125,13 +125,13 @@ class DaliPipeline {
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 
   /**
-   * @brief Wait for all output copies.
+   * @brief Wait for the work scheduled on the copy stream.
    *
    * This should be always called after copying all of the pipeline outputs.
    */
-  void SyncOutputStream();
+  void SyncStream();
 
-  cudaStream_t OutputStream() {
+  cudaStream_t CopyStream() {
     return output_stream_;
   }
 

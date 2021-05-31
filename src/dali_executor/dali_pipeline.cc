@@ -77,7 +77,7 @@ void DaliPipeline::SetInput(const IDescr& io_descr) {
   SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape);
 }
 
-void DaliPipeline::SyncOutputStream() {
+void DaliPipeline::SyncStream() {
   if (NoGpu())
     return;
   DeviceGuard dg(device_id_);
