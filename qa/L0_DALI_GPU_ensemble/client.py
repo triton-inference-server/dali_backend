@@ -96,8 +96,6 @@ class TestClient:
 def ref_func(inp1, inp2):
   return inp1 * 2 / 3, (inp2 * 3).astype(np.half).astype(np.single) / 2
 
-def ref_func1(inp1, inp2):
-  return inp1 * 2, (inp2 * 3).astype(np.half)
 
 def random_gen(max_batch_size, uniform_groups=1):
   while True:
