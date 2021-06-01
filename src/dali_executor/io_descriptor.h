@@ -24,6 +24,7 @@
 #define TRITONDALIBACKEND_IO_DESCRIPTOR_H
 
 #include "src/dali_executor/utils/dali.h"
+#include "src/dali_executor/utils/utils.h"
 #include "src/error_handling.h"
 
 namespace triton { namespace backend { namespace dali {
@@ -32,7 +33,7 @@ template<typename T>
 struct BufferDescr {
   device_type_t device{};
   int device_id = 0;
-  T* data = nullptr;
+  T *data = nullptr;
   size_t size = 0;
 
   template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>
@@ -56,6 +57,29 @@ struct IODescr {
   IOMeta meta{};
   std::vector<BufferDescr<T>> buffers{};
 };
+
+template<typename T>
+IODescr<T> cat_io_descriptors(const std::vector<IODescr<T>> &descriptors) {
+  ENFORCE(!descriptors.empty(), "Cannot concatenate an empty list of IO descriptors.");
+  const IODescr<T> &descr0 = *descriptors.begin();
+  IOMeta meta{};
+  meta.name = descr0.meta.name;
+  meta.type = descr0.meta.type;
+  std::vector<TensorListShape<>> shapes;
+  std::vector<BufferDescr<T>> buffers{};
+  for (const auto &descr : descriptors) {
+    ENFORCE(descr.meta.name == meta.name,
+            "Cannot concatenate IO descriptors with different names.");
+    ENFORCE(descr.meta.type == meta.type,
+            "Cannot concatenate IO descriptors with different data types.");
+    shapes.push_back(descr.meta.shape);
+    for (const auto &buffer : descr.buffers) {
+      buffers.push_back(buffer);
+    }
+  }
+  meta.shape = cat_list_shapes(shapes);
+  return {meta, buffers};
+}
 
 using IDescr = IODescr<const void>;
 using ODescr = IODescr<void>;

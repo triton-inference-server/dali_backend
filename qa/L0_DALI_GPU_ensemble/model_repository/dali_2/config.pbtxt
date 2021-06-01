@@ -53,3 +53,8 @@ output [
     dims: [ -1 ]
   }
 ]
+
+dynamic_batching {
+  preferred_batch_size: [ 256 ]
+  max_queue_delay_microseconds: 500
+}

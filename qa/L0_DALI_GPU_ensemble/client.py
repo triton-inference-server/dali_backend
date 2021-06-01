@@ -25,6 +25,8 @@ from typing import Sequence
 from itertools import cycle, islice
 from numpy.random import randint
 import argparse
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # TODO: Extend and move to a separate file
 def type_to_string(dtype):
@@ -34,6 +36,14 @@ def type_to_string(dtype):
     return "FP32"
   elif dtype == np.double:
     return "FP64"
+
+def grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(islice(it, n))
+        if not chunk:
+            return
+        yield chunk
 
 # TODO: Extend and move to a separate file
 class TestClient:
@@ -51,57 +61,69 @@ class TestClient:
     inp.set_data_from_numpy(batch)
     return inp
 
-  def run_inference(self, batches):
+  def test_infer(self, batches, it):
     assert(len(batches) == len(self.input_names))
     if (len(batches) > 1):
       for b in batches:
         assert b.shape[0] == batches[0].shape[0]
-    inputs = [self._get_input(batch, name) for batch, name in zip(batches, self.input_names)]
     outputs = [t_client.InferRequestedOutput(name) for name in self.output_names]
-    results = self.client.infer(model_name=self.model_name, inputs=inputs, outputs=outputs)
-    return [results.as_numpy(name) for name in self.output_names]
+    inputs = [self._get_input(batch, name) for batch, name in zip(batches, self.input_names)]
+    res = self.client.infer(model_name=self.model_name, inputs=inputs, outputs=outputs)
+    res_data = [res.as_numpy(name) for name in self.output_names]
+    return it, batches, res_data
 
   def run_tests(self, data, compare_to, n_infers=-1, eps=1e-7):
     generator = data if n_infers < 1 else islice(cycle(data), n_infers)
-    for it, batches in enumerate(generator):
-      results = self.run_inference(batches)
-      ref = compare_to(*batches)
-      assert(len(results) == len(ref))
-      for out_i, (out, ref_out) in enumerate(zip(results, ref)):
-        assert out.shape == ref_out.shape
-        if not np.allclose(out, ref_out, atol=eps):
-          print("Test failure in iteration", it)
-          print("Output", out_i)
-          print("Expected:\n", ref_out)
-          print("Actual:\n", out)
-          assert False
-      print('PASS iteration:', it)
+    for pack in grouper(self.concurrency, enumerate(generator)):
+      with ThreadPoolExecutor(max_workers=self.concurrency+4) as executor:
+        results_f = [executor.submit(self.test_infer, data, it) for it, data in pack]
+        for future in as_completed(results_f):
+          it, data, results = future.result()
+          ref = compare_to(*data)
+          assert(len(results) == len(ref))
+          for out_i, (out, ref_out) in enumerate(zip(results, ref)):
+            assert out.shape == ref_out.shape
+            if not np.allclose(out, ref_out, atol=eps):
+              print("Test failure in iteration", it)
+              print("Output", out_i)
+              print("Expected:\n", ref_out)
+              print("Actual:\n", out)
+              assert False
+          print('PASS iteration:', it)
 
 
 # TODO: Use actual DALI pipelines to calculate ground truth
 def ref_func(inp1, inp2):
   return inp1 * 2 / 3, (inp2 * 3).astype(np.half).astype(np.single) / 2
 
-def random_gen(max_batch_size):
+def ref_func1(inp1, inp2):
+  return inp1 * 2, (inp2 * 3).astype(np.half)
+
+def random_gen(max_batch_size, uniform_groups=1):
   while True:
-    bs = randint(1, max_batch_size + 1)
     size1 = randint(100, 300)
     size2 = randint(100, 300)
-    yield np.random.random((bs, size1)).astype(np.single), \
+    for i in range(uniform_groups):
+      bs = randint(1, max_batch_size + 1)
+      yield np.random.random((bs, size1)).astype(np.single), \
           np.random.random((bs, size2)).astype(np.single)
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
                         help='Inference server GRPC URL. Default is localhost:8001.')
-    parser.add_argument('--n_iters', type=int, required=False, default=1, help='Number of iterations')
+    parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
+    parser.add_argument('-c', '--concurrency', type=int, required=False, default=1,
+                        help='Request concurrency level')
     parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=256)
     return parser.parse_args()
 
 def main():
   args = parse_args()
-  client = TestClient('dali_ensemble', ['INPUT_0', 'INPUT_1'], ['OUTPUT_0', 'OUTPUT_1'], args.url)
-  client.run_tests(random_gen(args.max_batch_size), ref_func, n_infers=args.n_iters, eps=1e-4)
+  client = TestClient('dali_ensemble', ['INPUT_0', 'INPUT_1'], ['OUTPUT_0', 'OUTPUT_1'], args.url,
+                      concurrency=args.concurrency)
+  client.run_tests(random_gen(args.max_batch_size, args.concurrency), ref_func,
+                              n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':
   main()

@@ -24,6 +24,8 @@
 #define DALI_BACKEND_UTILS_UTILS_H_
 
 #include <cuda_runtime_api.h>
+#include "src/dali_executor/utils/dali.h"
+#include "src/error_handling.h"
 
 #include "nvtx3/nvToolsExt.h"
 
@@ -72,6 +74,31 @@ TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
     for (int64_t j = 0; j < shape.num_samples(); ++j) {
       result.set_tensor_shape(ti++, shape.tensor_shape_span(j));
     }
+  }
+  return result;
+}
+
+template<typename Container, int Dims = -1>
+std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> &shape,
+                                                    const Container &batch_sizes) {
+  size_t nresults = 0;
+  int64_t nsamples = 0;
+  for (const auto &bs : batch_sizes) {
+    nsamples += bs;
+    nresults++;
+  }
+  ENFORCE(nsamples == shape.num_samples(),
+          make_string("Cannot split a shape list with ", shape.num_samples(),
+                      " samples to list shapes of total ", nsamples, " samples."));
+  std::vector<TensorListShape<Dims>> result(nresults);
+  int ri = 0;
+  int ti = 0;
+  for (const auto &bs : batch_sizes) {
+    TensorListShape<Dims> res_shape(bs, shape.sample_dim());
+    for (int64_t i = 0; i < bs; ++i) {
+      res_shape.set_tensor_shape(i, shape.tensor_shape_span(ti++));
+    }
+    result[ri++] = res_shape;
   }
   return result;
 }
