@@ -234,7 +234,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   /**
    * @brief Run inference for a given \p request and prepare a response.
-   * @return computation time interval
+   * @return computation time interval and total batch size
    */
   ProcessingMeta ProcessRequests(const std::vector<TritonRequest>& requests,
                                  const std::vector<TritonResponse>& responses) {
@@ -252,12 +252,16 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     return ret;
   }
 
-  /** @brief Generate descriptors of inputs provided by a given request. */
+  /**
+   * @brief Generate descriptors of inputs provided by given \p requests
+   * @return input descriptors and batch size of each request
+  */
   InputsInfo GenerateInputs(const std::vector<TritonRequest>& requests) {
+    std::cout << requests.size() << std::endl;
     uint32_t input_cnt = requests[0].InputCount();
     std::vector<IDescr> inputs;
     inputs.reserve(input_cnt);
-    std::unordered_map<std::string, std::vector<IDescr>> input_map;
+    std::unordered_map<std::string, IDescr> input_map;
     std::vector<int> reqs_batch_sizes(requests.size());
     for (size_t ri = 0; ri < requests.size(); ++ri) {
       auto& request = requests[ri];
@@ -267,13 +271,19 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
         auto input = request.InputByIdx(input_idx);
         auto input_byte_size = input.ByteSize();
         auto input_buffer_count = input.BufferCount();
-        std::vector<IBufferDescr> buffers(input_buffer_count);
+        auto meta = input.Meta();
+        auto &idescr = input_map[meta.name];
         for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
           auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
-          buffers[buffer_idx] = buffer;
+          idescr.buffers.push_back(buffer);
         }
-        auto meta = input.Meta();
-        input_map[meta.name].push_back({meta, std::move(buffers)});
+        if (idescr.meta.shape.num_samples() == 0) {
+          idescr.meta = meta;
+        } else {
+          ENFORCE(idescr.meta.type == meta.type,
+                  make_string("Mismatched type for input ", idescr.meta.name));
+          idescr.meta.shape.append(meta.shape);
+        }
         if (input_idx == 0) {
           reqs_batch_sizes[ri] = meta.shape.num_samples();
         } else {
@@ -283,8 +293,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       }
     }
     for (const auto& descrs : input_map) {
-      IDescr i_descr = cat_io_descriptors(descrs.second);
-      inputs.push_back(i_descr);
+      inputs.push_back(descrs.second);
     }
     return {inputs, reqs_batch_sizes};
   }
@@ -294,9 +303,10 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   /**
-   * @brief Allocate outputs required by a given request.
+   * @brief Allocate outputs expected by given \p requests.
    *
-   * Lifetime of the created buffer is bound to the \p response
+   * Lifetime of the created buffer is bound to each of the \p responses
+   * @param batch_sizes batch size of each request
    */
   std::vector<ODescr> AllocateOutputs(const std::vector<TritonRequest>& requests,
                                       const std::vector<TritonResponse>& responses,
@@ -308,7 +318,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     uint32_t output_cnt = requests[0].OutputCount();
     for (auto& req : requests) {
       ENFORCE(output_cnt == req.OutputCount(),
-              "All of the requests must require the same number of outputs.");
+              "All of the requests must expect the same number of outputs.");
     }
     ENFORCE(outputs_info.size() == output_cnt,
             make_string("Number of outputs in the model configuration (", output_cnt,

@@ -61,21 +61,21 @@ class TestClient:
     inp.set_data_from_numpy(batch)
     return inp
 
-  def test_infer(self, batches, it):
-    assert(len(batches) == len(self.input_names))
-    if (len(batches) > 1):
-      for b in batches:
-        assert b.shape[0] == batches[0].shape[0]
+  def test_infer(self, data, it):
+    assert(len(data) == len(self.input_names))
+    if (len(data) > 1):
+      for b in data:
+        assert b.shape[0] == data[0].shape[0]
+    inputs = [self._get_input(batch, name) for batch, name in zip(data, self.input_names)]
     outputs = [t_client.InferRequestedOutput(name) for name in self.output_names]
-    inputs = [self._get_input(batch, name) for batch, name in zip(batches, self.input_names)]
     res = self.client.infer(model_name=self.model_name, inputs=inputs, outputs=outputs)
     res_data = [res.as_numpy(name) for name in self.output_names]
-    return it, batches, res_data
+    return it, data, res_data
 
   def run_tests(self, data, compare_to, n_infers=-1, eps=1e-7):
     generator = data if n_infers < 1 else islice(cycle(data), n_infers)
     for pack in grouper(self.concurrency, enumerate(generator)):
-      with ThreadPoolExecutor(max_workers=self.concurrency+4) as executor:
+      with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
         results_f = [executor.submit(self.test_infer, data, it) for it, data in pack]
         for future in as_completed(results_f):
           it, data, results = future.result()
@@ -121,7 +121,7 @@ def main():
   client = TestClient('dali_ensemble', ['INPUT_0', 'INPUT_1'], ['OUTPUT_0', 'OUTPUT_1'], args.url,
                       concurrency=args.concurrency)
   client.run_tests(random_gen(args.max_batch_size, args.concurrency), ref_func,
-                              n_infers=args.n_iters, eps=1e-4)
+                   n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':
   main()

@@ -81,11 +81,10 @@ TensorListShape<Dims> cat_list_shapes(const Container &shapes) {
 template<typename Container, int Dims = -1>
 std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> &shape,
                                                     const Container &batch_sizes) {
-  size_t nresults = 0;
+  size_t nresults = batch_sizes.size();
   int64_t nsamples = 0;
   for (const auto &bs : batch_sizes) {
     nsamples += bs;
-    nresults++;
   }
   ENFORCE(nsamples == shape.num_samples(),
           make_string("Cannot split a shape list with ", shape.num_samples(),

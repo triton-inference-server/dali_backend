@@ -24,7 +24,7 @@
 : ${GRPC_ADDR:=${1:-"localhost:8001"}}
 
 echo "RUN SEQUENTIAL CLIENT"
-python client.py -b 256 -u $GRPC_ADDR -n 200
+python client.py -b 256 -u $GRPC_ADDR -n 256
 
 echo "RUN CONCURRENT CLIENT"
-python client.py -b 16 -c 16 -u $GRPC_ADDR -n 200
+python client.py -b 16 -c 16 -u $GRPC_ADDR -n 256
