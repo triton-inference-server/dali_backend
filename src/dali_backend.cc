@@ -255,9 +255,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   /**
    * @brief Generate descriptors of inputs provided by given \p requests
    * @return input descriptors and batch size of each request
-  */
+   */
   InputsInfo GenerateInputs(const std::vector<TritonRequest>& requests) {
-    std::cout << requests.size() << std::endl;
     uint32_t input_cnt = requests[0].InputCount();
     std::vector<IDescr> inputs;
     inputs.reserve(input_cnt);
@@ -272,7 +271,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
         auto input_byte_size = input.ByteSize();
         auto input_buffer_count = input.BufferCount();
         auto meta = input.Meta();
-        auto &idescr = input_map[meta.name];
+        auto& idescr = input_map[meta.name];
         for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
           auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
           idescr.buffers.push_back(buffer);
