@@ -320,15 +320,19 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
               "All of the requests must expect the same number of outputs.");
     }
     ENFORCE(outputs_info.size() == output_cnt,
-            make_string("Number of outputs in the model configuration (", output_cnt,
-                        ") does not match to the number of outputs from DALI pipeline (",
-                        outputs_info.size(), ")"));
+            make_string("Number of outputs expected by the requests (", output_cnt,
+                        ") does not match the number of outputs from DALI pipeline (",
+                        outputs_info.size(), ")."));
     const auto& output_indices = dali_model_->GetOutputOrder();
+    ENFORCE(output_cnt == output_indices.size(),
+            make_string("Number of outputs exptected by the requests (", output_cnt,
+                        ") does not match the number of outputs in the config (",
+                        output_indices.size(), ")."));
     std::vector<ODescr> outputs(output_cnt);
     outputs.reserve(output_cnt);
-    for (uint32_t i = 0; i < output_cnt; ++i) {
-      auto name = requests[0].OutputName(i);
-      int output_idx = output_indices.at(name);
+    for (const auto& out_index : output_indices) {
+      auto name = out_index.first;
+      int output_idx = out_index.second;
       auto shapes = split_list_shape(outputs_info[output_idx].shape, batch_sizes);
       std::vector<OBufferDescr> buffers(requests.size());
       IOMeta out_meta{};
