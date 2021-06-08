@@ -83,7 +83,7 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
                                                     const Container &batch_sizes) {
   size_t nresults = batch_sizes.size();
   int64_t nsamples = 0;
-  for (const auto &bs : batch_sizes) {
+  for (auto bs : batch_sizes) {
     nsamples += bs;
   }
   ENFORCE(nsamples == shape.num_samples(),
