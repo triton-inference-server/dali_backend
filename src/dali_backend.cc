@@ -184,14 +184,9 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   void Execute(const std::vector<TritonRequest>& requests) {
     DeviceGuard dg(GetDaliDeviceId());
-    int total_batch_size = 0;
     TimeInterval exec_interval{};
     start_timer_ns(exec_interval);
-    std::vector<TritonResponse> responses;
-    responses.reserve(requests.size());
-    for (auto& request : requests) {
-      responses.push_back(TritonResponse::New(request));
-    }
+    auto responses = CreateResponses(requests);
     ProcessingMeta proc_meta{};
     TritonError error{};
     try {
@@ -230,6 +225,20 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
                      triton_model_instance_, total_batch_size, exec.start, compute.start,
                      compute.end, exec.end),
                  "Failed reporting batch statistics.");
+  }
+
+  /**
+   * @brief Create a response for each request.
+   *
+   * @return responses vector
+   */
+  std::vector<TritonResponse> CreateResponses(const std::vector<TritonRequest>& requests) {
+    std::vector<TritonResponse> responses;
+    responses.reserve(requests.size());
+    for (auto& request : requests) {
+      responses.push_back(TritonResponse::New(request));
+    }
+    return responses;
   }
 
   /**

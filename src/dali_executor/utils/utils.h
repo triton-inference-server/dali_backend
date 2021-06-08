@@ -92,12 +92,12 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
   std::vector<TensorListShape<Dims>> result(nresults);
   int ri = 0;
   int ti = 0;
-  for (const auto &bs : batch_sizes) {
+  for (auto bs : batch_sizes) {
     TensorListShape<Dims> res_shape(bs, shape.sample_dim());
     for (int64_t i = 0; i < bs; ++i) {
       res_shape.set_tensor_shape(i, shape.tensor_shape_span(ti++));
     }
-    result[ri++] = res_shape;
+    result[ri++] = std::move(res_shape);
   }
   return result;
 }
