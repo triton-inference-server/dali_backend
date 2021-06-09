@@ -26,7 +26,7 @@ import nvidia.dali.types as types
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save", default="./dali/1/model.dali")
+    parser.add_argument("--save", default="./dali_rn50/1/model.dali")
     return parser.parse_args()
 
 
