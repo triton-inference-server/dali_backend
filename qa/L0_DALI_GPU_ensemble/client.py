@@ -97,14 +97,13 @@ def ref_func(inp1, inp2):
   return inp1 * 2 / 3, (inp2 * 3).astype(np.half).astype(np.single) / 2
 
 
-def random_gen(max_batch_size, uniform_groups=1):
+def random_gen(max_batch_size):
   while True:
     size1 = randint(100, 300)
     size2 = randint(100, 300)
-    for i in range(uniform_groups):
-      bs = randint(1, max_batch_size + 1)
-      yield np.random.random((bs, size1)).astype(np.single), \
-          np.random.random((bs, size2)).astype(np.single)
+    bs = randint(1, max_batch_size + 1)
+    yield np.random.random((bs, size1)).astype(np.single), \
+        np.random.random((bs, size2)).astype(np.single)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -120,7 +119,7 @@ def main():
   args = parse_args()
   client = TestClient('dali_ensemble', ['INPUT_0', 'INPUT_1'], ['OUTPUT_0', 'OUTPUT_1'], args.url,
                       concurrency=args.concurrency)
-  client.run_tests(random_gen(args.max_batch_size, args.concurrency), ref_func,
+  client.run_tests(random_gen(args.max_batch_size), ref_func,
                    n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':
