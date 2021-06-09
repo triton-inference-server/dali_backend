@@ -13,3 +13,4 @@ python serialize_dali_pipeline.py --save ./dali/1/model.dali
 echo "Resnet50 model ready."
 
 popd
+
