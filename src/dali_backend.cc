@@ -158,9 +158,14 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
   return error;
 }
 
-struct RequestMeta {
-  TimeInterval compute_interval;  // nanoseconds
-  int batch_size;
+struct ProcessingMeta {
+  TimeInterval compute_interval{};
+  int total_batch_size = 0;
+};
+
+struct InputsInfo {
+  std::vector<IDescr> inputs;
+  std::vector<int> reqs_batch_sizes;  // batch size of each request
 };
 
 class DaliModelInstance : public ::triton::backend::BackendModelInstance {
@@ -179,34 +184,22 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   void Execute(const std::vector<TritonRequest>& requests) {
     DeviceGuard dg(GetDaliDeviceId());
-    int total_batch_size = 0;
-    TimeInterval batch_compute_interval{};
-    TimeInterval batch_exec_interval{};
-    start_timer_ns(batch_exec_interval);
-    for (size_t i = 0; i < requests.size(); i++) {
-      TimeInterval req_exec_interval{};
-      start_timer_ns(req_exec_interval);
-      auto response = TritonResponse::New(requests[i]);
-      RequestMeta request_meta;
-      TritonError error{};
-      try {
-        request_meta = ProcessRequest(response, requests[i]);
-      } catch (...) { error = ErrorHandler(); }
-
-      if (i == 0) {
-        batch_compute_interval.start = request_meta.compute_interval.start;
-      } else if (i == requests.size() - 1) {
-        batch_compute_interval.end = request_meta.compute_interval.end;
-      }
-
-      end_timer_ns(req_exec_interval);
-      ReportStats(requests[i], req_exec_interval, request_meta.compute_interval, !error);
-      SendResponse(std::move(response), std::move(error));
-
-      total_batch_size += request_meta.batch_size;
+    TimeInterval exec_interval{};
+    start_timer_ns(exec_interval);
+    auto responses = CreateResponses(requests);
+    ProcessingMeta proc_meta{};
+    TritonError error{};
+    try {
+      proc_meta = ProcessRequests(requests, responses);
+    } catch (...) { error = ErrorHandler(); }
+    for (auto& response : responses) {
+      SendResponse(std::move(response), TritonError::Copy(error));
     }
-    end_timer_ns(batch_exec_interval);
-    ReportBatchStats(total_batch_size, batch_exec_interval, batch_compute_interval);
+    end_timer_ns(exec_interval);
+    for (auto& request : requests) {
+      ReportStats(request, exec_interval, proc_meta.compute_interval, !error);
+    }
+    ReportBatchStats(proc_meta.total_batch_size, exec_interval, proc_meta.compute_interval);
   }
 
  private:
@@ -234,39 +227,83 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
                  "Failed reporting batch statistics.");
   }
 
-  /** Run inference for a given \p request and prepare a response. */
-  RequestMeta ProcessRequest(TritonResponseView response, TritonRequestView request) {
-    RequestMeta ret;
+  /**
+   * @brief Create a response for each request.
+   *
+   * @return responses vector
+   */
+  std::vector<TritonResponse> CreateResponses(const std::vector<TritonRequest>& requests) {
+    std::vector<TritonResponse> responses;
+    responses.reserve(requests.size());
+    for (auto& request : requests) {
+      responses.push_back(TritonResponse::New(request));
+    }
+    return responses;
+  }
 
-    auto dali_inputs = GenerateInputs(request);
-    ret.batch_size = dali_inputs[0].meta.shape.num_samples();  // Batch size is expected to be the
-                                                               // same in every input
+  /**
+   * @brief Run inference for a given \p request and prepare a response.
+   * @return computation time interval and total batch size
+   */
+  ProcessingMeta ProcessRequests(const std::vector<TritonRequest>& requests,
+                                 const std::vector<TritonResponse>& responses) {
+    ProcessingMeta ret{};
+    auto inputs_info = GenerateInputs(requests);
     start_timer_ns(ret.compute_interval);
-    auto outputs_info = dali_executor_->Run(dali_inputs);
+    auto outputs_info = dali_executor_->Run(inputs_info.inputs);
     end_timer_ns(ret.compute_interval);
-    auto dali_outputs = AllocateOutputs(request, response, outputs_info);
+    for (auto& bs : inputs_info.reqs_batch_sizes) {
+      ret.total_batch_size += bs;
+    }
+    auto dali_outputs =
+        AllocateOutputs(requests, responses, inputs_info.reqs_batch_sizes, outputs_info);
     dali_executor_->PutOutputs(dali_outputs);
     return ret;
   }
 
-  /** @brief Generate descriptors of inputs provided by a given request. */
-  std::vector<IDescr> GenerateInputs(TritonRequestView request) {
-    uint32_t input_cnt = request.InputCount();
-    std::vector<IDescr> ret;
-    ret.reserve(input_cnt);
-    for (uint32_t input_idx = 0; input_idx < input_cnt; ++input_idx) {
-      auto input = request.InputByIdx(input_idx);
-      auto input_byte_size = input.ByteSize();
-      auto input_buffer_count = input.BufferCount();
-      std::vector<IBufferDescr> buffers;
-      buffers.reserve(input_buffer_count);
-      for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-        auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
-        buffers.push_back(buffer);
+  /**
+   * @brief Generate descriptors of inputs provided by given \p requests
+   * @return input descriptors and batch size of each request
+   */
+  InputsInfo GenerateInputs(const std::vector<TritonRequest>& requests) {
+    uint32_t input_cnt = requests[0].InputCount();
+    std::vector<IDescr> inputs;
+    inputs.reserve(input_cnt);
+    std::unordered_map<std::string, IDescr> input_map;
+    std::vector<int> reqs_batch_sizes(requests.size());
+    for (size_t ri = 0; ri < requests.size(); ++ri) {
+      auto& request = requests[ri];
+      ENFORCE(request.InputCount() == input_cnt,
+              "Each request must provide the same number of inputs.");
+      for (uint32_t input_idx = 0; input_idx < input_cnt; ++input_idx) {
+        auto input = request.InputByIdx(input_idx);
+        auto input_byte_size = input.ByteSize();
+        auto input_buffer_count = input.BufferCount();
+        auto meta = input.Meta();
+        auto& idescr = input_map[meta.name];
+        for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
+          auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
+          idescr.buffers.push_back(buffer);
+        }
+        if (idescr.meta.shape.num_samples() == 0) {
+          idescr.meta = meta;
+        } else {
+          ENFORCE(idescr.meta.type == meta.type,
+                  make_string("Mismatched type for input ", idescr.meta.name));
+          idescr.meta.shape.append(meta.shape);
+        }
+        if (input_idx == 0) {
+          reqs_batch_sizes[ri] = meta.shape.num_samples();
+        } else {
+          ENFORCE(meta.shape.num_samples() == reqs_batch_sizes[ri],
+                  "Each input in a request must have the same batch size.");
+        }
       }
-      ret.push_back({input.Meta(), std::move(buffers)});
     }
-    return ret;
+    for (const auto& descrs : input_map) {
+      inputs.push_back(descrs.second);
+    }
+    return {inputs, reqs_batch_sizes};
   }
 
   int32_t GetDaliDeviceId() {
@@ -274,30 +311,49 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   }
 
   /**
-   * @brief Allocate outputs required by a given request.
+   * @brief Allocate outputs expected by given \p requests.
    *
-   * Lifetime of the created buffer is bound to the \p response
+   * Lifetime of the created buffer is bound to each of the \p responses
+   * @param batch_sizes batch size of each request
    */
-  std::vector<ODescr> AllocateOutputs(TritonRequestView request, TritonResponseView response,
+  std::vector<ODescr> AllocateOutputs(const std::vector<TritonRequest>& requests,
+                                      const std::vector<TritonResponse>& responses,
+                                      const std::vector<int>& batch_sizes,
                                       const std::vector<OutputInfo>& outputs_info) {
-    uint32_t output_cnt = request.OutputCount();
+    assert(requests.size() > 0);
+    assert(requests.size() == responses.size());
+    assert(requests.size() == batch_sizes.size());
+    uint32_t output_cnt = requests[0].OutputCount();
+    for (auto& req : requests) {
+      ENFORCE(output_cnt == req.OutputCount(),
+              "All of the requests must expect the same number of outputs.");
+    }
     ENFORCE(outputs_info.size() == output_cnt,
-            make_string("Number of outputs in the model configuration (", output_cnt,
-                        ") does not match to the number of outputs from DALI pipeline (",
-                        outputs_info.size(), ")"));
+            make_string("Number of outputs expected by the requests (", output_cnt,
+                        ") does not match the number of outputs from DALI pipeline (",
+                        outputs_info.size(), ")."));
     const auto& output_indices = dali_model_->GetOutputOrder();
+    ENFORCE(output_cnt == output_indices.size(),
+            make_string("Number of outputs exptected by the requests (", output_cnt,
+                        ") does not match the number of outputs in the config (",
+                        output_indices.size(), ")."));
     std::vector<ODescr> outputs(output_cnt);
     outputs.reserve(output_cnt);
-    for (uint32_t i = 0; i < output_cnt; ++i) {
-      auto name = request.OutputName(i);
-      int output_idx = output_indices.at(name);
+    for (const auto& out_index : output_indices) {
+      auto name = out_index.first;
+      int output_idx = out_index.second;
+      auto shapes = split_list_shape(outputs_info[output_idx].shape, batch_sizes);
+      std::vector<OBufferDescr> buffers(requests.size());
       IOMeta out_meta{};
       out_meta.name = name;
       out_meta.type = outputs_info[output_idx].type;
+      for (size_t ri = 0; ri < requests.size(); ++ri) {
+        out_meta.shape = shapes[ri];
+        auto output = responses[ri].GetOutput(out_meta);
+        buffers[ri] = output.AllocateBuffer(outputs_info[output_idx].device, GetDaliDeviceId());
+      }
       out_meta.shape = outputs_info[output_idx].shape;
-      auto output = response.GetOutput(out_meta);
-      auto buffer = output.AllocateBuffer(outputs_info[output_idx].device, GetDaliDeviceId());
-      outputs[output_idx] = {out_meta, {buffer}};
+      outputs[output_idx] = {out_meta, buffers};
     }
     return outputs;
   }

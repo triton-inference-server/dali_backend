@@ -24,6 +24,7 @@
 #define TRITONDALIBACKEND_IO_DESCRIPTOR_H
 
 #include "src/dali_executor/utils/dali.h"
+#include "src/dali_executor/utils/utils.h"
 #include "src/error_handling.h"
 
 namespace triton { namespace backend { namespace dali {
@@ -32,7 +33,7 @@ template<typename T>
 struct BufferDescr {
   device_type_t device{};
   int device_id = 0;
-  T* data = nullptr;
+  T *data = nullptr;
   size_t size = 0;
 
   template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>

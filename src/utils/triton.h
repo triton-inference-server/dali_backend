@@ -109,6 +109,15 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
     return TritonError(err);
   }
 
+  static TritonError Copy(TRITONSERVER_Error *other) {
+    if (!other) {
+      return TritonError();
+    }
+    auto err =
+        TRITONSERVER_ErrorNew(TRITONSERVER_ErrorCode(other), TRITONSERVER_ErrorMessage(other));
+    return TritonError(err);
+  }
+
   static void DestroyHandle(TRITONSERVER_Error *error) {
     TRITONSERVER_ErrorDelete(error);
   }
