@@ -27,6 +27,7 @@ input [
     name: "DALI_INPUT_0"
     data_type: TYPE_FP32
     dims: [ -1 ]
+    allow_ragged_batch: true
   }
 ]
 
@@ -35,6 +36,7 @@ input [
     name: "DALI_INPUT_1"
     data_type: TYPE_FP32
     dims: [ -1 ]
+    allow_ragged_batch: true
   }
 ]
 
