@@ -76,7 +76,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     // We have the json DOM for the model configuration...
     common::TritonJson::WriteBuffer buffer;
     RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer));
-    LOG_MESSAGE(TRITONSERVER_LOG_INFO,
+    LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
 
     return nullptr;  // success
