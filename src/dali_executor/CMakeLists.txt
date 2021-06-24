@@ -26,12 +26,7 @@ set(
         io_buffer.cc
 )
 
-set(
-    DALI_EXECUTOR_TEST_SRCS
-        main.test.cc
-        executor.test.cc
-        io_buffer.test.cc
-)
+
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
@@ -74,10 +69,6 @@ target_link_directories(dali_executor PUBLIC
 target_link_libraries(dali_executor PUBLIC
         CUDA::cudart
         ${DALI_LIBRARIES})
-
-add_executable(unittests ${DALI_EXECUTOR_TEST_SRCS})
-
-target_link_libraries(unittests Catch2::Catch2 dali_executor ${CMAKE_DL_LIBS})
 
 install(
         DIRECTORY

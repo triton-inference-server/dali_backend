@@ -25,6 +25,7 @@
 
 #include "src/model_provider/model_provider.h"
 #include "src/utils/triton.h"
+#include "src/utils/utils.h"
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 
@@ -36,7 +37,7 @@ struct ModelParameters {
   }
 
   /**
-   * Rerurn a value of a parameter with a given `key`
+   * Return a value of a parameter with a given `key`
    * or `def` if the parameter is not present.
    */
   template<typename T>
@@ -48,6 +49,11 @@ struct ModelParameters {
 
   int GetNumThreads() {
     return GetParam("num_threads", -1);
+  }
+
+  std::vector<std::string> GetPluginNames() {
+    auto plugin_list = GetParam<std::string>("plugin_libs");
+    return split(plugin_list, ":");
   }
 
  private:

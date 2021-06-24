@@ -62,7 +62,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId());
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId(),
+                          dali_model_->GetModelParamters().GetPluginNames());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
