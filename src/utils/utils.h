@@ -42,7 +42,7 @@ inline std::vector<std::string> split(const std::string& str, const std::string&
     end = str.find(delimiter, start);
     auto substring = str.substr(start, end - start);
     if (!substring.empty()) {
-      ret.emplace_back(substring);
+      ret.emplace_back(std::move(substring));
     }
     start = end + delimiter.length();
   } while (end != std::string::npos);
@@ -51,9 +51,7 @@ inline std::vector<std::string> split(const std::string& str, const std::string&
 
 
 template<typename T>
-T from_string(const std::string& str) {
-  assert(false);  // Not implemented
-}
+T from_string(const std::string& str);
 
 template<>
 inline int from_string<int>(const std::string& str) {
