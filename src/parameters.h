@@ -71,9 +71,9 @@ class BackendParameters {
  public:
   explicit BackendParameters(const std::string& backend_config_json) {
     TRITON_CALL_GUARD(config_.Parse(backend_config_json));
-    ENFORCE(config_.Find("cmdline"),
-            "Improper config json. Backend config Json shall contain \"cmdline\" property.");
-    TRITON_CALL_GUARD(config_.MemberAsObject("cmdline", &params_));
+    if (config_.Find("cmdline")) {
+      TRITON_CALL_GUARD(config_.MemberAsObject("cmdline", &params_));
+    }
   }
 
   /**
