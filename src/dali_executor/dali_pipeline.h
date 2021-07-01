@@ -70,7 +70,7 @@ class DaliPipeline {
   }
 
   DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
-               int device_id, const std::vector<std::string>& plugin_lib_paths = {}) :
+               int device_id) :
       serialized_pipeline_(serialized_pipeline),
       max_batch_size_(max_batch_size),
       num_threads_(num_threads),
@@ -78,7 +78,6 @@ class DaliPipeline {
     DeviceGuard dg(device_id_);
     InitDali();
     InitStream();
-    LoadPluginLibs(plugin_lib_paths);
     CreatePipeline();
   }
 
@@ -151,6 +150,13 @@ class DaliPipeline {
     return num_threads_;
   }
 
+  static void LoadPluginLibs(const std::vector<std::string>& plugin_paths) {
+    InitDali();
+    for (auto&& path : plugin_paths) {
+      daliLoadLibrary(path.c_str());
+    }
+  }
+
 
  private:
   /**
@@ -166,11 +172,6 @@ class DaliPipeline {
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
-  void LoadPluginLibs(const std::vector<std::string>& plugin_paths) {
-    for (auto && path : plugin_paths) {
-      daliLoadLibrary(path.c_str());
-    }
-  }
 
   void ReleasePipeline() {
     if (handle_.pipe && handle_.ws) {
@@ -188,7 +189,7 @@ class DaliPipeline {
     }
   }
 
-  void InitDali() {
+  static void InitDali() {
     std::call_once(dali_initialized_, []() {
       daliInitialize();
       daliInitOperators();

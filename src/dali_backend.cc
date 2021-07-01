@@ -55,7 +55,6 @@ TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
                                       std::to_string(TRITONBACKEND_API_VERSION_MINOR))
                                          .c_str());
 
-
   if ((api_version_major != TRITONBACKEND_API_VERSION_MAJOR) ||
       (api_version_minor < TRITONBACKEND_API_VERSION_MINOR)) {
     return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNSUPPORTED,
@@ -63,16 +62,15 @@ TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
   }
 
 
-  // The backend configuration may contain information needed by the
-  // backend, such a command-line arguments. This backend doesn't use
-  // any such configuration but we print whatever is available.
   TRITONSERVER_Message* backend_config_message;
   RETURN_IF_ERROR(TRITONBACKEND_BackendConfig(backend, &backend_config_message));
-
   const char* buffer;
   size_t byte_size;
   RETURN_IF_ERROR(TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
   LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
+  BackendParameters backend_params(make_string(buffer));
+
+  DaliPipeline::LoadPluginLibs(backend_params.GetPluginNames());
 
   // If we have any global backend state we create and set it here. We
   // don't need anything for this backend but for demonstration
