@@ -37,10 +37,3 @@ output [
     dims: [ -1 ]
   }
 ]
-
-parameters: [
-  {
-    key: "plugin_libs"
-    value: { string_value: "/models/libcustomcopy.so" }
-  }
-]

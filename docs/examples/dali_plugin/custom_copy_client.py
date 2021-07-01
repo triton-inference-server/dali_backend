@@ -57,7 +57,7 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-def batcher(dataset, max_batch_size, n_iterations=-1):
+def batch_generator(dataset, max_batch_size, n_iterations=-1):
     """
     Generator, that splits dataset into batches with given batch size
     """
@@ -102,7 +102,7 @@ def main():
     input_shape = list(input_data.shape)
     outputs.append(tritongrpcclient.InferRequestedOutput(output_name))
 
-    for batch in batcher(input_data, FLAGS.batch_size):
+    for batch in batch_generator(input_data, FLAGS.batch_size):
         print("Input mean before backend processing:", np.mean(batch))
         input_shape[0] = np.shape(batch)[0]
         print("Batch size: ", input_shape[0])

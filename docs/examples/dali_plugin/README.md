@@ -33,29 +33,36 @@ The `.so` file you built in the previous step contains the
 definition of your operation. Therefore, you need to inject it
 into your tritonserver image, so that DALI would be able to conduct
 this operation. There are multiple ways to achieve that, including
-mounting (`-v` option), copying (`COPY` directive or `docker cp` command).
+mounting (`-v` option) or copying (`COPY` directive or `docker cp` command).
 
 Here we will assume, that your `.so` library is located at
 `/models/libcustomcopy.so` in your tritonserver docker image.
 
-### Step 4: Update your config file
+### Step 4: Run `tritonserver` with DALI plugin
 
-For DALI Backend to be able to use your plugin libraries, you must point to
-them in the model configuration file. Add a `plugin_libs` parameter to the DALI model,
-with the value being a colon-separated list of paths to plugin libraries:
+For DALI Backend to be able to use your plugin libraries, you must specify their paths
+when running the server. You shall use a backend configuration for this. Please add a
+`plugin_libs` parameter to the DALI Backend configuration (`--backend-config`), with the value being a
+colon-separated list of paths to plugin libraries, e.g.:
 
-    parameters: [
-        {
-            key: "plugin_libs"
-            value: { string_value: "/models/libcustomcopy.so:/another/path/libplugin2.so" }
-        }
-    ]
+    $ docker run <your typical docker args> nvcr.io/nvidia/tritonserver:<xx.yy>-py3 tritonserver --model-repository=/models --backend-config dali,plugin_libs=/models/libcustomcopy.so:/path/to/libplugin2.so
 
-You can find an example in `model_repository/mydali/config.pbtxt` file.
+In this example, DALI Backend will try to load two plugin libaries: `/models/libcustomcopy.so` and
+`/path/to/libplugin2.so`.
 
 ### Step 5: Enjoy your custom DALI plugin in Triton
 
-That's all. You can now run your server
+That's all. You should have the server running by now.
+
+## Common errors
+Let's assume you would like to use `CustomCopy` operator. If at the point of server
+initialization you encounter an error:
+
+    Error when adding operator CustomCopy: Schema for operator 'CustomCopy' not registered
+
+This probably means, that the plugin `.so` library failed to load. You might want to
+double-check your backend configuration and if the plugin library is available in the location
+you specified.
 
 ## Remember
 
