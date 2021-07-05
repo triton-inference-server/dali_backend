@@ -20,7 +20,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import numpy as np
-from test_utils.client import TestClient
+from dali_backend.test_utils.client import TestClient
 from numpy.random import randint, random
 import argparse
 
