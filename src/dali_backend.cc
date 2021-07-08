@@ -70,7 +70,12 @@ TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
   LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
   BackendParameters backend_params(make_string(buffer));
 
-  DaliPipeline::LoadPluginLibs(backend_params.GetPluginNames());
+  try {
+    DaliPipeline::LoadPluginLibs(backend_params.GetPluginNames());
+  } catch (const DaliBackendException& e) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR,
+                make_string("Failed to load plugin libs: ", e.what()).c_str());
+  }
 
   // If we have any global backend state we create and set it here. We
   // don't need anything for this backend but for demonstration

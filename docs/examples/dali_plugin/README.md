@@ -43,7 +43,7 @@ Here we will assume, that your `.so` library is located at
 For DALI Backend to be able to use your plugin libraries, you must specify their paths
 when running the server. You shall use a backend configuration for this. Please add a
 `plugin_libs` parameter to the DALI Backend configuration (`--backend-config`), with the value being a
-colon-separated list of paths to plugin libraries, e.g.:
+colon-separated (or semicolon-separated on Windows) list of paths to plugin libraries, e.g.:
 
     $ docker run <your typical docker args> nvcr.io/nvidia/tritonserver:<xx.yy>-py3 tritonserver --model-repository=/models --backend-config dali,plugin_libs=/models/libcustomcopy.so:/path/to/libplugin2.so
 

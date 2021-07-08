@@ -35,17 +35,18 @@ namespace triton { namespace backend { namespace dali {
  * @param delimiter Delimiter. Won't be included in the output
  * @return
  */
-inline std::vector<std::string> split(const std::string& str, const std::string& delimiter = ":") {
+inline std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
   std::vector<std::string> ret;
-  size_t start = 0, end = 0;
-  do {
-    end = str.find(delimiter, start);
-    auto substring = str.substr(start, end - start);
-    if (!substring.empty()) {
-      ret.emplace_back(std::move(substring));
+  for (size_t start = 0, len = str.length(); start < len;) {
+    auto end = str.find(delimiter, start);
+    if (end == std::string::npos) {
+      end = len;
+    }
+    if (end > start) {
+      ret.emplace_back(str.substr(start, end - start));
     }
     start = end + delimiter.length();
-  } while (end != std::string::npos);
+  }
   return ret;
 }
 

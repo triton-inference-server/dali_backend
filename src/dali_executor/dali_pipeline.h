@@ -151,9 +151,15 @@ class DaliPipeline {
   }
 
   static void LoadPluginLibs(const std::vector<std::string>& plugin_paths) {
-    InitDali();
-    for (auto&& path : plugin_paths) {
-      daliLoadLibrary(path.c_str());
+    try {
+      InitDali();
+      for (const auto& path : plugin_paths) {
+        daliLoadLibrary(path.c_str());
+      }
+    } catch (const std::exception &e) {
+      throw DaliBackendException(e.what());
+    } catch (...) {
+      throw DaliBackendException("Unknown error");
     }
   }
 

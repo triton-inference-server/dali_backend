@@ -29,6 +29,12 @@
 
 namespace triton { namespace backend { namespace dali {
 
+#if defined(_MSC_VER)
+const std::string separator = ";";
+#else
+const std::string separator = ":";
+#endif
+
 class ModelParameters {
  public:
   explicit ModelParameters(common::TritonJson::Value& model_config) {
@@ -89,7 +95,7 @@ class BackendParameters {
 
   std::vector<std::string> GetPluginNames() const {
     auto plugin_list = GetParam<std::string>("plugin_libs");
-    return split(plugin_list, ":");
+    return split(plugin_list, separator);
   }
 
  private:

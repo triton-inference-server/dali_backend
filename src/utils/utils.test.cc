@@ -28,22 +28,6 @@ namespace triton { namespace backend { namespace dali { namespace test {
 
 TEST_CASE("Split string") {
   using namespace std;
-  vector<string> inputs = {
-      "",
-      ":",
-      "::",
-      "This is a string",
-      ":This is a string",
-      "This is a string:",
-      "This is :a string",
-      ":This is :a string",
-      "This is :a string:",
-      ":This is a string:",
-      "::This is a string",
-      "This is a string::",
-      "Th:is is a str:ing",
-      "This is ::a string",
-  };
   vector<vector<string>> ref = {
       {},
       {},
@@ -61,9 +45,52 @@ TEST_CASE("Split string") {
       {"This is ", "a string"},
   };
 
-  REQUIRE(inputs.size() == ref.size());
-  for (size_t i = 0; i < inputs.size(); i++) {
-    REQUIRE(ref[i] == split(inputs[i]));
+  SECTION("Single-character delimiter") {
+    vector<string> inputs = {
+        "",
+        ":",
+        "::",
+        "This is a string",
+        ":This is a string",
+        "This is a string:",
+        "This is :a string",
+        ":This is :a string",
+        "This is :a string:",
+        ":This is a string:",
+        "::This is a string",
+        "This is a string::",
+        "Th:is is a str:ing",
+        "This is ::a string",
+    };
+
+    REQUIRE(inputs.size() == ref.size());
+    for (size_t i = 0; i < inputs.size(); i++) {
+      REQUIRE(ref[i] == split(inputs[i], ":"));
+    }
+  }
+
+  SECTION("Multi-character delimiter") {
+    vector<string> inputs = {
+        "",
+        "()",
+        "()()",
+        "This is a string",
+        "()This is a string",
+        "This is a string()",
+        "This is ()a string",
+        "()This is ()a string",
+        "This is ()a string()",
+        "()This is a string()",
+        "()()This is a string",
+        "This is a string()()",
+        "Th()is is a str()ing",
+        "This is ()()a string",
+    };
+
+    REQUIRE(inputs.size() == ref.size());
+    for (size_t i = 0; i < inputs.size(); i++) {
+      REQUIRE(ref[i] == split(inputs[i], "()"));
+    }
   }
 }
 
