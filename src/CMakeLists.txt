@@ -69,3 +69,14 @@ set_target_properties(
             INSTALL_RPATH_USE_LINK_PATH FALSE
             INSTALL_RPATH "$\{ORIGIN\}/dali"
 )
+
+set(
+        DALI_BACKEND_TEST_SRCS
+        dali_executor/main.test.cc
+        dali_executor/executor.test.cc
+        dali_executor/io_buffer.test.cc
+        utils/utils.test.cc
+)
+
+add_executable(unittests ${DALI_BACKEND_TEST_SRCS})
+target_link_libraries(unittests Catch2::Catch2 dali_executor ${CMAKE_DL_LIBS})
