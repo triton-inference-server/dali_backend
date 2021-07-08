@@ -43,7 +43,7 @@ inline std::vector<std::string> split(const std::string& str, const std::string&
       end = len;
     }
     if (end > start) {
-      ret.emplace_back(str.substr(start, end - start));
+      ret.emplace_back(str, start, end - start);
     }
     start = end + delimiter.length();
   }

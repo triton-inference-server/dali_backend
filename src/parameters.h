@@ -29,7 +29,7 @@
 
 namespace triton { namespace backend { namespace dali {
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 const std::string separator = ";";
 #else
 const std::string separator = ":";
