@@ -60,7 +60,7 @@ ensemble_scheduling {
       model_name: "resnet50_trt"
       model_version: -1
       input_map {
-        key: "input_tensor:0"
+        key: "input"
         value: "preprocessed_image"
       }
       output_map {
