@@ -29,8 +29,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def preprocessing(images):
-  images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)
+def preprocessing(images, device='gpu'):
+  images = dali.fn.decoders.image(images, device="mixed" if device == 'gpu' else 'cpu', output_type=types.RGB)
   images = dali.fn.resize(images, resize_x=224, resize_y=224)
   return dali.fn.crop_mirror_normalize(images,
                                        dtype=types.FLOAT,
