@@ -134,24 +134,26 @@ def main():
     if args.perf_file is None:
       perf = False
     else:
-      perf_file = open(args.perf_file, 'w')
+      times = []
       perf = True
     output_dir = datasets_dir / IMAGENET_DIRNAME
     with tarfile.open(image_archive_path, mode="r") as image_archive_file:
         image_rel_paths = sorted(image_archive_file.getnames())
-        n = 0
-        sum = 0
         for cls, image_rel_path in tqdm(zip(labels, image_rel_paths), total=len(image_rel_paths)):
             output_path = output_dir / str(cls) / image_rel_path
             original_image_file = image_archive_file.extractfile(image_rel_path)
-            start = time.perf_counter_ns()
+            start = time.perf_counter()
             processed_image = _process_image(original_image_file, target_size)
-            end = time.perf_counter_ns()
+            end = time.perf_counter()
             if perf:
-              print(end-start, end=',', file=perf_file)
+              times.append(end-start)
             if args.save:
               output_path.parent.mkdir(parents=True, exist_ok=True)
               processed_image.save(output_path.as_posix())
+
+    if perf:
+      with open(args.perf_file, 'w') as perf_file:
+        print(times, file=perf_file)
 
 
 if __name__ == "__main__":
