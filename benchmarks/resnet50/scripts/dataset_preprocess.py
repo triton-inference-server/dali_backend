@@ -145,7 +145,7 @@ def main():
             original_image_file = image_archive_file.extractfile(image_rel_path)
             file_data = original_image_file.read()
             start = time.perf_counter()
-            processed_image = _process_image(io.ByteIO(file_data), target_size)
+            processed_image = _process_image(io.BytesIO(file_data), target_size)
             end = time.perf_counter()
             if perf:
               times.append(end-start)
