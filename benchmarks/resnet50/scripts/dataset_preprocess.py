@@ -28,6 +28,7 @@ from PIL import Image
 from tqdm import tqdm
 
 import time
+import io
 
 DATASETS_DIR = os.environ.get("DATASETS_DIR", None)
 IMAGENET_DIRNAME = "imagenet"
@@ -142,8 +143,9 @@ def main():
         for cls, image_rel_path in tqdm(zip(labels, image_rel_paths), total=len(image_rel_paths)):
             output_path = output_dir / str(cls) / image_rel_path
             original_image_file = image_archive_file.extractfile(image_rel_path)
+            file_data = original_image_file.read()
             start = time.perf_counter()
-            processed_image = _process_image(original_image_file, target_size)
+            processed_image = _process_image(io.ByteIO(file_data), target_size)
             end = time.perf_counter()
             if perf:
               times.append(end-start)

@@ -52,3 +52,4 @@ def main(filename):
 if __name__ == '__main__':
     args = parse_args()
     main(args.file_path)
+    
