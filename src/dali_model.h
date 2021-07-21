@@ -24,47 +24,13 @@
 #define DALI_BACKEND_DALI_MODEL_H_
 
 #include "src/model_provider/model_provider.h"
+#include "src/parameters.h"
 #include "src/utils/triton.h"
+#include "src/utils/utils.h"
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 
 namespace triton { namespace backend { namespace dali {
-
-struct ModelParameters {
-  explicit ModelParameters(common::TritonJson::Value& model_config) {
-    model_config.MemberAsObject("parameters", &params_);
-  }
-
-  /**
-   * Rerurn a value of a parameter with a given `key`
-   * or `def` if the parameter is not present.
-   */
-  template<typename T>
-  T GetParam(const std::string& key, const T& def = T()) {
-    T result = def;
-    GetMember(key, result);
-    return result;
-  }
-
-  int GetNumThreads() {
-    return GetParam("num_threads", -1);
-  }
-
- private:
-  template<typename T>
-  void GetMember(const std::string& key, T& value) {
-    auto key_c = key.c_str();
-    if (params_.Find(key_c)) {
-      common::TritonJson::Value param;
-      TRITON_CALL_GUARD(params_.MemberAsObject(key_c, &param));
-      std::string string_value;
-      TRITON_CALL_GUARD(param.MemberAsString("string_value", &string_value));
-      value = from_string<T>(string_value);
-    }
-  }
-
-  common::TritonJson::Value params_;
-};
 
 class DaliModel : public ::triton::backend::BackendModel {
  public:

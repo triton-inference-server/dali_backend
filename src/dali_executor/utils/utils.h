@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef DALI_BACKEND_UTILS_UTILS_H_
-#define DALI_BACKEND_UTILS_UTILS_H_
+#ifndef DALI_BACKEND_DALI_EXECUTOR_UTILS_UTILS_H_
+#define DALI_BACKEND_DALI_EXECUTOR_UTILS_UTILS_H_
 
 #include <cuda_runtime_api.h>
 #include "src/dali_executor/utils/dali.h"
@@ -102,13 +102,6 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
   return result;
 }
 
-template<typename T>
-T from_string(const std::string &str);
-
-template<>
-inline int from_string<int>(const std::string &str) {
-  return std::stoi(str);
-}
 
 // Basic timerange for profiling
 struct TimeRange {
@@ -160,4 +153,4 @@ struct TimeRange {
 
 }}}  // namespace triton::backend::dali
 
-#endif  // DALI_BACKEND_UTILS_UTILS_H_
+#endif  // DALI_BACKEND_DALI_EXECUTOR_UTILS_UTILS_H_

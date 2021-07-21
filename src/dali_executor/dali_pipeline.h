@@ -150,6 +150,19 @@ class DaliPipeline {
     return num_threads_;
   }
 
+  static void LoadPluginLibs(const std::vector<std::string>& plugin_paths) {
+    try {
+      InitDali();
+      for (const auto& path : plugin_paths) {
+        daliLoadLibrary(path.c_str());
+      }
+    } catch (const std::exception &e) {
+      throw DaliBackendException(e.what());
+    } catch (...) {
+      throw DaliBackendException("Unknown error");
+    }
+  }
+
 
  private:
   /**
@@ -164,6 +177,7 @@ class DaliPipeline {
                        max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
     assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
+
 
   void ReleasePipeline() {
     if (handle_.pipe && handle_.ws) {
@@ -181,7 +195,7 @@ class DaliPipeline {
     }
   }
 
-  void InitDali() {
+  static void InitDali() {
     std::call_once(dali_initialized_, []() {
       daliInitialize();
       daliInitOperators();
