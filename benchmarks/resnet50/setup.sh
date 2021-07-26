@@ -39,7 +39,6 @@ echo "Succesfully set up ONNX model"
 
 # Setup TensorRT model
 mkdir -p model_repository/resnet50_trt/1
-# python3 scripts/onnx2trt.py -f model_repository/resnet50_onnx/1/model.onnx -o model_repository/resnet50_trt/1/model.plan
 trtexec --onnx=model_repository/resnet50_onnx/1/model.onnx --saveEngine=model_repository/resnet50_trt/1/model.plan  --explicitBatch --minShapes=\'input\':1x224x224x3 --optShapes=\'input\':64x224x224x3 --maxShapes=\'input\':128x224x224x3
 echo "Succesfully set up TensorRT model"
 
