@@ -25,7 +25,6 @@
 
 #include "src/dali_executor/dali_executor.h"
 #include "src/dali_model.h"
-#include "src/utils/timing.h"
 #include "triton/backend/backend_model_instance.h"
 
 namespace triton { namespace backend { namespace dali {
