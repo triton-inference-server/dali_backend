@@ -20,7 +20,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ARG TRITON_VERSION=21.07
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}}-py3-sdk
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3-sdk
 FROM ${BASE_IMAGE} as client
 
 RUN pip3 install ipdb, tqdm
