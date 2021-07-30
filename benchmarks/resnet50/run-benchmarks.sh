@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 # The MIT License (MIT)
 #
@@ -23,7 +23,6 @@
 
 pip install tqdm
 pip install scipy
-mkdir -p results
 
 echo "Benchmark dataset preprocessing"
 python scripts/dataset_preprocess.py --perf-file results/preprocessing.json
@@ -40,13 +39,17 @@ echo "WARM-UP"
 perf_analyzer -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128 -p$TIME_WINDOW
 
 echo "NN Benchmarks: single-sample"
-perf_analyzer -m resnet50_trt -p$TIME_WINDOW --concurrency-range=16:128:16 > results/nn-single-sample.txt
+perf_analyzer -m resnet50_trt -p$TIME_WINDOW --concurrency-range=16:128:16
 
 echo "NN Benchmarks: batched"
-for BS in $BATCH_SIZES ; do perf_analyzer -m resnet50_trt -p$TIME_WINDOW -b$BS > results/nn-bs$BS.txt ; done
+for BS in $BATCH_SIZES ; do
+  perf_analyzer -m resnet50_trt -p$TIME_WINDOW -b$BS ;
+done
 
 echo "Ensemble Benchmarks: single-sample"
-perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data imagenet64.json --concurrency-range=16:128:16 > results/ensemble-single-sample.txt
+perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data imagenet64.json --concurrency-range=16:128:16
 
 echo "Ensemble Benchmarks: batched"
-for BS in $BATCH_SIZES ; do perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS > results/ensemble-bs$BS.txt; done
+for BS in $BATCH_SIZES ; do
+  perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
+done
