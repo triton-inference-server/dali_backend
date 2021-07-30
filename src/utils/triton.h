@@ -99,6 +99,19 @@ inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
   }
 }
 
+struct TimeInterval {
+  int64_t start = 0;
+  int64_t end = 0;
+};
+
+inline void start_timer_ns(TimeInterval &interval) {
+  SET_TIMESTAMP(interval.start);
+}
+
+inline void end_timer_ns(TimeInterval &interval) {
+  SET_TIMESTAMP(interval.end);
+}
+
 class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, public std::exception {
  public:
   DALI_INHERIT_UNIQUE_HANDLE(TRITONSERVER_Error *, TritonError);
