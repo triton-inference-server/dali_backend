@@ -23,6 +23,8 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
+#include <vector>
+#include <string>
 
 namespace triton { namespace backend { namespace dali {
 
