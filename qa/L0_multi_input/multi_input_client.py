@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -90,10 +90,10 @@ def main():
     # Infer
     outputs = []
     input_names = ["DALI_X_INPUT", "DALI_Y_INPUT"]
+    scalars_name = "DALI_SCALAR"
     output_names = ["DALI_unchanged", "DALI_changed"]
 
     input_shape = list(input_data.shape)
-    multiplier = 2
 
     for oname in output_names:
         outputs.append(tritonclient.grpc.InferRequestedOutput(oname))
@@ -105,13 +105,16 @@ def main():
 
         # Initialize the data
         input_shape[0] = batch_size
+        scalars = randint(0, 1024, size=(batch_size, 1), dtype=np.int32)
         inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in
                   input_names]
+        scalar_input = tritonclient.grpc.InferInput(scalars_name, [batch_size, 1], "INT32")
         for inp in inputs:
             inp.set_data_from_numpy(np.copy(batch))
+        scalar_input.set_data_from_numpy(scalars)
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
+        results = triton_client.infer(model_name=model_name, inputs=[*inputs, scalar_input], outputs=outputs)
 
         # Get the output arrays from the results
         for oname in output_names:
@@ -119,7 +122,7 @@ def main():
             output_data = results.as_numpy(oname)
             print("Output mean after backend processing:", np.mean(output_data))
             print("Output shape: ", np.shape(output_data))
-            expected = np.multiply(batch, 1 if oname is "DALI_unchanged" else multiplier,
+            expected = np.multiply(batch, 1 if oname is "DALI_unchanged" else scalars,
                                    dtype=np.int32)
             if not np.allclose(output_data, expected):
                 print("Pre/post average does not match")

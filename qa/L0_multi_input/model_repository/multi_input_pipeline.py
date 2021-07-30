@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2021 NVIDIA CORPORATION
+# Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -33,7 +33,8 @@ def _parse_args():
 def pipe():
     x = dali.fn.external_source(device="cpu", name="DALI_X_INPUT")
     y = dali.fn.external_source(device="cpu", name="DALI_Y_INPUT")
-    y = y * 2
+    scalar = dali.fn.external_source(device="cpu", name="DALI_SCALAR")
+    y = y * scalar
     return x, y
 
 
