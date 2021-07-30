@@ -75,7 +75,9 @@ IOBufferI* DaliExecutor::GetOutputBuffer(const std::string& name, device_type_t 
 
 IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   assert(input.buffers.size() > 0);
-  IOBufferI* buffer = GetInputBuffer(input.meta.name, input.buffers[0].device);
+  auto input_name = input.meta.name;
+  auto input_device = pipeline_.GetInputDevice(input_name);
+  IOBufferI* buffer = GetInputBuffer(input_name, input_device);
   size_t size = 0;
   for (auto& buf : input.buffers)
     size += buf.size;

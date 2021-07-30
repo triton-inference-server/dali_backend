@@ -20,9 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "src/utils/utils.h"
 #include <catch2/catch.hpp>
 #include <iostream>
-#include "src/utils/utils.h"
 
 namespace triton { namespace backend { namespace dali { namespace test {
 
