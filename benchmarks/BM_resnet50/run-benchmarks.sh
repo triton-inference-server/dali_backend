@@ -24,7 +24,7 @@
 DATASETS_DIR=${DATASETS_DIR:-'/data/imagenet/ILSVRC2012_rawdata'}
 
 echo "Benchmark dataset preprocessing"
-python scripts/dataset_preprocess.py --perf-file results/preprocessing.json
+python scripts/dataset_preprocess.py --dataset-dir ${DATASETS_DIR} --perf-file results/preprocessing.json
 
 echo "LOAD MODELS"
 python scripts/model-loader.py load -m dali
