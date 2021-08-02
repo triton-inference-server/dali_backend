@@ -21,8 +21,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-pip install tqdm
-pip install scipy
+DATASETS_DIR=${DATASETS_DIR:-'/data/imagenet/ILSVRC2012_rawdata'}
 
 echo "Benchmark dataset preprocessing"
 python scripts/dataset_preprocess.py --perf-file results/preprocessing.json
