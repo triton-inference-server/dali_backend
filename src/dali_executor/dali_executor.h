@@ -82,7 +82,7 @@ class DaliExecutor {
   /**
    * @brief Check if an input can be used without a copy.
    */
-  bool IsNoCopy(const IDescr& input);
+  bool IsNoCopy(device_type_t es_device, const IDescr& input);
 
   int GetNumThreads() {
     auto n_threads = pipeline_.NumThreadsArg();
