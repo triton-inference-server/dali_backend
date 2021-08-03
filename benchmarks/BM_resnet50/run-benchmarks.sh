@@ -21,11 +21,6 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-DATASETS_DIR=${DATASETS_DIR:-'/data/imagenet/ILSVRC2012_rawdata'}
-
-echo "Benchmark dataset preprocessing"
-python scripts/dataset_preprocess.py --dataset-dir ${DATASETS_DIR} --perf-file results/preprocessing.json
-
 echo "LOAD MODELS"
 python scripts/model-loader.py load -m dali
 python scripts/model-loader.py load -m resnet50_trt
