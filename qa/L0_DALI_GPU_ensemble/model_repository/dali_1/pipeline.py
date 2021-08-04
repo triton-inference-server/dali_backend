@@ -28,7 +28,7 @@ import argparse
 def pipeline():
   inp1 = fn.external_source(device='cpu', name='DALI_INPUT_0')
   inp2 = fn.external_source(device='gpu', name='DALI_INPUT_1')
-  return inp1 * 2, fn.cast(inp2 * 3, dtype=dali.types.FLOAT16)
+  return inp1.gpu() * 2, fn.cast(inp2 * 3, dtype=dali.types.FLOAT16)
 
 
 def main(filename):
