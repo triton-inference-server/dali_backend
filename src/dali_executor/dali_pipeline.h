@@ -112,15 +112,19 @@ class DaliPipeline {
     return daliGetOutputDevice(&handle_, output_idx);
   }
 
+  device_type_t GetInputDevice(const std::string& name);
+
   std::vector<TensorListShape<>> GetOutputShapes();
 
   void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
-                dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims);
+                dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims,
+                bool force_no_copy = true);
 
   void SetInput(const void* ptr, const char* name, device_type_t source_device,
-                dali_data_type_t data_type, TensorListShape<> input_shape);
+                dali_data_type_t data_type, TensorListShape<> input_shape,
+                bool force_no_copy = true);
 
-  void SetInput(const IDescr& io_descr);
+  void SetInput(const IDescr& io_descr, bool force_no_copy = true);
 
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 
@@ -156,7 +160,7 @@ class DaliPipeline {
       for (const auto& path : plugin_paths) {
         daliLoadLibrary(path.c_str());
       }
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
       throw DaliBackendException(e.what());
     } catch (...) {
       throw DaliBackendException("Unknown error");

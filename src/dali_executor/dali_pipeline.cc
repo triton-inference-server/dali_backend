@@ -55,26 +55,31 @@ std::vector<TensorListShape<>> DaliPipeline::GetOutputShapes() {
 
 void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_t source_device,
                             dali_data_type_t data_type, span<const int64_t> inputs_shapes,
-                            int sample_ndims) {
+                            int sample_ndims, bool force_no_copy) {
   ENFORCE(inputs_shapes.size() % sample_ndims == 0, "Incorrect inputs shapes or sample ndims");
   int batch_size = inputs_shapes.size() / sample_ndims;
+  unsigned int flags = DALI_ext_default;
+  if (force_no_copy) {
+    flags |= DALI_ext_force_no_copy;
+  }
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
   daliSetExternalInput(&handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
-                       sample_ndims, nullptr, DALI_ext_default);
+                       sample_ndims, nullptr, flags);
 }
 
 
 void DaliPipeline::SetInput(const void* ptr, const char* name, device_type_t source_device,
-                            dali_data_type_t data_type, TensorListShape<> input_shape) {
+                            dali_data_type_t data_type, TensorListShape<> input_shape,
+                            bool force_no_copy) {
   SetInput(ptr, name, source_device, data_type, make_span(input_shape.shapes),
-           input_shape.sample_dim());
+           input_shape.sample_dim(), force_no_copy);
 }
 
-void DaliPipeline::SetInput(const IDescr& io_descr) {
+void DaliPipeline::SetInput(const IDescr& io_descr, bool force_no_copy) {
   ENFORCE(io_descr.buffers.size() == 1, "DALI pipeline input has to be a single chunk of memory");
   auto meta = io_descr.meta;
   auto buffer = io_descr.buffers[0];
-  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape);
+  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape, force_no_copy);
 }
 
 void DaliPipeline::SyncStream() {
@@ -88,6 +93,12 @@ void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t de
   assert(destination != nullptr);
   assert(output_idx >= 0);
   daliOutputCopy(&handle_, destination, output_idx, destination_device, output_stream_, 0);
+}
+
+device_type_t DaliPipeline::GetInputDevice(const std::string& name) {
+  auto backend = daliGetOperatorBackend(&handle_, name.c_str());
+  assert(backend != DALI_BACKEND_MIXED);
+  return (backend == DALI_BACKEND_CPU) ? device_type_t::CPU : device_type_t::GPU;
 }
 
 }}}  // namespace triton::backend::dali
