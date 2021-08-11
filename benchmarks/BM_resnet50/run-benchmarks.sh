@@ -21,29 +21,31 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+: ${GRPC_ADDR:=${1:-"localhost:8001"}}
+
 echo "LOAD MODELS"
-python scripts/model-loader.py load -m dali
-python scripts/model-loader.py load -m resnet50_trt
-python scripts/model-loader.py load -m dali_trt_resnet50
+python scripts/model-loader.py -u ${GRPC_ADDR} load -m dali
+python scripts/model-loader.py -u ${GRPC_ADDR} load -m resnet50_trt
+python scripts/model-loader.py -u ${GRPC_ADDR} load -m dali_trt_resnet50
 
 TIME_WINDOW=10000
 BATCH_SIZES="2 8 16 32 64 128"
 
 echo "WARM-UP"
-perf_analyzer -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128 -p$TIME_WINDOW
+perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128 -p$TIME_WINDOW
 
 echo "NN Benchmarks: single-sample"
-perf_analyzer -m resnet50_trt -p$TIME_WINDOW --concurrency-range=16:128:16
+perf_analyzer -u ${GRPC_ADDR} -m resnet50_trt -p$TIME_WINDOW --concurrency-range=16:128:16
 
 echo "NN Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
-  perf_analyzer -m resnet50_trt -p$TIME_WINDOW -b$BS ;
+  perf_analyzer -u ${GRPC_ADDR} -m resnet50_trt -p$TIME_WINDOW -b$BS ;
 done
 
 echo "Ensemble Benchmarks: single-sample"
-perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data imagenet64.json --concurrency-range=16:128:16
+perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 -p$TIME_WINDOW --input-data imagenet64.json --concurrency-range=16:128:16
 
 echo "Ensemble Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
-  perf_analyzer -m dali_trt_resnet50 -p$TIME_WINDOW --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
+  perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 -p$TIME_WINDOW --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
 done
