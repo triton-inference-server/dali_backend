@@ -34,20 +34,12 @@ def get_args():
 def main(args):
   client = t_client.InferenceServerClient(url=args.url)
   if args.action in ['reload', 'unload']:
-    try:
-      client.unload_model(args.model)
-      print('Successfully unloaded model', args.model)
-    except:
-      print('Could not unload model', args.model)
-      sys.exit(1)
+    client.unload_model(args.model)
+    print('Successfully unloaded model', args.model)
 
   if args.action in ['reload', 'load']:
-    try:
-      client.load_model(args.model)
-      print('Successfully loaded model', args.model)
-    except:
-      print('Could not load model', args.model)
-      sys.exit(1)
+    client.load_model(args.model)
+    print('Successfully loaded model', args.model)
 
 
 if __name__ == '__main__':
