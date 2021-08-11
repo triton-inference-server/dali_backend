@@ -1,3 +1,6 @@
 [submodule "extern/Catch2"]
 	path = extern/Catch2
 	url = https://github.com/catchorg/Catch2
+[submodule "extern/boost/stacktrace"]
+	path = extern/boost/stacktrace
+	url = https://github.com/boostorg/stacktrace
