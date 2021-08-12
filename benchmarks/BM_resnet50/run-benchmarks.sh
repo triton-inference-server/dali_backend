@@ -31,21 +31,23 @@ python scripts/model-loader.py -u ${GRPC_ADDR} load -m dali_trt_resnet50
 TIME_WINDOW=10000
 BATCH_SIZES="2 8 16 32 64 128"
 
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW"
+
 echo "WARM-UP"
-perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128 -p$TIME_WINDOW
+perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128
 
 echo "NN Benchmarks: single-sample"
-perf_analyzer -u ${GRPC_ADDR} -m resnet50_trt -p$TIME_WINDOW --concurrency-range=16:128:16
+perf_analyzer $PERF_ANALYZER_ARGS -m resnet50_trt --concurrency-range=16:128:16
 
 echo "NN Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
-  perf_analyzer -u ${GRPC_ADDR} -m resnet50_trt -p$TIME_WINDOW -b$BS ;
+  perf_analyzer $PERF_ANALYZER_ARGS -m resnet50_trt -b$BS ;
 done
 
 echo "Ensemble Benchmarks: single-sample"
-perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 -p$TIME_WINDOW --input-data imagenet64.json --concurrency-range=16:128:16
+perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=16:128:16
 
 echo "Ensemble Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
-  perf_analyzer -u ${GRPC_ADDR} -m dali_trt_resnet50 -p$TIME_WINDOW --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
+  perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
 done
