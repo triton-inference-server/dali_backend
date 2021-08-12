@@ -20,23 +20,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "src/dali_model.h"
-#include "src/utils/backtrace.h"
+#ifndef TRITONDALIBACKEND_BACKTRACE_H
+#define TRITONDALIBACKEND_BACKTRACE_H
+
+#ifdef IS_DEBUG_CONFIG
+#include "boost/stacktrace.hpp"
+#endif
+
+#include "triton/backend/backend_common.h"
 
 namespace triton { namespace backend { namespace dali {
 
-TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state) {
-  TRITONSERVER_Error* error = nullptr;  // success
-  try {
-    *state = new DaliModel(triton_model);
-  } catch (const std::exception& e) {
-    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    print_backtrace();
-    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
-                                  make_string("DALI Backend error: ", e.what()).c_str());
-  }
-
-  return error;
+inline void print_backtrace() {
+#ifdef IS_DEBUG_CONFIG
+  LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+              make_string("Backtrace:\n", boost::stacktrace::stacktrace()).c_str());
+#endif
 }
 
 }}}  // namespace triton::backend::dali
+
+
+#endif  // TRITONDALIBACKEND_BACKTRACE_H

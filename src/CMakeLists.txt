@@ -70,6 +70,11 @@ set_target_properties(
             INSTALL_RPATH "$\{ORIGIN\}/dali"
 )
 
+# Add backtrace only to the debug configuration
+if(${IS_DEBUG_CONFIG})
+    include(${tritondalibackend_SOURCE_DIR}/cmake/backtrace.cmake)
+endif()
+
 set(
         DALI_BACKEND_TEST_SRCS
         dali_executor/main.test.cc

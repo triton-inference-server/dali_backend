@@ -23,10 +23,13 @@ cmake_minimum_required(VERSION 3.17)
 
 project(tritondalibackend C CXX)
 
+include(${tritondalibackend_SOURCE_DIR}/cmake/utils.cmake)
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
 message(STATUS "Build configuration: " ${CMAKE_BUILD_TYPE})
+check_build_configuration()
 
 #
 # Options

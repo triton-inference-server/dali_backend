@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 #include "src/dali_model_instance.h"
+#include "src/utils/backtrace.h"
+
 
 namespace triton { namespace backend { namespace dali {
 
@@ -72,6 +74,7 @@ TRITONSERVER_Error* DaliModelInstance::Create(DaliModel* model_state,
     *state = new DaliModelInstance(model_state, triton_model_instance);
   } catch (const std::exception& e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
+    print_backtrace();
     error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
                                   make_string("DALI Backend error: ", e.what()).c_str());
   }
