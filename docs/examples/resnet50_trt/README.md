@@ -8,13 +8,13 @@ The classification is performed on the ResNet50 model, which is optimized by [Te
 #### Prerequisites
 
 * Export ONNX and build TensorRT
-  * `nvcr.io/nvidia/pytorch:20.12-py3`
+  * `nvcr.io/nvidia/pytorch:21.07-py3`
 * Triton Inference Server with DALI Backend
-  * `nvcr.io/nvidia/tritonserver:20.12-py3`
+  * `nvcr.io/nvidia/tritonserver:21.07-py3`
   * `https://github.com/triton-inference-server/dali_backend`. DALI Backend is included out-of-the-box in `tritonserver`, starting from `20.11` release.
 
 * Client
-  * `nvcr.io/nvidia/tritonserver:20.10-py3-client`
+  * `nvcr.io/nvidia/tritonserver:21.07-py3-sdk`
 
 ## Quick setup (recommended)
 
@@ -47,7 +47,7 @@ mkdir -p model_repository/resnet50_trt/1
 Run `onnx_exporter.py` to convert ResNet50 PyTorch model to ONNX format. `width` and `height` dims are fixed at 224 but dynamic axes arguments for dynamic batch are used. Commands from the `2.` and `3.` subsections shall be executed within this docker container.
 
 ```
-docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:20.12-py3 bash
+docker run -it --gpus=all -v $(pwd):/workspace nvcr.io/nvidia/pytorch:21.07-py3 bash
 python onnx_exporter.py --save model.onnx
 ```
 
@@ -93,7 +93,7 @@ model_repository
 Run the Triton server
 
 ```
-docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 -v$(pwd):/workspace/ -v/$(pwd)/model_repository:/models nvcr.io/nvidia/tritonserver:20.12-py3 tritonserver --model-repository=/models
+docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 -v$(pwd):/workspace/ -v/$(pwd)/model_repository:/models nvcr.io/nvidia/tritonserver:21.07-py3 tritonserver --model-repository=/models
 ```
 
 ## Request image classification
@@ -133,7 +133,7 @@ Run `client.py` with the path to image `--image`
 
 ```bash
 wget https://raw.githubusercontent.com/triton-inference-server/server/master/qa/images/mug.jpg -O "mug.jpg"
-docker run --rm --net=host -v $(pwd):/workspace/ nvcr.io/nvidia/tritonserver:20.10-py3-clientsdk python client.py --image mug.jpg 
+docker run --rm --net=host -v $(pwd):/workspace/ nvcr.io/nvidia/tritonserver:21.07-py3-sdk python client.py --image mug.jpg 
 0.02642226219177246ms class:COFFEE MUG
 ```
 
