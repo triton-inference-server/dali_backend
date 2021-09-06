@@ -34,7 +34,7 @@ BATCH_SIZES="2 8 16 32 64 128"
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW"
 
 echo "WARM-UP"
-perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=128
+perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data dataset.json --concurrency-range=128
 
 echo "NN Benchmarks: single-sample"
 perf_analyzer $PERF_ANALYZER_ARGS -m resnet50_trt --concurrency-range=16:128:16
@@ -45,7 +45,7 @@ for BS in $BATCH_SIZES ; do
 done
 
 echo "Ensemble Benchmarks: single-sample"
-perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data imagenet64.json --concurrency-range=16:128:16
+perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data dataset.json --concurrency-range=16:128:16
 
 echo "Ensemble Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
