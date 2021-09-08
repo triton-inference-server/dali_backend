@@ -23,9 +23,12 @@
 
 set -e
 
+source $DALI_BACKEND_REPO_ROOT/qa/setup_dali_extra.sh
+
 CHECKPOINT_DIR=${CHECKPOINT_DIR:-'checkpoints'}
 
 source scripts/download_checkpoint.sh
+echo "Succesfully prepared DALI_extra"
 
 # Setup tensorflow model
 mkdir -p model_repository/resnet50_tf/1
