@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # The MIT License (MIT)
 #
@@ -21,14 +21,15 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-set -e
+set -ex
 
-source $DALI_BACKEND_REPO_ROOT/qa/setup_dali_extra.sh
+source ${DALI_BACKEND_REPO_ROOT}/qa/setup_dali_extra.sh
+echo "Succesfully prepared DALI_extra"
 
 CHECKPOINT_DIR=${CHECKPOINT_DIR:-'checkpoints'}
 
 source scripts/download_checkpoint.sh
-echo "Succesfully prepared DALI_extra"
+echo "Succesfully downloaded model checkpoints"
 
 # Setup tensorflow model
 mkdir -p model_repository/resnet50_tf/1
