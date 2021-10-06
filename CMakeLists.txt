@@ -39,9 +39,21 @@ option(TRITON_ENABLE_GPU "Enable GPU support in backend" ON)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend" ON)
 option(WERROR "Trigger error on warnings" ON)
 
-set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
-set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
-set(TRITON_BACKEND_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/backend repo")
+if (NOT DEFINED TRITON_BACKENT_API_VERSION)
+  set(TRITON_BACKENT_API_VERSION "r21.05")  # API VERSION 1.0
+endif (NOT DEFINED TRITON_BACKENT_API_VERSION)
+
+if (NOT DEFINED TRITON_COMMON_REPO_TAG)
+  set(TRITON_COMMON_REPO_TAG ${TRITON_BACKENT_API_VERSION} CACHE STRING "Tag for triton-inference-server/common repo")
+endif (NOT DEFINED TRITON_COMMON_REPO_TAG)
+
+if (NOT DEFINED TRITON_CORE_REPO_TAG)
+  set(TRITON_CORE_REPO_TAG ${TRITON_BACKENT_API_VERSION} CACHE STRING "Tag for triton-inference-server/core repo")
+endif (NOT DEFINED TRITON_CORE_REPO_TAG)
+
+if (NOT DEFINED TRITON_BACKEND_REPO_TAG)
+  set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKENT_API_VERSION} CACHE STRING "Tag for triton-inference-server/backend repo")
+endif (NOT DEFINED TRITON_BACKEND_REPO_TAG)
 
 #
 # Dependencies
