@@ -40,7 +40,7 @@ option(TRITON_ENABLE_STATS "Include statistics collections in backend" ON)
 option(WERROR "Trigger error on warnings" ON)
 
 if (NOT DEFINED TRITON_BACKEND_API_VERSION)
-  set(TRITON_BACKEND_API_VERSION "main")
+  set(TRITON_BACKEND_API_VERSION "r21.05")
 endif (NOT DEFINED TRITON_BACKEND_API_VERSION)
 
 if (NOT DEFINED TRITON_COMMON_REPO_TAG)
