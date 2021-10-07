@@ -68,13 +68,14 @@ WORKDIR /dali
 
 COPY . .
 
-ARG TRITON_VERSION
+ARG TRITON_BACKEND_API_VERSION="r21.05"
 
 RUN mkdir build_in_ci && cd build_in_ci && \
-    cmake                                             \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver       \
-      -D CMAKE_BUILD_TYPE=Release                     \
-      .. &&                                           \
+    cmake                                                         \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                   \
+      -D CMAKE_BUILD_TYPE=Release                                 \
+      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
+      .. &&                                                       \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 WORKDIR /opt/tritonserver
