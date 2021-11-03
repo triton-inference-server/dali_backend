@@ -21,6 +21,6 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/multi_input/model_repository model_repository/ -r
+cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/multi_input/model_repository model_repository/
 cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/multi_input/multi_input_pipeline.py multi_input_pipeline.py
 bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/multi_input/setup_multi_input_example.sh

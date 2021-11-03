@@ -22,6 +22,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/identity/model_repository model_repository/ -r
+cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/identity/model_repository model_repository/
 cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/identity/identity_pipeline.py identity_pipeline.py
 bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/identity/setup_identity_example.sh
