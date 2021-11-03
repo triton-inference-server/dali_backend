@@ -33,6 +33,11 @@ input [
     name: "DALI_Y_INPUT"
     data_type: TYPE_UINT8
     dims: [ -1 ]
+  },
+  {
+    name: "DALI_SCALAR"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
   }
 ]
 
