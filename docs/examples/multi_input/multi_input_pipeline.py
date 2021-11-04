@@ -33,7 +33,8 @@ def parse_args():
 def pipe():
     x = dali.fn.external_source(device="cpu", name="DALI_X_INPUT")
     y = dali.fn.external_source(device="cpu", name="DALI_Y_INPUT")
-    y = y * 2
+    scalar = dali.fn.external_source(device="cpu", name="DALI_SCALAR")
+    y = y * scalar
     return x, y
 
 

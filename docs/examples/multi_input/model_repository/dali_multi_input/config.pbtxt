@@ -21,7 +21,7 @@
 
 name: "dali_multi_input"
 backend: "dali"
-max_batch_size: 64
+max_batch_size: 256
 default_model_filename: "model.dali"
 input [
   {
@@ -33,6 +33,11 @@ input [
     name: "DALI_Y_INPUT"
     data_type: TYPE_UINT8
     dims: [ -1 ]
+  },
+  {
+    name: "DALI_SCALAR"
+    data_type: TYPE_INT32
+    dims: [ 1 ]
   }
 ]
 
