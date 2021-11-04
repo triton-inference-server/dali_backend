@@ -51,3 +51,18 @@ echo "Ensemble Benchmarks: batched"
 for BS in $BATCH_SIZES ; do
   perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
 done
+
+echo "Load Python-DALI"
+python scripts/model-loader.py -u ${GRPC_ADDR} unload -m dali
+python scripts/model-loader.py -u ${GRPC_ADDR} unload -m dali_trt_resnet50
+
+python scripts/model-loader.py -u ${GRPC_ADDR} load -m python_dali
+python scripts/model-loader.py -u ${GRPC_ADDR} load -m python_dali_trt_resnet50
+
+echo "WARM-UP"
+perf_analyzer $PERF_ANALYZER_ARGS -m python_dali_trt_resnet50 --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b128 ;
+
+echo "Python-DALI Ensemble Benchmarks: batches"
+for BS in $BATCH_SIZES ; do
+  perf_analyzer $PERF_ANALYZER_ARGS -m python_dali_trt_resnet50 --input-data inputs-data/ --shape input:`stat --printf="%s" inputs-data/input` -b$BS ;
+done

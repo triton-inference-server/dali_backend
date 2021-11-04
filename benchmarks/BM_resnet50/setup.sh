@@ -55,6 +55,15 @@ echo "Successfully set up DALI preprocessing model"
 mkdir -p model_repository/dali_trt_resnet50/1
 echo "Successfully set up DALI + TensorRT ensemble"
 
+# Setup Python-DALI
+mkdir -p model_repository/python_dali/1
+cp model_repository/python_dali/model.py model_repository/python_dali/model.py/1/model.py
+echo "Successfully set up Python-DALI model"
+
+# Setup Python-DALI + TRT ensemble
+mkdir -p model_repository/python_dali_trt_resnet50/1
+echo "Successfully set up Python-DALI + TensorRT ensemble"
+
 # Prepare input data
 python scripts/prepare-input-data.py
 echo "Successfully prepared input data"
