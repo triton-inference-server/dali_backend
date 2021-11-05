@@ -34,6 +34,6 @@ output [
 {
     name: "OUTPUT_0"
     data_type: TYPE_FP32
-    dims: [ 299, 299, 3 ]
+    dims: [ 224, 224, 3 ]
 }
 ]
