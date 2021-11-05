@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-name: "dali_trt_resnet50"
+name: "python_dali_trt_resnet50"
 platform: "ensemble"
 max_batch_size: 128
 input [
