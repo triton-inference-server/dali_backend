@@ -57,7 +57,7 @@ echo "Successfully set up DALI + TensorRT ensemble"
 
 # Setup Python-DALI
 mkdir -p model_repository/python_dali/1
-cp model_repository/python_dali/model.py model_repository/python_dali/model.py/1/model.py
+cp model_repository/python_dali/model.py model_repository/python_dali/1/model.py
 echo "Successfully set up Python-DALI model"
 
 # Setup Python-DALI + TRT ensemble
