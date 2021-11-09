@@ -53,8 +53,8 @@ for BS in $BATCH_SIZES ; do
 done
 
 echo "Load Python-DALI"
-python scripts/model-loader.py -u ${GRPC_ADDR} unload -m dali
 python scripts/model-loader.py -u ${GRPC_ADDR} unload -m dali_trt_resnet50
+python scripts/model-loader.py -u ${GRPC_ADDR} unload -m dali
 
 python scripts/model-loader.py -u ${GRPC_ADDR} load -m python_dali
 python scripts/model-loader.py -u ${GRPC_ADDR} load -m python_dali_trt_resnet50
