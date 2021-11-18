@@ -44,6 +44,9 @@ set(TRITON_COMMON_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for t
 set(TRITON_CORE_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for triton-inference-server/core repo")
 set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for triton-inference-server/backend repo")
 
+set(DALI_VERSION CACHE STRING "")
+message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
+
 
 # Dependencies
 #

@@ -33,7 +33,8 @@ include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 add_custom_command(  # Download and unpack DALI wheel
     OUTPUT dali_whl
     COMMAND
-        pip download -d ${CMAKE_CURRENT_BINARY_DIR} --extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda110
+        pip download -d ${CMAKE_CURRENT_BINARY_DIR} --extra-index-url https://developer.download.nvidia.com/compute/redist
+        nvidia-dali-cuda110$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
     COMMAND
         unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
     COMMAND touch dali_whl  # So that this command won't be re-run every time
