@@ -42,6 +42,24 @@ option(WERROR "Trigger error on warnings" OFF)
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 set(TRITON_BACKEND_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/backend repo")
+set(DALI_VERSION "" CACHE STRING
+        "DALI version that should be downloaded by the build system.
+         By default the latest available DALI version will be downloaded.
+         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
+)
+set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
+        "URL of the Index, from which DALI will be downloaded by the build system.
+         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
+)
+set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
+        "Extra options for `pip download` call, that downloads DALI wheel.
+         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
+)
+if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+    message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
+    message(STATUS "Downloading DALI from: ${DALI_EXTRA_INDEX_URL}")
+endif ()
+
 
 #
 # Dependencies
