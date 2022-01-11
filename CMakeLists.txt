@@ -96,7 +96,7 @@ endif ()  # TRITON_ENABLE_GPU
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-local-typedefs")
 
 if (WERROR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
