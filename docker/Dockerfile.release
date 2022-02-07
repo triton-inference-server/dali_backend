@@ -75,6 +75,7 @@ RUN mkdir build_in_ci && cd build_in_ci && \
       -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                   \
       -D CMAKE_BUILD_TYPE=Release                                 \
       -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
+      -D WERROR=ON                                                \
       .. &&                                                       \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
