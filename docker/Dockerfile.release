@@ -77,6 +77,7 @@ RUN mkdir build_in_ci && cd build_in_ci && \
       -D TRITON_COMMON_REPO_TAG="r$TRITON_VERSION"    \
       -D TRITON_CORE_REPO_TAG="r$TRITON_VERSION"      \
       -D TRITON_BACKEND_REPO_TAG="r$TRITON_VERSION"   \
+      -D WERROR=ON                                    \
       .. &&                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
