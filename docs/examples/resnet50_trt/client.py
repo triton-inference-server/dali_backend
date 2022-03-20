@@ -95,4 +95,4 @@ if __name__ == "__main__":
 
     maxs = np.argmax(output0_data, axis=1)
 
-    print("{}ms class: {}".format(latency, labels_dict[maxs[0]]))
+    print("{}ms class: {}".format(latency * 1000, labels_dict[maxs[0]]))
