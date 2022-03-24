@@ -1,3 +1,5 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
@@ -19,11 +21,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG TRITON_VERSION=22.02
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3-sdk
-FROM ${BASE_IMAGE} as client
+mkdir -p 1
+python pipeline.py 1/model.dali
 
-RUN pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
-
-RUN pip3 install ipdb
-RUN pip3 install tqdm
+echo "DALI model ready."

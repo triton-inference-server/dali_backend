@@ -27,7 +27,6 @@ import tritonclient.grpc
 import inspect
 import re
 from tqdm import tqdm
-from PIL import Image
 
 FLAGS = None
 
@@ -42,20 +41,13 @@ def parse_args():
                         help='Batch size')
     parser.add_argument('--n_iter', type=int, required=False, default=-1,
                         help='Number of iterations , with `batch_size` size')
-    parser.add_argument('-m', '--model_name', type=str, required=False, default="mydali",
-                        help='Model name')
-    parser.add_argument('-i', '--input_name', type=str, required=False, default="INPUT",
-                        help='Input name')
-    parser.add_argument('-o', '--output_name', type=str, required=False, default="OUTPUT",
-                        help='Output name')
-    parser.add_argument('--statistics', action='store_true', required=False, default=False,
-                        help='Print tritonserver statistics after inferring')
+    parser.add_argument('-m', '--model_name', type=str, required=True, help='Model name')
     img_group = parser.add_mutually_exclusive_group()
     img_group.add_argument('--img', type=str, required=False, default=None,
-                           help='Run a img dali pipeline. Arg: path to the image.')
+                           help='Path to the single sample.')
     img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches and '
-                                'inferred. The directory must contain images only')
+                           help='Directory, with samples that will be broken down into batches and '
+                                'inferred. The directory must contain samples only')
     return parser.parse_args()
 
 
@@ -123,9 +115,9 @@ def batcher(dataset, batch_size_provider, n_iterations=-1):
         iter_idx += 1
 
 
-def load_image(img_path: str):
+def load_sample(img_path: str):
     """
-    Loads image as an encoded array of bytes.
+    Loads sample as an encoded array of bytes.
     This is a typical approach you want to use in DALI backend
     """
     with open(img_path, "rb") as f:
@@ -133,7 +125,7 @@ def load_image(img_path: str):
         return np.array(list(img)).astype(np.uint8)
 
 
-def load_images(dir_path: str, name_pattern='.', max_images=-1):
+def load_samples(dir_path: str, name_pattern='.', max_images=-1):
     """
     Loads all files in given dir_path. Treats them as images. Optionally apply regex pattern to
     file names and use only the files, that suffice the pattern
@@ -149,8 +141,8 @@ def load_images(dir_path: str, name_pattern='.', max_images=-1):
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
     if 0 < max_images < len(img_paths):
         img_paths = img_paths[:max_images]
-    for img in tqdm(img_paths, desc="Reading images"):
-        images.append(load_image(img))
+    for img in tqdm(img_paths, desc="Reading samples"):
+        images.append(load_sample(img))
     return images
 
 
@@ -166,12 +158,12 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
-    """
-    Utility function, that can be used to save byte array as an image
-    """
-    im = Image.frombytes("RGB", size_wh, bytes, "raw")
-    im.save("result_img_" + str(name_suffix) + ".jpg")
+# def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
+#     """
+#     Utility function, that can be used to save byte array as an image
+#     """
+#     im = Image.frombytes("RGB", size_wh, bytes, "raw")
+#     im.save("result_img_" + str(name_suffix) + ".jpg")
 
 
 def generate_inputs(input_name, input_shape, input_dtype):
@@ -182,7 +174,10 @@ def generate_outputs(output_name):
     return [tritonclient.grpc.InferRequestedOutput(output_name)]
 
 
-def infer_dali(triton_client, batch):
+def infer_dali(triton_client, batch, model_name_prefix):
+    model_name = model_name_prefix + "_dali"
+    triton_client.load_model(model_name)
+
     inputs = generate_inputs("DALI_INPUT_0", batch.shape, "UINT8")
     outputs = generate_outputs("DALI_OUTPUT_0")
 
@@ -190,14 +185,19 @@ def infer_dali(triton_client, batch):
     inputs[0].set_data_from_numpy(batch)
 
     # Test with outputs
-    results = triton_client.infer(model_name="rn50_dali", inputs=inputs, outputs=outputs)
+    results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
     # Get the output arrays from the results
     output0_data = results.as_numpy("DALI_OUTPUT_0")
+
+    triton_client.unload_model(model_name)
     return output0_data
 
 
-def infer_python(triton_client, batch):
+def infer_python(triton_client, batch, model_name_prefix):
+    model_name = model_name_prefix + "_python"
+    triton_client.load_model(model_name)
+
     inputs = generate_inputs("PYTHON_INPUT_0", batch.shape, "UINT8")
     outputs = generate_outputs("PYTHON_OUTPUT_0")
 
@@ -205,15 +205,16 @@ def infer_python(triton_client, batch):
     inputs[0].set_data_from_numpy(batch)
 
     # Test with outputs
-    results = triton_client.infer(model_name="rn50_python", inputs=inputs, outputs=outputs)
+    results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
     # Get the output arrays from the results
     output0_data = results.as_numpy("PYTHON_OUTPUT_0")
+
+    triton_client.unload_model(model_name)
     return output0_data
 
 
-def main():
-    FLAGS = parse_args()
+def main(model_name):
     try:
         triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url,
                                                                 verbose=FLAGS.verbose)
@@ -221,28 +222,22 @@ def main():
         print("channel creation failed: " + str(e))
         sys.exit()
 
-    print("Loading images")
+    print("Loading samples")
 
-    if FLAGS.img_dir:
-        image_data = load_images(FLAGS.img_dir, max_images=FLAGS.batch_size * FLAGS.n_iter)
-    elif FLAGS.img:
-        image_data = [load_image(FLAGS.img)]
-    else:
-        print("No image specified")
-        sys.exit(1)
+    image_data = [load_sample(FLAGS.img)]
 
     image_data = array_from_list(image_data)
-    print("Images loaded")
+    print("Samples loaded")
 
     for batch in tqdm(batcher(image_data, FLAGS.batch_size, n_iterations=FLAGS.n_iter),
                       desc="Inferring", total=FLAGS.n_iter):
-        output0_dali = infer_dali(triton_client, batch)
-        output0_python = infer_python(triton_client, batch)
-        np.save("dali_output", output0_dali)
-        np.save("python_output", output0_python)
+        output0_dali = infer_dali(triton_client, batch, model_name)
+        output0_python = infer_python(triton_client, batch, model_name)
+        assert output0_python.shape == output0_dali.shape
 
     print('PASS: infer')
 
 
 if __name__ == '__main__':
-    main()
+    FLAGS = parse_args()
+    main(model_name=FLAGS.model_name)
