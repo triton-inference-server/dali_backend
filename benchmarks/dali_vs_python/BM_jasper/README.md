@@ -1,6 +1,6 @@
 The torchaudio based processing of audio files comes from NVIDIA Deep Learning Examples project:
 https://github.com/NVIDIA/DeepLearningExamples/
 
-audio.py: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/SpeechRecognition/Jasper/common/audio.py
-dataset.py: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/SpeechRecognition/Jasper/common/dataset.py
-features.py: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/SpeechRecognition/Jasper/common/features.py
+jasper_python/1/features.py: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/SpeechRecognition/Jasper/common/features.py
+
+The audio sample used for benchmarks comes from [LibriSpeech](https://ieeexplore.ieee.org/document/7178964) dataset.

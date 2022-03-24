@@ -158,14 +158,6 @@ def array_from_list(arrays):
     return np.stack(arrays)
 
 
-# def save_byte_image(bytes, size_wh=(224, 224), name_suffix=0):
-#     """
-#     Utility function, that can be used to save byte array as an image
-#     """
-#     im = Image.frombytes("RGB", size_wh, bytes, "raw")
-#     im.save("result_img_" + str(name_suffix) + ".jpg")
-
-
 def generate_inputs(input_name, input_shape, input_dtype):
     return [tritonclient.grpc.InferInput(input_name, input_shape, input_dtype)]
 
