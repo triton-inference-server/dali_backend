@@ -35,6 +35,7 @@ extern "C" {
 // should initialize any global state that is intended to be shared
 // across all models and model instances that use the backend.
 TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
+  TimeRange tr("[DALI BE] Initialize", TimeRange::kNavy);
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_BackendName(backend, &cname));
   std::string name(cname);
@@ -90,6 +91,7 @@ TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
 // using TRITONBACKEND_BackendSetState. The backend must free this
 // state and perform any other global cleanup.
 TRITONSERVER_Error* TRITONBACKEND_Finalize(TRITONBACKEND_Backend* backend) {
+  TimeRange tr("[DALI BE] Finalize", TimeRange::kNavy);
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_BackendState(backend, &vstate));
   std::string* state = reinterpret_cast<std::string*>(vstate);
@@ -106,6 +108,7 @@ TRITONSERVER_Error* TRITONBACKEND_Finalize(TRITONBACKEND_Backend* backend) {
 // should initialize any state that is intended to be shared across
 // all instances of the model.
 TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
+  TimeRange tr("[DALI BE] ModelInitialize", TimeRange::kNavy);
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_ModelName(model, &cname));
   std::string name(cname);
@@ -158,6 +161,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
 // is set using TRITONBACKEND_ModelSetState. The backend must free
 // this state and perform any other cleanup.
 TRITONSERVER_Error* TRITONBACKEND_ModelFinalize(TRITONBACKEND_Model* model) {
+  TimeRange tr("[DALI BE] ModelFinalize", TimeRange::kNavy);
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_ModelState(model, &vstate));
   DaliModel* model_state = reinterpret_cast<DaliModel*>(vstate);
@@ -173,6 +177,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelFinalize(TRITONBACKEND_Model* model) {
 // backend should initialize any state that is required for a model
 // instance.
 TRITONSERVER_Error* TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelInstance* instance) {
+  TimeRange tr("[DALI BE] ModelInstanceInitialize", TimeRange::kNavy);
   const char* cname;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceName(instance, &cname));
   std::string name(cname);
@@ -210,6 +215,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceInitialize(TRITONBACKEND_ModelIns
 // state is set using TRITONBACKEND_ModelInstanceSetState. The backend
 // must free this state and perform any other cleanup.
 TRITONSERVER_Error* TRITONBACKEND_ModelInstanceFinalize(TRITONBACKEND_ModelInstance* instance) {
+  TimeRange tr("[DALI BE] ModelInstanceFinalize", TimeRange::kNavy);
   void* vstate;
   RETURN_IF_ERROR(TRITONBACKEND_ModelInstanceState(instance, &vstate));
   DaliModelInstance* instance_state = reinterpret_cast<DaliModelInstance*>(vstate);
