@@ -109,19 +109,33 @@ std::vector<TritonResponse> DaliModelInstance::CreateResponses(
   return responses;
 }
 
+
 ProcessingMeta DaliModelInstance::ProcessRequests(const std::vector<TritonRequest>& requests,
                                                   const std::vector<TritonResponse>& responses) {
   ProcessingMeta ret{};
+
+  TimeRange tr_gi("[DALI BE] GenerateInputs", 0x488FB1);
   auto inputs_info = GenerateInputs(requests);
+  tr_gi.stop();
+
+  TimeRange tr_run("[DALI BE] Run processing", 0x488FB1);
   start_timer_ns(ret.compute_interval);
   auto outputs_info = dali_executor_->Run(inputs_info.inputs);
   end_timer_ns(ret.compute_interval);
   for (auto& bs : inputs_info.reqs_batch_sizes) {
     ret.total_batch_size += bs;
   }
+  tr_run.stop();
+
+  TimeRange tr_ao("[DALI BE] AllocateOutputs", 0x488FB1);
   auto dali_outputs =
       AllocateOutputs(requests, responses, inputs_info.reqs_batch_sizes, outputs_info);
+  tr_ao.stop();
+
+  TimeRange tr_copy("[DALI BE] Copy results", 0x488FB1);
   dali_executor_->PutOutputs(dali_outputs);
+  tr_copy.stop();
+
   return ret;
 }
 

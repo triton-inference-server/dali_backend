@@ -102,6 +102,28 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
   return result;
 }
 
+namespace detail {
+
+struct NvtxDomain {
+  static nvtxDomainHandle_t Get() {
+    static NvtxDomain inst;
+    return inst.domain_;
+  }
+
+ private:
+  NvtxDomain() {
+    domain_ = nvtxDomainCreateA("DALI Backend");
+  }
+
+  ~NvtxDomain() {
+    nvtxDomainDestroy(domain_);
+  }
+
+  nvtxDomainHandle_t domain_;
+};
+
+}  // namespace detail
+
 
 // Basic timerange for profiling
 struct TimeRange {
@@ -129,7 +151,7 @@ struct TimeRange {
     att.messageType = NVTX_MESSAGE_TYPE_ASCII;
     att.message.ascii = name.c_str();
 
-    nvtxRangePushEx(&att);
+    nvtxDomainRangePushEx(detail::NvtxDomain::Get(), &att);
     started = true;
   }
 
@@ -142,7 +164,7 @@ struct TimeRange {
   void stop() {
     if (started) {
       started = false;
-      nvtxRangePop();
+      nvtxDomainRangePop(detail::NvtxDomain::Get());
     }
   }
 
