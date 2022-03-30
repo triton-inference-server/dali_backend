@@ -43,9 +43,9 @@ def parse_args():
                         help='Number of iterations , with `batch_size` size')
     parser.add_argument('-m', '--model_name', type=str, required=True, help='Model name')
     img_group = parser.add_mutually_exclusive_group()
-    img_group.add_argument('--img', type=str, required=False, default=None,
+    img_group.add_argument('--sample', type=str, required=False, default=None,
                            help='Path to the single sample.')
-    img_group.add_argument('--img_dir', type=str, required=False, default=None,
+    img_group.add_argument('--sample_dir', type=str, required=False, default=None,
                            help='Directory, with samples that will be broken down into batches and '
                                 'inferred. The directory must contain samples only')
     return parser.parse_args()
@@ -118,43 +118,43 @@ def batcher(dataset, batch_size_provider, n_iterations=-1):
 def load_sample(img_path: str):
     """
     Loads sample as an encoded array of bytes.
-    This is a typical approach you want to use in DALI backend
+    This is a typical approach you want to use in DALI backend.
     """
     with open(img_path, "rb") as f:
         img = f.read()
         return np.array(list(img)).astype(np.uint8)
 
 
-def load_samples(dir_path: str, name_pattern='.', max_images=-1):
+def load_samples(dir_path: str, name_pattern='.', max_samples=-1):
     """
-    Loads all files in given dir_path. Treats them as images. Optionally apply regex pattern to
-    file names and use only the files, that suffice the pattern
+    Loads all files in given dir_path. Treats them as samples. Optionally apply regex pattern to
+    file names and use only the files, that suffice the pattern.
     """
-    assert max_images > 0 or max_images == -1
-    images = []
+    assert max_samples > 0 or max_samples == -1
+    samples = []
 
     # Traverses directory for files (not dirs) and returns full paths to them
     path_generator = (os.path.join(dir_path, f) for f in os.listdir(dir_path) if
                       os.path.isfile(os.path.join(dir_path, f)) and
                       re.search(name_pattern, f) is not None)
 
-    img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
-    if 0 < max_images < len(img_paths):
-        img_paths = img_paths[:max_images]
-    for img in tqdm(img_paths, desc="Reading samples"):
-        images.append(load_sample(img))
-    return images
+    sample_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
+    if 0 < max_samples < len(sample_paths):
+        sample_paths = sample_paths[:max_samples]
+    for img in tqdm(sample_paths, desc="Reading samples."):
+        samples.append(load_sample(img))
+    return samples
 
 
 def array_from_list(arrays):
     """
-    Convert list of ndarrays to single ndarray with ndims+=1
+    Convert list of ndarrays to single ndarray with ndims+=1.
     """
     lengths = list(map(lambda x, arr=arrays: arr[x].shape[0], [x for x in range(len(arrays))]))
     max_len = max(lengths)
     arrays = list(map(lambda arr, ml=max_len: np.pad(arr, ((0, ml - arr.shape[0]))), arrays))
     for arr in arrays:
-        assert arr.shape == arrays[0].shape, "Arrays must have the same shape"
+        assert arr.shape == arrays[0].shape, "Arrays must have the same shape."
     return np.stack(arrays)
 
 
@@ -216,7 +216,7 @@ def main(model_name):
 
     print("Loading samples")
 
-    image_data = [load_sample(FLAGS.img)]
+    image_data = [load_sample(FLAGS.sample)]
 
     image_data = array_from_list(image_data)
     print("Samples loaded")
