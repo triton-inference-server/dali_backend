@@ -224,7 +224,7 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceFinalize(TRITONBACKEND_ModelInsta
 TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstance* instance,
                                                        TRITONBACKEND_Request** reqs,
                                                        const uint32_t request_count) {
-  TimeRange tr("[DALI BE] ModelInstanceExecute");
+  TimeRange tr("[DALI BE] ModelInstanceExecute", TimeRange::kNavy);
   std::vector<TritonRequest> requests;
   for (uint32_t idx = 0; idx < request_count; ++idx) {
     requests.emplace_back(reqs[idx]);
