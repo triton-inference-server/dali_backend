@@ -26,6 +26,7 @@ import numpy as np
 import tritonclient.grpc
 import inspect
 import re
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 FLAGS = None
@@ -40,8 +41,13 @@ def parse_args():
     parser.add_argument('-b', '--batch_size', type=int, required=False, default=1,
                         help='Batch size')
     parser.add_argument('--n_iter', type=int, required=False, default=-1,
-                        help='Number of iterations , with `batch_size` size')
+                        help='Number of iterations , with `batch_size` size.')
     parser.add_argument('-m', '--model_name', type=str, required=True, help='Model name')
+    parser.add_argument('--validate', action="store_true", required=False,
+                        help='Enable the qualitative check of the model outputs.')
+    parser.add_argument('--eps', type=float, required=False, default=1e-1,
+                        help='Epsilon for the output validation. '
+                             'Ignored, if --validate option is not enabled.')
     img_group = parser.add_mutually_exclusive_group()
     img_group.add_argument('--sample', type=str, required=False, default=None,
                            help='Path to the single sample.')
@@ -206,6 +212,10 @@ def infer_python(triton_client, batch, model_name_prefix):
     return output0_data
 
 
+def calc_rms(a, b):
+    return np.sqrt(np.mean(np.square(a - b)))
+
+
 def main(model_name):
     try:
         triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url,
@@ -225,7 +235,10 @@ def main(model_name):
                       desc="Inferring", total=FLAGS.n_iter):
         output0_dali = infer_dali(triton_client, batch, model_name)
         output0_python = infer_python(triton_client, batch, model_name)
-        assert output0_python.shape == output0_dali.shape
+        assert output0_python.shape == output0_dali.shape, f"Output shapes do not match: Python={output0_python.shape} vs DALI={output0_dali.shape}."
+        if FLAGS.validate:
+            rms = calc_rms(output0_python, output0_dali)
+            assert rms < FLAGS.eps, f"Outputs for Python and DALI do not match: RMS={rms} vs eps={FLAGS.eps}."
 
     print('PASS: infer')
 

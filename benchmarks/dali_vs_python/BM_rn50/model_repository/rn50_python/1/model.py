@@ -27,7 +27,7 @@ import torchvision.transforms as transforms
 import triton_python_backend_utils as pb_utils
 
 img_transforms = transforms.Compose(
-    [transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor()])
+    [transforms.Resize((224, 224)), transforms.CenterCrop(224), transforms.ToTensor()])
 
 
 class TritonPythonModel:
@@ -75,5 +75,5 @@ class TritonPythonModel:
         with torch.no_grad():
             batch = batch.cuda()
             batch = batch.float()
-            processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(self.std)
+            processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(self.std)[0]
         return processed_batch
