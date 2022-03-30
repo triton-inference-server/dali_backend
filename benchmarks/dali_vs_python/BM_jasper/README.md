@@ -3,4 +3,4 @@ https://github.com/NVIDIA/DeepLearningExamples/
 
 jasper_python/1/features.py: https://github.com/NVIDIA/DeepLearningExamples/blob/master/PyTorch/SpeechRecognition/Jasper/common/features.py
 
-The audio sample used for benchmarks comes from [LibriSpeech](https://ieeexplore.ieee.org/document/7178964) dataset.
+The audio sample used for benchmarks comes from [LibriSpeech](https://www.openslr.org/12) dataset.
