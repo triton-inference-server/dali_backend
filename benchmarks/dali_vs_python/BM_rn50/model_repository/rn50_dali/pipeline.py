@@ -42,7 +42,7 @@ def preprocessing(images):
                                          std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
 
-@dali.pipeline_def(batch_size=1, num_threads=1, device_id=0)
+@dali.pipeline_def(batch_size=1, num_threads=16, device_id=0)
 def pipe():
     images = dali.fn.external_source(device='cpu', name="DALI_INPUT_0", no_copy=True)
     return preprocessing(images)

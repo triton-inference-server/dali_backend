@@ -182,7 +182,7 @@ def serialize_dali_pipeline(filepath):
         preprocessing_device="gpu",
         is_triton_pipeline=True,
         batch_size=1,
-        num_threads=1,
+        num_threads=16,
         device_id=0,
     )
     p.serialize(filename=filepath)
