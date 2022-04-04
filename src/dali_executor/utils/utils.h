@@ -102,25 +102,38 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
   return result;
 }
 
+namespace detail {
+
+struct NvtxDomain {
+  static nvtxDomainHandle_t Get() {
+    static NvtxDomain inst;
+    return inst.domain_;
+  }
+
+ private:
+  NvtxDomain() {
+    domain_ = nvtxDomainCreateA("DALI Backend");
+  }
+
+  ~NvtxDomain() {
+    nvtxDomainDestroy(domain_);
+  }
+
+  nvtxDomainHandle_t domain_;
+};
+
+}  // namespace detail
+
 
 // Basic timerange for profiling
 struct TimeRange {
-  static const uint32_t kRed = 0xFF0000;
-  static const uint32_t kGreen = 0x00FF00;
-  static const uint32_t kBlue = 0x0000FF;
-  static const uint32_t kYellow = 0xB58900;
-  static const uint32_t kOrange = 0xCB4B16;
-  static const uint32_t kRed1 = 0xDC322F;
-  static const uint32_t kMagenta = 0xD33682;
-  static const uint32_t kViolet = 0x6C71C4;
-  static const uint32_t kBlue1 = 0x268BD2;
-  static const uint32_t kCyan = 0x2AA198;
-  static const uint32_t kGreen1 = 0x859900;
-  static const uint32_t knvGreen = 0x76B900;
+  static const uint32_t kNvGreen = 0x76B900;
+  static const uint32_t kNavy = 0x22577E;
+  static const uint32_t kTeal = 0x95D1CC;
   static const uint32_t kPantyPink = 0xBD8BC3;
 
 
-  TimeRange(std::string name, const uint32_t rgb = kPantyPink) {  // NOLINT
+  explicit TimeRange(const std::string& name, const uint32_t rgb = kPantyPink) {
     nvtxEventAttributes_t att = {};
     att.version = NVTX_VERSION;
     att.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
@@ -129,7 +142,7 @@ struct TimeRange {
     att.messageType = NVTX_MESSAGE_TYPE_ASCII;
     att.message.ascii = name.c_str();
 
-    nvtxRangePushEx(&att);
+    nvtxDomainRangePushEx(detail::NvtxDomain::Get(), &att);
     started = true;
   }
 
@@ -142,7 +155,7 @@ struct TimeRange {
   void stop() {
     if (started) {
       started = false;
-      nvtxRangePop();
+      nvtxDomainRangePop(detail::NvtxDomain::Get());
     }
   }
 
