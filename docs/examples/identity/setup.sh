@@ -21,8 +21,3 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-mkdir -p model_repository/dali_identity/1
-
-python identity_pipeline.py model_repository/dali_identity/1/model.dali
-
-echo "Identity model ready."

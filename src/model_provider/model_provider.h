@@ -23,6 +23,7 @@
 #ifndef DALI_BACKEND_MODEL_PROVIDER_MODEL_PROVIDER_H_
 #define DALI_BACKEND_MODEL_PROVIDER_MODEL_PROVIDER_H_
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -63,7 +64,7 @@ class FileModelProvider : public ModelProvider {
   explicit FileModelProvider(const std::string& filename) {
     std::ifstream fin(filename, std::ios::binary);
     if (!fin)
-      throw std::runtime_error(std::string("Failed to open serialized model file: ") + filename);
+      throw std::runtime_error(std::string("Failed to open model file: ") + filename);
     std::stringstream ss;
     ss << fin.rdbuf();
     model_ = ss.str();
@@ -77,6 +78,73 @@ class FileModelProvider : public ModelProvider {
 
  private:
   std::string model_ = {};
+};
+
+
+namespace detail {
+
+inline std::string GenerateAutoserializeCmd(const std::string& module_path,
+                                            const std::string& target_file_path) {
+  std::stringstream cmd;
+
+  cmd << R"py(python3 -c "
+import importlib, sys
+from nvidia.dali._utils.autoserialize import invoke_autoserialize
+spec = importlib.util.spec_from_file_location('autoserialize_mod', ')py"
+      << module_path << R"py(')
+head_module = importlib.util.module_from_spec(spec)
+sys.modules['autoserialize_mod'] = head_module
+spec.loader.exec_module(head_module)
+invoke_autoserialize(head_module, ')py"
+      << target_file_path << R"py(')
+")py";
+
+  return cmd.str();
+}
+
+inline void CallSystemCmd(const std::string& cmd) {
+  auto status = system(cmd.c_str());
+
+  if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
+    // Succeed
+    return;
+
+  // Failed
+  std::stringstream ss;
+  ss << "Failed to call system command. ";
+  if (WIFEXITED(status)) {
+    ss << "Exited with error code: " << WEXITSTATUS(status);
+  } else if (WIFSIGNALED(status)) {
+    ss << "Killed by signal: " << WTERMSIG(status);
+  } else if (WIFSTOPPED(status)) {
+    ss << "Stopped by signal: " << WSTOPSIG(status);
+  } else if (WIFCONTINUED(status)) {
+    ss << "Continued";
+  }
+  throw std::runtime_error(ss.str());
+}
+
+}  // namespace detail
+
+
+class AutoserializeModelProvider : public ModelProvider {
+ public:
+  AutoserializeModelProvider() = default;
+
+  AutoserializeModelProvider(const std::string& module_path, const std::string& target_file) {
+    auto cmd = detail::GenerateAutoserializeCmd(module_path, target_file);
+    detail::CallSystemCmd(cmd);
+    fmp_ = FileModelProvider(target_file);
+  }
+
+  const std::string& GetModel() const override {
+    return fmp_.GetModel();
+  }
+
+  ~AutoserializeModelProvider() override = default;
+
+ private:
+  FileModelProvider fmp_{};
 };
 
 }}}  // namespace triton::backend::dali

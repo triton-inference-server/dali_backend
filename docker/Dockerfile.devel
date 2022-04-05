@@ -95,13 +95,13 @@ COPY . .
 
 ARG TRITON_BACKEND_API_VERSION="r21.05"
 
-RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
-    cmake                                                                             \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
-      -D CMAKE_BUILD_TYPE=Debug                                                       \
-      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
-      -D TRITON_DALI_SKIP_DOWNLOAD=ON                                                 \
-      .. &&                                                                           \
+RUN mkdir build_in_ci && cd build_in_ci && \
+    cmake                                                         \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                   \
+      -D CMAKE_BUILD_TYPE=Debug                                   \
+      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
+      -D TRITON_DALI_SKIP_DOWNLOAD=ON                             \
+      .. &&                                                       \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 WORKDIR /opt/tritonserver
