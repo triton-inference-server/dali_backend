@@ -20,45 +20,60 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import json
-
 import torch
-import torchvision
-import torchvision.transforms as transforms
+import features
+import soundfile as sf
+import io
+import numpy as np
 import triton_python_backend_utils as pb_utils
 
-img_transforms = transforms.Compose(
-    [transforms.Resize((224, 224)), transforms.CenterCrop(224), transforms.ToTensor()])
+
+def decode_audio(audio_bytes):
+    return sf.read(io.BytesIO(audio_bytes))
 
 
 class TritonPythonModel:
     def __init__(self):
-        self.std = None
-        self.mean = None
+        pass
 
     def initialize(self, args):
         self.model_config = model_config = json.loads(args['model_config'])
         output0_config = pb_utils.get_output_config_by_name(model_config, "PYTHON_OUTPUT_0")
         self.output_dtype = pb_utils.triton_string_to_numpy(output0_config['data_type'])
-
-        with torch.no_grad():
-            mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-            self.mean = mean.cuda()
-            self.std = std.cuda()
+        self.feat_proc = features.FilterbankFeatures(
+            spec_augment=None, cutout_augment=None, sample_rate=16000, window_size=0.02,
+            window_stride=0.01, window="hann", normalize="per_feature", n_fft=512, preemph=0.97,
+            n_filt=64, lowfreq=0, highfreq=None, log=True, dither=1e-5, pad_align=16,
+            pad_to_max_duration=False, max_duration=float('inf'), frame_splicing=1)
 
     def execute(self, requests):
         responses = []
 
         for request in requests:
             in0 = pb_utils.get_input_tensor_by_name(request, "PYTHON_INPUT_0")
-            in0_t = torch.Tensor(in0.as_numpy())
-            out0 = []
+            in0_t = in0.as_numpy()
+            decoded = []
             for inp in in0_t:
-                out0.append(self.decode_resize(inp.to(torch.uint8)))
-            out0_t = torch.stack(out0)
-            out0_t = self.normalize(out0_t)
+                aud_sr = decode_audio(inp.tobytes())
+                decoded.append((aud_sr[0], aud_sr[0].shape[0]))
+            max_len = 0
+            for dec in decoded:
+                max_len = max_len if max_len > dec[1] else dec[1]
+            audio = []
+            audio_lens = []
+            for aud, length in decoded:
+                audio.append(aud)
+                np.pad(audio[-1], (0, max_len - audio[-1].shape[0]))
+                audio_lens.append(length)
+            audio_array = np.array(audio)
+            len_array = np.array(audio_lens)
+            dec_t = torch.Tensor(audio_array)
+            len_t = torch.Tensor(len_array)
+            dec_t = dec_t.cuda()
+            len_t = len_t.cuda()
+            out_audio, out_len = self.feat_proc(dec_t, len_t)
             out0_tensor = pb_utils.Tensor.from_dlpack("PYTHON_OUTPUT_0",
-                                                      torch.utils.dlpack.to_dlpack(out0_t))
+                                                      torch.utils.dlpack.to_dlpack(out_audio))
 
         response = pb_utils.InferenceResponse(output_tensors=[out0_tensor])
         responses.append(response)
@@ -66,14 +81,3 @@ class TritonPythonModel:
 
     def finalize(self):
         pass
-
-    def decode_resize(self, encoded_image):
-        img = torchvision.io.decode_image(encoded_image)
-        return img_transforms(transforms.functional.to_pil_image(img))
-
-    def normalize(self, batch):
-        with torch.no_grad():
-            batch = batch.cuda()
-            batch = batch.float()
-            processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(self.std)[0]
-        return processed_batch

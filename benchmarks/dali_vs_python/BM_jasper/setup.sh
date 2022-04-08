@@ -1,3 +1,5 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
@@ -19,11 +21,10 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG TRITON_VERSION=22.02
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3-sdk
-FROM ${BASE_IMAGE} as client
+mkdir -p test_sample
+cp audio/1089-134686-0018.wav test_sample/DALI_INPUT_0
+cp audio/1089-134686-0018.wav test_sample/PYTHON_INPUT_0
 
-RUN pip install --extra-index-url https://developer.download.nvidia.com/compute/redist --upgrade nvidia-dali-cuda110
-
-RUN pip3 install ipdb
-RUN pip3 install tqdm
+pushd model_repository/jasper_dali
+source setup.sh
+popd
