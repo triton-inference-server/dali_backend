@@ -30,7 +30,9 @@ ARG TRITON_VERSION=22.02
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
-RUN apt-get update                                && \
+RUN apt-key adv --fetch-keys \
+    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update                                && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa         && \
     apt-get update                                && \
