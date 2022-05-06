@@ -30,6 +30,7 @@ ARG TRITON_VERSION=22.02
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
+# Manually update the keys to NVIDIA repository because they are outdated in the base image
 RUN apt-key adv --fetch-keys \
     https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update                                && \
