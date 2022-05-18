@@ -70,9 +70,10 @@ WORKDIR /dali
 ARG DALI_DOWNLOAD_EXTRA_INDEX_URL=https://developer.download.nvidia.com/compute/redist/nightly
 ARG DALI_DOWNLOAD_PKG_NAME=nvidia-dali-nightly-cuda110
 ARG DALI_DOWNLOAD_VERSION
+ARG DALI_DOWNLOAD_EXTRA_OPTIONS
 
 RUN pip install --force-reinstall \
-    --extra-index-url ${DALI_DOWNLOAD_EXTRA_INDEX_URL} \
+    ${DALI_DOWNLOAD_EXTRA_OPTIONS} --extra-index-url ${DALI_DOWNLOAD_EXTRA_INDEX_URL} \
     ${DALI_DOWNLOAD_PKG_NAME}`if [ -n "${DALI_DOWNLOAD_VERSION}" ]; then echo "==${DALI_DOWNLOAD_VERSION}"; fi`
 
 COPY . .
@@ -91,6 +92,7 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
          echo -n "-D DALI_DOWNLOAD_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}"; \
       fi`                                                                             \
       -D DALI_VERSION=${DALI_DOWNLOAD_VERSION}                                        \
+      -D DALI_DOWNLOAD_EXTRA_OPTIONS=${DALI_DOWNLOAD_EXTRA_OPTIONS}                   \
       -D TRITON_DALI_SKIP_DOWNLOAD=ON                                                 \
       .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
