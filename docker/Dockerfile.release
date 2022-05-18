@@ -71,7 +71,7 @@ COPY . .
 
 ARG TRITON_BACKEND_API_VERSION="r21.05"
 
-ARG DALI_DOWNLOAD_NIGHTLY=OFF
+ARG DALI_DOWNLOAD_TYPE="release"
 ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
 ARG DALI_DOWNLOAD_VERSION
 
@@ -80,7 +80,7 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
       -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
       -D CMAKE_BUILD_TYPE=Release                                                     \
       -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
-      -D DALI_DOWNLOAD_NIGHTLY=${DALI_DOWNLOAD_NIGHTLY}                               \
+      -D DALI_DOWNLOAD_TYPE=${DALI_DOWNLOAD_TYPE}                                     \
       `if [ -n "${DALI_DOWNLOAD_EXTRA_INDEX_URL}" ]; then                             \
          echo -n "-D DALI_DOWNLOAD_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}"; \
       fi`                                                                             \

@@ -51,24 +51,28 @@ set(DALI_DOWNLOAD_VERSION "" CACHE STRING
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_DOWNLOAD_NIGHTLY OFF CACHE STRING
-    "Set to ON if the DALI nightly version should be downloaded.
+set(DALI_DOWNLOAD_TYPE "release" CACHE STRING
+    "Type of the DALI version to download. Accepted values are: release, weekly, nightly.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD in ON")
 
-if (NOT ${DALI_DOWNLOAD_NIGHTLY})
-  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
-      "URL of the Index, from which DALI will be downloaded by the build system.
-      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-else()
+if (${DALI_DOWNLOAD_TYPE} STREQUAL "nightly")
   set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist/nightly" CACHE STRING
       "URL of the Index, from which DALI will be downloaded by the build system.
       Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-endif()
+elseif (${DALI_DOWNLOAD_TYPE} STREQUAL "weekly")
+  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist/weekly" CACHE STRING
+      "URL of the Index, from which DALI will be downloaded by the build system.
+      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+else ()
+  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
+      "URL of the Index, from which DALI will be downloaded by the build system.
+      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+endif ()
 
 set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
-        "Extra options for `pip download` call, that downloads DALI wheel.
-         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
-)
+    "Extra options for `pip download` call, that downloads DALI wheel.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
     message(STATUS "Building with DALI version (latest if empty): ${DALI_DOWNLOAD_VERSION}")
     message(STATUS "Downloading DALI from: ${DALI_DOWNLOAD_EXTRA_INDEX_URL}")

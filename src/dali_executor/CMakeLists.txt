@@ -28,17 +28,30 @@ set(
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
-if (${DALI_DOWNLOAD_NIGHTLY})
-    set(DALI_DOWNLOAD_PACKAGE_NAME nvidia-dali-nightly-cuda110$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>)
+string(CONCAT DALI_DOWNLOAD_CUDA_VERSION ${CUDAToolkit_VERSION_MAJOR} ${CUDAToolkit_VERSION_MINOR})
+if (${CUDAToolkit_VERSION_MAJOR} GREATER_EQUAL 11)
+    set(DALI_DOWNLOAD_CUDA_VERSION_MINOR 0)
 else()
-    set(DALI_DOWNLOAD_PACKAGE_NAME nvidia-dali-cuda110$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>)
+    set(DALI_DOWNLOAD_CUDA_VERSION_MINOR ${CUDAToolkit_VERSION_MINOR})
 endif()
+string(CONCAT DALI_DOWNLOAD_CUDA_VERSION ${CUDAToolkit_VERSION_MAJOR} ${DALI_DOWNLOAD_CUDA_VERSION_MINOR})
+
+if (${DALI_DOWNLOAD_TYPE} STREQUAL "nightly")
+    set(DALI_DOWNLOAD_PACKAGE_NAME 
+        nvidia-dali-nightly-cuda${DALI_DOWNLOAD_CUDA_VERSION}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>)
+elseif (${DALI_DOWNLOAD_TYPE} STREQUAL "weekly")
+    set(DALI_DOWNLOAD_PACKAGE_NAME 
+        nvidia-dali-weekly-cuda${DALI_DOWNLOAD_CUDA_VERSION}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>)
+else ()
+    set(DALI_DOWNLOAD_PACKAGE_NAME 
+        nvidia-dali-cuda${DALI_DOWNLOAD_CUDA_VERSION}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>)
+endif ()
 
 add_custom_command(  # Download and unpack DALI wheel
     OUTPUT dali_whl
     COMMAND
-        pip download -d ${CMAKE_CURRENT_BINARY_DIR} ${DALI_DOWNLOAD_EXTRA_OPTIONS} --extra-index-url ${DALI_DOWNLOAD_EXTRA_INDEX_URL}
-        ${DALI_DOWNLOAD_PACKAGE_NAME}
+        pip download -d ${CMAKE_CURRENT_BINARY_DIR} ${DALI_DOWNLOAD_EXTRA_OPTIONS} 
+          --extra-index-url ${DALI_DOWNLOAD_EXTRA_INDEX_URL} ${DALI_DOWNLOAD_PACKAGE_NAME}
     COMMAND
         unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
     COMMAND touch dali_whl  # So that this command won't be re-run every time
