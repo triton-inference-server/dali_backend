@@ -46,35 +46,21 @@ set(TRITON_COMMON_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for t
 set(TRITON_CORE_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for triton-inference-server/core repo")
 set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for triton-inference-server/backend repo")
 
-set(DALI_DOWNLOAD_VERSION "" CACHE STRING
+set(DALI_VERSION "" CACHE STRING
     "DALI version that should be downloaded by the build system.
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_DOWNLOAD_TYPE "release" CACHE STRING
-    "Type of the DALI version to download. Accepted values are: release, weekly, nightly.
-    Ignored, when TRITON_DALI_SKIP_DOWNLOAD in ON")
-
-if (${DALI_DOWNLOAD_TYPE} STREQUAL "nightly")
-  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist/nightly" CACHE STRING
-      "URL of the Index, from which DALI will be downloaded by the build system.
-      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-elseif (${DALI_DOWNLOAD_TYPE} STREQUAL "weekly")
-  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist/weekly" CACHE STRING
-      "URL of the Index, from which DALI will be downloaded by the build system.
-      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-else ()
-  set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
-      "URL of the Index, from which DALI will be downloaded by the build system.
-      Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-endif ()
+set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
+    "URL of the Index, from which DALI will be downloaded by the build system.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
     "Extra options for `pip download` call, that downloads DALI wheel.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
-    message(STATUS "Building with DALI version (latest if empty): ${DALI_DOWNLOAD_VERSION}")
+    message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
     message(STATUS "Downloading DALI from: ${DALI_DOWNLOAD_EXTRA_INDEX_URL}")
 endif ()
 
@@ -117,6 +103,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-f
 if (WERROR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
+
+set(DALI_DOWNLOAD_PKG_NAME "nvidia-dali-cuda${CUDAToolkit_VERSION_MAJOR}0" CACHE STRING
+    "DALI pip package name to download.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 add_subdirectory(src)
 

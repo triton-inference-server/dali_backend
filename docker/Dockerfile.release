@@ -67,24 +67,26 @@ RUN CMAKE_VERSION=3.17 && \
 
 WORKDIR /dali
 
+ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
+ARG DALI_DOWNLOAD_PKG_NAME
+ARG DALI_DOWNLOAD_VERSION
+
 COPY . .
 
 ARG TRITON_BACKEND_API_VERSION="r21.05"
-
-ARG DALI_DOWNLOAD_TYPE="release"
-ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
-ARG DALI_DOWNLOAD_VERSION
 
 RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
     cmake                                                                             \
       -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
       -D CMAKE_BUILD_TYPE=Release                                                     \
       -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
-      -D DALI_DOWNLOAD_TYPE=${DALI_DOWNLOAD_TYPE}                                     \
+      `if [ -n "${DALI_DOWNLOAD_PKG_NAME}" ]; then                                    \
+        echo -n "-D DALI_DOWNLOAD_PKG_NAME=${DALI_DOWNLOAD_PKG_NAME}";                \
+      fi`                                                                             \
       `if [ -n "${DALI_DOWNLOAD_EXTRA_INDEX_URL}" ]; then                             \
          echo -n "-D DALI_DOWNLOAD_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}"; \
       fi`                                                                             \
-      -D DALI_DOWNLOAD_VERSION=${DALI_DOWNLOAD_VERSION}                               \
+      -D DALI_VERSION=${DALI_DOWNLOAD_VERSION}                               \
       .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
