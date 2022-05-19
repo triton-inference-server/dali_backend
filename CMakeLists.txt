@@ -47,21 +47,24 @@ set(TRITON_CORE_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for tri
 set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for triton-inference-server/backend repo")
 
 set(DALI_VERSION "" CACHE STRING
-        "DALI version that should be downloaded by the build system.
-         By default the latest available DALI version will be downloaded.
-         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
-)
+    "DALI version that should be downloaded by the build system.
+    By default the latest available DALI version will be downloaded.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+
 set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
-        "URL of the Index, from which DALI will be downloaded by the build system.
-         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
-)
+    "URL of the Index, from which DALI will be downloaded by the build system.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+
 set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
-        "Extra options for `pip download` call, that downloads DALI wheel.
-         Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON."
-)
-if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+    "Extra options for `pip download` call, that downloads DALI wheel.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+
+if (${TRITON_DALI_SKIP_DOWNLOAD})
+    message(STATUS "Skipping DALI download.")
+else ()
     message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
     message(STATUS "Downloading DALI from: ${DALI_EXTRA_INDEX_URL}")
+    message(STATUS "Downloading DALI with extra options: ${DALI_DOWNLOAD_EXTRA_OPTIONS}")
 endif ()
 
 
@@ -103,6 +106,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-f
 if (WERROR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
+
+set(DALI_DOWNLOAD_PKG_NAME "nvidia-dali-cuda${CUDAToolkit_VERSION_MAJOR}0" CACHE STRING
+    "DALI pip package name to download.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 add_subdirectory(src)
 

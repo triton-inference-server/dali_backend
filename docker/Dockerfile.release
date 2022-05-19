@@ -65,21 +65,29 @@ RUN CMAKE_VERSION=3.17 && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
     rm -rf /cmake-${CMAKE_BUILD}
 
-RUN pip install --force-reinstall --extra-index-url https://developer.download.nvidia.com/compute/redist/nightly nvidia-dali-nightly-cuda110
-
 WORKDIR /dali
+
+ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
+ARG DALI_DOWNLOAD_PKG_NAME
+ARG DALI_DOWNLOAD_VERSION
+ARG DALI_DOWNLOAD_EXTRA_OPTIONS
 
 COPY . .
 
 ARG TRITON_BACKEND_API_VERSION="r21.05"
 
-RUN mkdir build_in_ci && cd build_in_ci && \
-    cmake                                                         \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                   \
-      -D CMAKE_BUILD_TYPE=Release                                 \
-      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
-      -D WERROR=ON                                                \
-      .. &&                                                       \
+RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
+    cmake                                                                             \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
+      -D CMAKE_BUILD_TYPE=Release                                                     \
+      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
+      ${DALI_DOWNLOAD_PKG_NAME:+                                                      \
+        -D DALI_DOWNLOAD_PKG_NAME=${DALI_DOWNLOAD_PKG_NAME}}                          \
+      ${DALI_DOWNLOAD_EXTRA_INDEX_URL:+                                               \
+        -D DALI_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}}                     \
+      -D DALI_VERSION=${DALI_DOWNLOAD_VERSION}                                        \
+      -D DALI_DOWNLOAD_EXTRA_OPTIONS="${DALI_DOWNLOAD_EXTRA_OPTIONS}"                 \
+      .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 WORKDIR /opt/tritonserver
