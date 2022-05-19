@@ -59,9 +59,12 @@ set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
     "Extra options for `pip download` call, that downloads DALI wheel.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+if (${TRITON_DALI_SKIP_DOWNLOAD})
+    message(STATUS "Skipping DALI download.")
+else ()
     message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
     message(STATUS "Downloading DALI from: ${DALI_EXTRA_INDEX_URL}")
+    message(STATUS "Downloading DALI with extra options: ${DALI_DOWNLOAD_EXTRA_OPTIONS}")
 endif ()
 
 
