@@ -51,7 +51,7 @@ set(DALI_VERSION "" CACHE STRING
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_DOWNLOAD_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
+set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
     "URL of the Index, from which DALI will be downloaded by the build system.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
@@ -61,7 +61,7 @@ set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
 
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
     message(STATUS "Building with DALI version (latest if empty): ${DALI_VERSION}")
-    message(STATUS "Downloading DALI from: ${DALI_DOWNLOAD_EXTRA_INDEX_URL}")
+    message(STATUS "Downloading DALI from: ${DALI_EXTRA_INDEX_URL}")
 endif ()
 
 
