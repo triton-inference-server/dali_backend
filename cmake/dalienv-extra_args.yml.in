@@ -5,4 +5,4 @@ dependencies:
   - pip:
       - --extra-index-url @DALI_EXTRA_INDEX_URL@
       - @EXTRA_DOWNLOAD_ARGS@
-      - @DALI_DOWNLOAD_PKG_NAME@
+      - @DALI_DOWNLOAD_PKG_NAME@==@DALI_VERSION@@
