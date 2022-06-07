@@ -28,6 +28,10 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 message(STATUS "Build configuration: " ${CMAKE_BUILD_TYPE})
 
+if (${TRITON_ENABLE_GPU})
+    find_package(CUDAToolkit REQUIRED)
+endif ()  # TRITON_ENABLE_GPU
+
 #
 # Options
 #
@@ -102,10 +106,6 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(repo-common repo-core repo-backend)
-
-if (${TRITON_ENABLE_GPU})
-    find_package(CUDAToolkit REQUIRED)
-endif ()  # TRITON_ENABLE_GPU
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
