@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2020-2022 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -50,6 +50,10 @@ else ()
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
 endif ()  # TRITON_DALI_SKIP_DOWNLOAD
 
+set(DALI_INCLUDE_DIR ${DALI_INCLUDE_DIR} PARENT_SCOPE)
+set(DALI_LIB_DIR ${DALI_LIB_DIR} PARENT_SCOPE)
+set(DALI_LIBRARIES ${DALI_LIBRARIES} PARENT_SCOPE)
+
 message(STATUS "DALI includes dir: " ${DALI_INCLUDE_DIR})
 message(STATUS "DALI libs dir: " ${DALI_LIB_DIR})
 message(STATUS "DALI libs: " ${DALI_LIBRARIES})
@@ -61,6 +65,7 @@ add_library(
         $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_whl>
 )
 
+set_property(TARGET dali_executor PROPERTY CXX_STANDARD 17)
 target_include_directories(dali_executor PUBLIC BEFORE
         ${tritondalibackend_SOURCE_DIR}
         ${DALI_INCLUDE_DIR})

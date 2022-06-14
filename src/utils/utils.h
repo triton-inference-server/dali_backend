@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 
 namespace triton { namespace backend { namespace dali {
 
@@ -64,6 +65,23 @@ inline int from_string<int>(const std::string& str) {
 template<>
 inline std::string from_string<std::string>(const std::string& str) {
   return str;
+}
+
+template <typename T>
+std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket = "{",
+                          const std::string &rbracket = "}", const std::string &delim = ", ") {
+  std::stringstream ss;
+  ss << lbracket.c_str();
+  auto it = vec.begin();
+  if (vec.size() > 0) {
+    ss << *it;
+    for (++it; it != vec.end(); ++it) {
+      ss << delim;
+      ss << *it;
+    }
+  }
+  ss << rbracket.c_str();
+  return ss.str();
 }
 
 }}}  // namespace triton::backend::dali

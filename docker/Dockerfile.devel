@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020-2021 NVIDIA CORPORATION
+# Copyright (c) 2020-2022 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -88,5 +88,7 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
       -D TRITON_DALI_SKIP_DOWNLOAD=ON                                                 \
       .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
+
+ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:/opt/tritonserver/backends/dali/dali:${LD_LIBRARY_PATH}
 
 WORKDIR /opt/tritonserver
