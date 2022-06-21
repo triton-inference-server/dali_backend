@@ -28,10 +28,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 message(STATUS "Build configuration: " ${CMAKE_BUILD_TYPE})
 
-if (${TRITON_ENABLE_GPU})
-    find_package(CUDAToolkit REQUIRED)
-endif ()  # TRITON_ENABLE_GPU
-
 #
 # Options
 #
@@ -64,10 +60,6 @@ set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" 
 
 set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
     "Extra options for `pip install` call, that downloads DALI wheel.
-    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-
-set(DALI_DOWNLOAD_PKG_NAME "nvidia-dali-cuda${CUDAToolkit_VERSION_MAJOR}0" CACHE STRING
-    "DALI pip package name to download.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 if (${TRITON_DALI_SKIP_DOWNLOAD})
@@ -107,9 +99,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(repo-common repo-core repo-backend)
 
+if (${TRITON_ENABLE_GPU})
+    find_package(CUDAToolkit REQUIRED)
+endif ()  # TRITON_ENABLE_GPU
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-local-typedefs")
+
+set(DALI_DOWNLOAD_PKG_NAME "nvidia-dali-cuda${CUDAToolkit_VERSION_MAJOR}0" CACHE STRING
+        "DALI pip package name to download.
+    Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
 if (WERROR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
