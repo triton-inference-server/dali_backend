@@ -26,7 +26,6 @@
 #include <dali/c_api.h>
 
 #include "src/dali_executor/io_descriptor.h"
-// #include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
