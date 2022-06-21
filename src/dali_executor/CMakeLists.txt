@@ -20,7 +20,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 set(
-    DALI_BACKEND_SRCS
+     DALI_BACKEND_SRCS
         dali_executor.cc
         dali_pipeline.cc
         io_buffer.cc
@@ -30,25 +30,27 @@ include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
 separate_arguments(EXTRA_DOWNLOAD_ARGS UNIX_COMMAND ${DALI_DOWNLOAD_EXTRA_OPTIONS})
 
-add_custom_command(  # Download and unpack DALI wheel
-    OUTPUT dali_whl
+if(EXTRA_DOWNLOAD_ARGS)
+    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv-extra_args.yml.in dalienv.yml @ONLY)
+else()
+    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
+endif()
+
+add_custom_command(
+    OUTPUT dali_env
     COMMAND
-        pip download ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
-          -d ${CMAKE_CURRENT_BINARY_DIR}
-          ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
-    COMMAND
-        unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
-    COMMAND touch dali_whl  # So that this command won't be re-run every time
-    COMMENT "Acquiring DALI release"
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv -q
+    COMMAND touch dali_env  # So that this command won't be re-run every time
+    COMMENT "Building DALI conda environment."
 )
 
-if (${TRITON_DALI_SKIP_DOWNLOAD})
+if(${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
-else ()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali)
+else()
+    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali/include)
+    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
-endif ()  # TRITON_DALI_SKIP_DOWNLOAD
+endif()  # TRITON_DALI_SKIP_DOWNLOAD
 
 message(STATUS "DALI includes dir: " ${DALI_INCLUDE_DIR})
 message(STATUS "DALI libs dir: " ${DALI_LIB_DIR})
@@ -58,7 +60,7 @@ add_library(
         dali_executor
         STATIC
         ${DALI_BACKEND_SRCS}
-        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_whl>
+        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_env>
 )
 
 target_include_directories(dali_executor PUBLIC BEFORE
