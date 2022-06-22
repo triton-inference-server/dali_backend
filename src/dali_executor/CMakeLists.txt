@@ -28,9 +28,7 @@ set(
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
-separate_arguments(EXTRA_DOWNLOAD_ARGS UNIX_COMMAND ${DALI_DOWNLOAD_EXTRA_OPTIONS})
-
-if(EXTRA_DOWNLOAD_ARGS)
+if(DALI_DOWNLOAD_EXTRA_OPTIONS)
     configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv-extra_args.yml.in dalienv.yml @ONLY)
 else()
     configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
