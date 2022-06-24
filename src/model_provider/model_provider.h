@@ -80,7 +80,8 @@ class FileModelProvider : public ModelProvider {
   std::string model_ = {};
 };
 
-#define STRINGIFY(x) #x
+#define STRINGIFY2(x) #x
+#define STRINGIFY(x) STRINGIFY2(x)
 
 namespace detail {
 

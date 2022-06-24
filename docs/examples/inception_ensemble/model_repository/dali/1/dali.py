@@ -21,9 +21,10 @@
 
 import nvidia.dali as dali
 import nvidia.dali.types as types
+from nvidia.dali.plugin.triton import autoserialize
 
 
-@dali.autoserialize
+@autoserialize
 @dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
 def pipe():
     images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
