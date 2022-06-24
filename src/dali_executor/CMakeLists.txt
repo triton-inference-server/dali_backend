@@ -20,7 +20,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 set(
-     DALI_BACKEND_SRCS
+    DALI_BACKEND_SRCS
         dali_executor.cc
         dali_pipeline.cc
         io_buffer.cc
@@ -73,17 +73,15 @@ target_link_libraries(dali_executor PUBLIC
         ${DALI_LIBRARIES})
 
 install(
-        DIRECTORY
-        ${DALI_LIB_DIR}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
+    DIRECTORY ${DALI_LIB_DIR}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
 )
 
 set(DALI_CONDA_ENVIRONMENT_DIR ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs)
 target_compile_definitions(dali_executor PUBLIC CONDA_ENVIRONMENT=${DALI_CONDA_ENVIRONMENT_DIR}/dalienv)
 
-install(
-        DIRECTORY
-        ${CMAKE_CURRENT_BINARY_DIR}/dalienv
-        DESTINATION ${DALI_CONDA_ENVIRONMENT_DIR}
-        USE_SOURCE_PERMISSIONS
-)
+if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
+            DESTINATION ${DALI_CONDA_ENVIRONMENT_DIR}
+            USE_SOURCE_PERMISSIONS)
+endif ()
