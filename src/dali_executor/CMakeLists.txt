@@ -37,7 +37,7 @@ endif()
 add_custom_command(
     OUTPUT dali_env
     COMMAND
-        conda env create -f dalienv.yml -p  ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
     COMMAND touch dali_env  # So that this command won't be re-run every time
     COMMENT "Building DALI conda environment."
 )
