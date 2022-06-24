@@ -80,13 +80,14 @@ class FileModelProvider : public ModelProvider {
   std::string model_ = {};
 };
 
+#define STRINGIFY(x) #x
 
 namespace detail {
 
 inline std::string GenerateAutoserializeCmd(const std::string& module_path,
                                             const std::string& target_file_path) {
   std::stringstream cmd;
-
+  cmd << STRINGIFY(CONDA_ENVIRONMENT) << "/bin/";
   cmd << R"py(python3 -c "
 import importlib, sys
 from nvidia.dali._utils.autoserialize import invoke_autoserialize

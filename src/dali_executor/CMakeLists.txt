@@ -37,7 +37,7 @@ endif()
 add_custom_command(
     OUTPUT dali_env
     COMMAND
-        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv -q
+        conda env create -f dalienv.yml -p  ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
     COMMAND touch dali_env  # So that this command won't be re-run every time
     COMMENT "Building DALI conda environment."
 )
@@ -76,4 +76,14 @@ install(
         DIRECTORY
         ${DALI_LIB_DIR}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
+)
+
+set(DALI_CONDA_ENVIRONMENT_DIR ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs)
+target_compile_definitions(dali_executor PUBLIC CONDA_ENVIRONMENT=${DALI_CONDA_ENVIRONMENT_DIR}/dalienv)
+
+install(
+        DIRECTORY
+        ${CMAKE_CURRENT_BINARY_DIR}/dalienv
+        DESTINATION ${DALI_CONDA_ENVIRONMENT_DIR}
+        USE_SOURCE_PERMISSIONS
 )

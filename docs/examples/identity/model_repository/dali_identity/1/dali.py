@@ -19,8 +19,8 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from nvidia.dali import pipeline_def
 from nvidia.dali import fn
+from nvidia.dali import pipeline_def
 from nvidia.dali.plugin.triton import autoserialize
 
 
