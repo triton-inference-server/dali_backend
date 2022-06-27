@@ -29,10 +29,15 @@ set(
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
 if(DALI_DOWNLOAD_EXTRA_OPTIONS)
-    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv-extra_args.yml.in dalienv.yml @ONLY)
-else()
-    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
+    set(CONF_DOWNLOAD_EXTRA_OPTIONS "- ${DALI_DOWNLOAD_EXTRA_OPTIONS}")
 endif()
+
+set(CONF_DOWNLOAD_PKG "${DALI_DOWNLOAD_PKG_NAME}")
+if(DALI_VERSION)
+    string(APPEND CONF_DOWNLOAD_PKG "==${DALI_VERSION}")
+endif()
+
+configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
 
 add_custom_command(
     OUTPUT dali_env

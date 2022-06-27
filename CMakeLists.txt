@@ -50,9 +50,6 @@ set(DALI_VERSION "" CACHE STRING
     "DALI version that should be downloaded by the build system.
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-if(NOT DALI_VERSION AND NOT TRITON_DALI_SKIP_DOWNLOAD)
-    file(READ ${tritondalibackend_SOURCE_DIR}/DALI_VERSION DALI_VERSION)
-endif()
 
 set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
     "URL of the Index, from which DALI will be downloaded by the build system.
@@ -61,16 +58,6 @@ set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" 
 set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
     "Extra options for `pip install` call, that downloads DALI wheel.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
-
-if (${TRITON_DALI_SKIP_DOWNLOAD})
-    message(STATUS "Skipping DALI download.")
-else ()
-    message(STATUS "Building with DALI version: ${DALI_VERSION}")
-    message(STATUS "DALI wheel extra index url: ${DALI_EXTRA_INDEX_URL}")
-    message(STATUS "DALI wheel package name: ${DALI_DOWNLOAD_PKG_NAME}")
-    message(STATUS "Downloading DALI with extra options: ${DALI_DOWNLOAD_EXTRA_OPTIONS}")
-endif ()
-
 
 # Dependencies
 #
@@ -110,6 +97,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-variable -Wno-unused-f
 set(DALI_DOWNLOAD_PKG_NAME "nvidia-dali-cuda${CUDAToolkit_VERSION_MAJOR}0" CACHE STRING
         "DALI pip package name to download.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
+
+if(NOT DALI_VERSION AND NOT DALI_DOWNLOAD_PKG_NAME MATCHES "nightly" AND NOT TRITON_DALI_SKIP_DOWNLOAD)
+    file(READ ${tritondalibackend_SOURCE_DIR}/DALI_VERSION DALI_VERSION)
+    string(STRIP "${DALI_VERSION}" DALI_VERSION)
+endif()
+
+if (${TRITON_DALI_SKIP_DOWNLOAD})
+    message(STATUS "Skipping DALI download.")
+else ()
+    message(STATUS "Building with DALI version: ${DALI_VERSION}")
+    message(STATUS "DALI wheel extra index url: ${DALI_EXTRA_INDEX_URL}")
+    message(STATUS "DALI wheel package name: ${DALI_DOWNLOAD_PKG_NAME}")
+    message(STATUS "Downloading DALI with extra options: ${DALI_DOWNLOAD_EXTRA_OPTIONS}")
+endif ()
 
 if (WERROR)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
