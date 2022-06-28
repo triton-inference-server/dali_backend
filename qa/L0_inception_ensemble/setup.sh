@@ -22,6 +22,5 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/inception_ensemble/model_repository model_repository/
-cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/inception_ensemble/inception_pipeline.py inception_pipeline.py
 
 bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/inception_ensemble/setup_inception_example.sh

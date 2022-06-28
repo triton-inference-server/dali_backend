@@ -7,11 +7,7 @@ by changing `device` parameter for `dali.fn.external_source` operator.
 
 ## Setting up the model
 
-To set up the model, you need to serialize DALI pipeline.
-`indentity_pipeline.py` shows, how to do it. Just call `serialize` method
-on created Pipeline object.
-
-To set up the model repo automatically, you can call `setup_identity_example.sh` script.
+This example does not need any setting up.
 
 ## Remember
 
