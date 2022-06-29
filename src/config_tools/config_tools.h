@@ -38,7 +38,7 @@ struct IOConfig {
   dali_data_type_t dtype;
   std::optional<std::vector<int64_t>> shape;
 
-  explicit IOConfig(const std::string &name, 
+  explicit IOConfig(const std::string &name,
                     dali_data_type_t dtype = DALI_NO_TYPE,
                     std::optional<std::vector<int64_t>> shape = {})
     : name(name)
@@ -77,9 +77,9 @@ std::vector<int64_t> ReadShape(TritonJson::Value &dims_array);
 
 /**
  * @brief Match shapes from config file and pipeline and return the result of matching.
- * 
+ *
  * e.g. shapes [-1, 2, -1] and [-1, -1, 3] will match to [-1, 2, 3]
- * 
+ *
  * Throws an error when shapes cannot be matched.
  */
 std::vector<int64_t> MatchShapes(const std::string &name,
@@ -108,7 +108,7 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
  * and outputs the result of matching to resulting_dims.
  */
 void AutofillShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                         const std::optional<std::vector<int64_t>> &shape, 
+                         const std::optional<std::vector<int64_t>> &shape,
                          TritonJson::Value &resulting_dims);
 
 /**
@@ -118,7 +118,7 @@ void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
                          const std::optional<std::vector<int64_t>> &shape);
 
 /**
- * @brief Validates IO object against provided config values 
+ * @brief Validates IO object against provided config values
  * and outputs auto-configured IO object to new_io_object.
  */
 void AutofillIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
@@ -132,7 +132,7 @@ void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config);
 
 
 /**
- * @brief Validates inputs array against provided config values 
+ * @brief Validates inputs array against provided config values
  * auto outputs auto-configured array to new_ios.
  */
 void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig> &in_configs,
@@ -140,7 +140,7 @@ void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig>
 
 
 /**
- * @brief Validates outputs array against provided config values 
+ * @brief Validates outputs array against provided config values
  * auto outputs auto-configured array to new_ios.
  */
 void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfig> &out_configs,

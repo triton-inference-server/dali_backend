@@ -1,0 +1,7 @@
+name: dalienv
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+      - --extra-index-url @DALI_EXTRA_INDEX_URL@
+      - @DALI_DOWNLOAD_PKG_NAME@==@DALI_VERSION@

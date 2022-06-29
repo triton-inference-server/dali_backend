@@ -31,7 +31,6 @@
 #include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/io_descriptor.h"
 
-
 namespace triton { namespace backend { namespace dali {
 
 

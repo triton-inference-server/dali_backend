@@ -19,26 +19,13 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import nvidia.dali as dali
+from nvidia.dali import fn
+from nvidia.dali import pipeline_def
+from nvidia.dali.plugin.triton import autoserialize
 
 
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
-    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
-    return parser.parse_args()
-
-
-@dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
+@autoserialize
+@pipeline_def(batch_size=3, num_threads=1, device_id=0)
 def pipe():
-    data = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+    data = fn.external_source(device="cpu", name="DALI_INPUT_0")
     return data
-
-
-def main(filename):
-    pipe().serialize(filename=filename)
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    main(args.file_path)

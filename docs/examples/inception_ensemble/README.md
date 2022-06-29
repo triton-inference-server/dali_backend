@@ -16,13 +16,13 @@ models: DALI model for image preprocessing and InceptionV3 model for
 actual inference.  For more info on ensembling, refer to [Triton
 docs](https://github.com/triton-inference-server/server/blob/master/docs/architecture.md#ensemble-models).
 
+## Autoserialization
+
+This example present the autoserialization feature in DALI Backend. The `dali.py` file contains a definition of DALI Pipeline. In general, user would need to serialize this pipeline to `model.dali` file. However, leveraging the autoserialization, DALI Backend will serialize the model itself. For more details about autoserialization, please refer to `@autoserialize` documentation.
+
 ## Run the example
 
-To run the example, please follow these simple steps:
-1. Download InceptionV3 model into the model repo
-1. Serialize DALI pipeline and put it inside model repo.
-
-Both of the step above are presented in the `setup_inception_example.sh`
+To run the example, you have to download InceptionV3 model into the model repo. Please refer to `setup_inception_example.sh` for details, how to do this.
 
 ## Remember
 

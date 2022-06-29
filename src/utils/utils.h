@@ -23,9 +23,11 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
-#include <vector>
+#include <ctime>
 #include <string>
 #include <sstream>
+#include <vector>
+#include <iomanip>
 
 namespace triton { namespace backend { namespace dali {
 
@@ -82,6 +84,14 @@ std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket
   }
   ss << rbracket.c_str();
   return ss.str();
+}
+
+inline std::string timestamp() {
+  std::time_t t = std::time(nullptr);
+  std::tm tm = *std::localtime(&t);
+  std::stringstream timestamp;
+  timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
+  return timestamp.str();
 }
 
 }}}  // namespace triton::backend::dali

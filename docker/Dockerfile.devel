@@ -29,9 +29,8 @@ ARG TRITON_VERSION=22.04
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
-
-# Manually update the keys to NVIDIA repository because they are outdated in the base image
 RUN apt-key adv --fetch-keys \
+    # Manually update the keys to NVIDIA repository because they are outdated in the base image
     https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update                                && \
     apt-get install -y software-properties-common && \
@@ -56,14 +55,30 @@ RUN pip3 install -U pip
 WORKDIR /opt
 
 # CMake
-RUN CMAKE_VERSION=3.17 && \
-    CMAKE_BUILD=3.17.4 && \
+RUN CMAKE_VERSION=3.18 && \
+    CMAKE_BUILD=3.18.6 && \
     wget -nv https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_BUILD}.tar.gz && \
     tar -xf cmake-${CMAKE_BUILD}.tar.gz && \
     cd cmake-${CMAKE_BUILD} && \
     ./bootstrap --parallel=$(grep ^processor /proc/cpuinfo | wc -l) -- -DCMAKE_USE_OPENSSL=OFF && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
     rm -rf /cmake-${CMAKE_BUILD}
+
+# Miniconda
+ENV PATH="/opt/conda/bin:${PATH}"
+RUN MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh"; \
+    SHA256SUM="3190da6626f86eee8abf1b2fd7a5af492994eb2667357ee4243975cdbb175d7a"; \
+    wget "${MINICONDA_URL}" -O miniconda.sh -q && \
+    echo "${SHA256SUM} miniconda.sh" > shasum && \
+    sha256sum -c ./shasum && \
+    sh miniconda.sh -b -p /opt/conda && \
+    rm miniconda.sh shasum && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc && \
+    find /opt/conda/ -follow -type f -name '*.a' -delete && \
+    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
+    /opt/conda/bin/conda clean -afy
 
 WORKDIR /dali
 
@@ -80,13 +95,13 @@ COPY . .
 
 ARG TRITON_BACKEND_API_VERSION="r21.05"
 
-RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
-    cmake                                                                             \
-      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
-      -D CMAKE_BUILD_TYPE=Debug                                                       \
-      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
-      -D TRITON_DALI_SKIP_DOWNLOAD=ON                                                 \
-      .. &&                                                                           \
+RUN mkdir build_in_ci && cd build_in_ci && \
+    cmake                                                         \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                   \
+      -D CMAKE_BUILD_TYPE=Debug                                   \
+      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
+      -D TRITON_DALI_SKIP_DOWNLOAD=ON                             \
+      .. &&                                                       \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:/opt/tritonserver/backends/dali/dali:${LD_LIBRARY_PATH}

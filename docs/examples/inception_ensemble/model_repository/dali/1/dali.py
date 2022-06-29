@@ -21,15 +21,10 @@
 
 import nvidia.dali as dali
 import nvidia.dali.types as types
+from nvidia.dali.plugin.triton import autoserialize
 
 
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
-    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
-    return parser.parse_args()
-
-
+@autoserialize
 @dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
 def pipe():
     images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
@@ -42,12 +37,3 @@ def pipe():
                                            mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
                                            std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
     return images
-
-
-def main(filename):
-    pipe().serialize(filename=filename)
-
-
-if __name__ == '__main__':
-    args = parse_args()
-    main(args.file_path)

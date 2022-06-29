@@ -167,6 +167,14 @@ class DaliPipeline {
     }
   }
 
+  /**
+   * Checks, whether the string contains a formally valid DALI pipeline.
+   * @return True, if `serialized_pipeline `is a formally valid DALI pipeline.
+   */
+  static bool ValidateDaliPipeline(const std::string& serialized_pipeline) {
+    return 0 == daliIsDeserializable(serialized_pipeline.c_str(), serialized_pipeline.length());
+  }
+
 
  private:
   /**

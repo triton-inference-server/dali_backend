@@ -28,27 +28,27 @@ set(
 
 include(${tritondalibackend_SOURCE_DIR}/cmake/dali.cmake)
 
-separate_arguments(EXTRA_DOWNLOAD_ARGS UNIX_COMMAND ${DALI_DOWNLOAD_EXTRA_OPTIONS})
+if(DALI_DOWNLOAD_EXTRA_OPTIONS)
+    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv-extra_args.yml.in dalienv.yml @ONLY)
+else()
+    configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
+endif()
 
-add_custom_command(  # Download and unpack DALI wheel
-    OUTPUT dali_whl
+add_custom_command(
+    OUTPUT dali_env
     COMMAND
-        pip download ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
-          -d ${CMAKE_CURRENT_BINARY_DIR}
-          ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
-    COMMAND
-        unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
-    COMMAND touch dali_whl  # So that this command won't be re-run every time
-    COMMENT "Acquiring DALI release"
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
+    COMMAND touch dali_env  # So that this command won't be re-run every time
+    COMMENT "Building DALI conda environment."
 )
 
-if (${TRITON_DALI_SKIP_DOWNLOAD})
+if(${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
-else ()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali)
+else()
+    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali/include)
+    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
-endif ()  # TRITON_DALI_SKIP_DOWNLOAD
+endif()  # TRITON_DALI_SKIP_DOWNLOAD
 
 set(DALI_INCLUDE_DIR ${DALI_INCLUDE_DIR} PARENT_SCOPE)
 set(DALI_LIB_DIR ${DALI_LIB_DIR} PARENT_SCOPE)
@@ -62,7 +62,7 @@ add_library(
         dali_executor
         STATIC
         ${DALI_BACKEND_SRCS}
-        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_whl>
+        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_env>
 )
 
 set_property(TARGET dali_executor PROPERTY CXX_STANDARD 17)
@@ -78,7 +78,15 @@ target_link_libraries(dali_executor PUBLIC
         ${DALI_LIBRARIES})
 
 install(
-        DIRECTORY
-        ${DALI_LIB_DIR}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
+    DIRECTORY ${DALI_LIB_DIR}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
 )
+
+set(DALI_CONDA_ENVIRONMENT_DIR ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs)
+target_compile_definitions(dali_executor PUBLIC CONDA_ENVIRONMENT=${DALI_CONDA_ENVIRONMENT_DIR}/dalienv)
+
+if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
+            DESTINATION ${DALI_CONDA_ENVIRONMENT_DIR}
+            USE_SOURCE_PERMISSIONS)
+endif ()

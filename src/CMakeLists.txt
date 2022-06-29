@@ -27,6 +27,7 @@ add_library(
         triton-dali-backend-utils STATIC
         utils/triton.cc
         config_tools/config_tools.cc
+        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_env>
 )
 
 target_include_directories(

@@ -59,6 +59,7 @@ std::string to_triton_config(dali_data_type_t type) {
   }
 }
 
+
 void SetShapeArray(TritonJson::Value &array, const std::vector<int64_t> &dims) {
   TRITON_CALL(array.AssertType(TritonJson::ValueType::ARRAY));
   ENFORCE(array.ArraySize() <= dims.size(), "SetShapeArray expects the initial array size to be "
@@ -104,6 +105,7 @@ std::vector<int64_t> ReadShape(TritonJson::Value &dims_array) {
   return result;
 }
 
+
 std::vector<int64_t> MatchShapes(const std::string &name,
                                  const std::vector<int64_t> &config_shape,
                                  const std::vector<int64_t> &pipeline_shape) {
@@ -130,6 +132,7 @@ std::vector<int64_t> MatchShapes(const std::string &name,
   }
   return result;
 }
+
 
 template <bool allow_missing>
 std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &name,
@@ -162,6 +165,7 @@ std::string AutofillDtypeConfig(TritonJson::Value &io_object, const std::string 
   return ProcessDtypeConfig<true>(io_object, name, dtype);
 }
 
+
 void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
                         dali_data_type_t dtype) {
   ProcessDtypeConfig<false>(io_object, name, dtype);
@@ -170,7 +174,7 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
 
 template <bool allow_missing>
 void ProcessShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                        const std::optional<std::vector<int64_t>> &shape, 
+                        const std::optional<std::vector<int64_t>> &shape,
                         TritonJson::Value &resulting_dims) {
   TritonJson::Value dims_obj;
   if (io_object.MemberAsArray("dims", &dims_obj) == TRITONJSON_STATUSSUCCESS) {
@@ -194,7 +198,7 @@ void ProcessShapeConfig(TritonJson::Value &io_object, const std::string &name,
 
 
 void AutofillShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                         const std::optional<std::vector<int64_t>> &shape, 
+                         const std::optional<std::vector<int64_t>> &shape,
                          TritonJson::Value &resulting_dims) {
   ProcessShapeConfig<true>(io_object, name, shape, resulting_dims);
 }
@@ -253,7 +257,7 @@ void AutofillIOsConfig(TritonJson::Value &ios, const std::vector<IOConfig> &io_c
 
     if (input) {
       bool ragged_batches;
-      if (io_object.MemberAsBool("allow_ragged_batches", &ragged_batches) 
+      if (io_object.MemberAsBool("allow_ragged_batches", &ragged_batches)
             == TRITONJSON_STATUSSUCCESS) {
         new_io_objs[io_index].AddBool("allow_ragged_batches", ragged_batches);
       } else {
@@ -278,6 +282,7 @@ void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfi
                            TritonJson::Value &new_ios) {
   AutofillIOsConfig<false>(outputs, out_configs, new_ios);
 }
+
 
 void ValidateIOsConfig(TritonJson::Value &ios, const std::vector<IOConfig> &io_configs) {
   TRITON_CALL(ios.AssertType(common::TritonJson::ValueType::ARRAY));

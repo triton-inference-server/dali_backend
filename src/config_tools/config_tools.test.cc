@@ -143,7 +143,7 @@ TEST_CASE("IO auto config") {
   IOConfig io_config_full("io", DALI_FLOAT, {{-1, -1, 3}});
   IOConfig io_config_notype("io", DALI_NO_TYPE, {{-1, -1, 3}});
   IOConfig io_config_noshape("io", DALI_FLOAT, {});
-  
+
   TritonJson::Value io_empty;
   TRITON_CALL(io_empty.Parse(R"json({})json"));
 
@@ -231,7 +231,7 @@ TEST_CASE("IOs validation") {
   },
   {
     "name": "io2",
-    "dims": [1, 1], 
+    "dims": [1, 1],
     "data_type": "TYPE_FP16"
   }
   ])json"));
