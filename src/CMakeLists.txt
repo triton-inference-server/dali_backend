@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020-2021 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2020-2022 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -24,25 +24,45 @@ configure_file(libtriton_dali.ldscript libtriton_dali.ldscript COPYONLY)
 add_subdirectory(dali_executor)
 
 add_library(
+        triton-dali-backend-utils STATIC
+        utils/triton.cc
+        config_tools/config_tools.cc
+)
+
+target_include_directories(
+        triton-dali-backend-utils PUBLIC
+        ${tritondalibackend_SOURCE_DIR}
+        ${DALI_INCLUDE_DIR}
+)
+
+target_link_libraries(
+        triton-dali-backend-utils PUBLIC
+        triton-core-serverstub
+        triton-backend-utils
+        dali_executor
+)
+
+set_target_properties(triton-dali-backend-utils PROPERTIES CXX_STANDARD 17)
+
+
+add_library(
         triton-dali-backend SHARED
         dali_backend.cc
         dali_model_instance.cc
         dali_model.cc
-        utils/triton.cc
 )
 
 add_library(
         TritonDaliBackend::triton-dali-backend ALIAS triton-dali-backend
 )
 
+
 target_include_directories(
         triton-dali-backend
         PRIVATE
         ${tritondalibackend_SOURCE_DIR}
-        ${DALI_INCLUDE_DIR}
 )
 
-target_compile_features(triton-dali-backend PRIVATE cxx_std_14)
 target_compile_options(
         triton-dali-backend PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
@@ -52,9 +72,8 @@ target_compile_options(
 target_link_libraries(
         triton-dali-backend
         PRIVATE
-        triton-core-serverstub  # from repo-core
-        triton-backend-utils    # from repo-backend
         dali_executor
+        triton-dali-backend-utils
 )
 
 set_target_properties(
@@ -68,6 +87,7 @@ set_target_properties(
             BUILD_WITH_INSTALL_RPATH TRUE
             INSTALL_RPATH_USE_LINK_PATH FALSE
             INSTALL_RPATH "$\{ORIGIN\}/dali"
+            CXX_STANDARD 17
 )
 
 set(
@@ -76,7 +96,17 @@ set(
         dali_executor/executor.test.cc
         dali_executor/io_buffer.test.cc
         utils/utils.test.cc
+        config_tools/config_tools.test.cc
 )
 
 add_executable(unittests ${DALI_BACKEND_TEST_SRCS})
-target_link_libraries(unittests Catch2::Catch2 dali_executor ${CMAKE_DL_LIBS})
+target_link_libraries(
+        unittests
+        PRIVATE
+        Catch2::Catch2
+        dali_executor
+        triton-dali-backend-utils
+        ${CMAKE_DL_LIBS}
+)
+
+set_target_properties(unittests PROPERTIES CXX_STANDARD 17)

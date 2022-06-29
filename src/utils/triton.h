@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION
+// Copyright (c) 2021-2022 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,9 @@
 #ifndef DALI_BACKEND_UTILS_TRITON_H_
 #define DALI_BACKEND_UTILS_TRITON_H_
 
+#include <dali/c_api.h>
+
 #include "src/dali_executor/io_descriptor.h"
-#include "src/dali_executor/utils/dali.h"
 #include "src/dali_executor/utils/utils.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
@@ -119,6 +120,18 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
   static TritonError Unknown(const std::string &msg) {
     auto err =
         TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_UNKNOWN, msg.c_str());
+    return TritonError(err);
+  }
+
+  static TritonError InvalidArg(const std::string &msg) {
+    auto err = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INVALID_ARG,
+                                     msg.c_str());
+    return TritonError(err);
+  }
+
+  static TritonError Internal(const std::string &msg) {
+    auto err = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INTERNAL,
+                                     msg.c_str());
     return TritonError(err);
   }
 

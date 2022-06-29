@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include <ctime>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <iomanip>
 
@@ -67,6 +68,24 @@ template<>
 inline std::string from_string<std::string>(const std::string& str) {
   return str;
 }
+
+template <typename T>
+std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket = "{",
+                          const std::string &rbracket = "}", const std::string &delim = ", ") {
+  std::stringstream ss;
+  ss << lbracket;
+  auto it = vec.begin();
+  if (vec.size() > 0) {
+    ss << *it;
+    for (++it; it != vec.end(); ++it) {
+      ss << delim;
+      ss << *it;
+    }
+  }
+  ss << rbracket;
+  return ss.str();
+}
+
 
 inline std::string timestamp() {
   std::time_t t = std::time(nullptr);
