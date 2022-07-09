@@ -82,12 +82,9 @@ install(
     DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
 )
 
-set(DALI_CONDA_ENVIRONMENT_DIR /opt/tritonserver/backends/dali/conda/envs)
-target_compile_definitions(dali_executor PUBLIC CONDA_ENVIRONMENT=${DALI_CONDA_ENVIRONMENT_DIR}/dalienv)
-message(STATUS "Conda environment location: ${DALI_CONDA_ENVIRONMENT_DIR}")
-
+target_compile_definitions(dali_executor PUBLIC CONDA_ENVIRONMENT=/opt/tritonserver/backends/dali/conda/envs/dalienv)
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
     install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
-            DESTINATION ${DALI_CONDA_ENVIRONMENT_DIR}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs
             USE_SOURCE_PERMISSIONS)
 endif ()
