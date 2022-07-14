@@ -29,12 +29,14 @@ namespace triton { namespace backend { namespace dali { namespace test {
 
 using Catch::Matchers::Contains;
 
-static void CheckIOConfigEquals(TritonJson::Value &io, IOConfig io_config) {
+static void CheckIOConfigEquals(TritonJson::Value &io, IOConfig io_config, bool compare_names = true) {
   CHECK(io.AssertType(TritonJson::ValueType::OBJECT) == TRITONJSON_STATUSSUCCESS);
 
-  std::string name;
-  CHECK(io.MemberAsString("name", &name) == TRITONJSON_STATUSSUCCESS);
-  CHECK(name == io_config.name);
+  if (compare_names) {
+    std::string name;
+    CHECK(io.MemberAsString("name", &name) == TRITONJSON_STATUSSUCCESS);
+    CHECK(name == io_config.name);
+  }
 
   TritonJson::Value dims(TritonJson::ValueType::ARRAY);
   if (!io_config.shape) {
@@ -113,31 +115,79 @@ TEST_CASE("IO config validation") {
   }
 }
 
-TEST_CASE("IOs config validation") {
-  TritonJson::Value ios;
+
+TEST_CASE("Inputs validation") {
+  TritonJson::Value ios(TritonJson::ValueType::ARRAY);
   TRITON_CALL(ios.Parse(R"json([
-    {
-      "name": "io1",
-      "dims": [3, 2, 1],
-      "data_type": "TYPE_FP32"
-    },
-    {
-      "name": "io0",
-      "dims": [1, 2, -1],
-      "data_type": "TYPE_FP16"
-    }
+  {
+    "name": "i1",
+    "dims": [3, 2, 3],
+    "data_type": "TYPE_FP32"
+  },
+  {
+    "name": "i2",
+    "dims": [1, 1],
+    "data_type": "TYPE_FP16"
+  }
   ])json"));
 
   SECTION("Correct config") {
-    ValidateIOsConfig(ios, {IOConfig("io0"), IOConfig("io1")});
+    std::vector<IOConfig> ios_config = {
+      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+      IOConfig("i2", DALI_FLOAT16, {{1, 1}})
+    };
+    ValidateInputs(ios, ios_config);
   }
 
-  SECTION("Missing config") {
-    REQUIRE_THROWS_WITH(
-      (ValidateIOsConfig(ios, {IOConfig("io0"), IOConfig("io1"), IOConfig("io3")})),
-      Contains("Missing config for \"io3\""));
+  SECTION("Missing input") {
+    std::vector<IOConfig> ios_config = {
+      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+      IOConfig("i2", DALI_FLOAT16, {{1, 1}}),
+      IOConfig("i3", DALI_UINT16, {{1}})
+    };
+
+    REQUIRE_THROWS_WITH(ValidateInputs(ios, ios_config),
+                        Contains("Missing config for \"i3\""));
   }
 }
+
+
+TEST_CASE("Outputs validation") {
+  TritonJson::Value ios(TritonJson::ValueType::ARRAY);
+  TRITON_CALL(ios.Parse(R"json([
+  {
+    "name": "o1",
+    "dims": [3, 2, 3],
+    "data_type": "TYPE_FP32"
+  },
+  {
+    "name": "o2",
+    "dims": [1, 1],
+    "data_type": "TYPE_FP16"
+  }
+  ])json"));
+
+  SECTION("Correct config") {
+    std::vector<IOConfig> ios_config = {
+      IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+      IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}})
+    };
+    ValidateOutputs(ios, ios_config);
+  }
+
+  SECTION("Missing output") {
+    std::vector<IOConfig> ios_config = {
+      IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+      IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}}),
+      IOConfig("Pipe_o3", DALI_UINT16, {{1}})
+    };
+
+    REQUIRE_THROWS_WITH(ValidateOutputs(ios, ios_config),
+                        Contains("Invalid number of outputs in the configuration file: 2"
+                                 "\nProvided pipeline has 3 outputs."));
+  }
+}
+
 
 TEST_CASE("IO auto config") {
   IOConfig io_config_full("io", DALI_FLOAT, {{-1, -1, 3}});
@@ -221,67 +271,33 @@ TEST_CASE("IO auto config") {
   }
 }
 
-TEST_CASE("IOs validation") {
+
+TEST_CASE("Inputs auto-config") {
   TritonJson::Value ios(TritonJson::ValueType::ARRAY);
   TRITON_CALL(ios.Parse(R"json([
   {
-    "name": "io1",
-    "dims": [3, 2, 3],
-    "data_type": "TYPE_FP32"
-  },
-  {
-    "name": "io2",
-    "dims": [1, 1],
-    "data_type": "TYPE_FP16"
-  }
-  ])json"));
-
-  SECTION("Correct config") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("io1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("io2", DALI_FLOAT16, {{1, 1}})
-    };
-    ValidateIOsConfig(ios, ios_config);
-  }
-
-  SECTION("Missing input") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("io1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("io2", DALI_FLOAT16, {{1, 1}}),
-      IOConfig("io3", DALI_UINT16, {{1}})
-    };
-
-    REQUIRE_THROWS_WITH(ValidateIOsConfig(ios, ios_config),
-                        Contains("Missing config for \"io3\""));
-  }
-}
-
-TEST_CASE("IOs auto-config") {
-  TritonJson::Value ios(TritonJson::ValueType::ARRAY);
-  TRITON_CALL(ios.Parse(R"json([
-  {
-    "name": "io1",
+    "name": "i1",
     "dims": [3, 2, 3],
     "data_type": "TYPE_FP32",
     "allow_ragged_batches": true
   },
   {
-    "name": "io2",
+    "name": "i2",
     "dims": [5, 5]
   }
   ])json"));
 
-  std::vector<IOConfig> ios_config = {
-    IOConfig("io1", DALI_FLOAT, {{3, 2, 3}}),
-    IOConfig("io2", DALI_FLOAT16, {{5, 5}}),
-    IOConfig("io3", DALI_UINT16, {{4}})
-  };
-
   SECTION("Inputs auto-config") {
-    TritonJson::Value inputs_conf(TritonJson::ValueType::ARRAY);
-    AutofillInputsConfig(ios, ios_config, inputs_conf);
+    std::vector<IOConfig> ins_config = {
+      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+      IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
+      IOConfig("i3", DALI_UINT16, {{4}})
+    };
 
-    for (auto &config: ios_config) {
+    TritonJson::Value inputs_conf(TritonJson::ValueType::ARRAY);
+    AutofillInputsConfig(ios, ins_config, inputs_conf);
+
+    for (auto &config: ins_config) {
       TritonJson::Value inp_object;
       REQUIRE(FindObjectByName(inputs_conf, config.name, &inp_object));
       bool ragged_batches;
@@ -293,15 +309,234 @@ TEST_CASE("IOs auto-config") {
     }
   }
 
+  SECTION("Inputs auto-config, reordered") {
+    std::vector<IOConfig> ins_config = {
+      IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
+      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+    };
+
+    TritonJson::Value inputs_conf(TritonJson::ValueType::ARRAY);
+    AutofillInputsConfig(ios, ins_config, inputs_conf);
+
+
+    // New config keeps the order of inputs from the original config
+    TritonJson::Value inp_object;
+    REQUIRE(inputs_conf.IndexAsObject(0, &inp_object) == TRITONJSON_STATUSSUCCESS);
+    bool ragged_batches;
+    REQUIRE(
+      inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+    );
+    REQUIRE(ragged_batches);
+    CheckIOConfigEquals(inp_object, IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}));
+
+    REQUIRE(inputs_conf.IndexAsObject(1, &inp_object) == TRITONJSON_STATUSSUCCESS);
+    REQUIRE(
+      inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+    );
+    REQUIRE(ragged_batches);
+    CheckIOConfigEquals(inp_object, IOConfig("i2", DALI_FLOAT16, {{5, 5}}));
+  }
+}
+
+TEST_CASE("Outputs auto-config") {
+  TritonJson::Value outs(TritonJson::ValueType::ARRAY);
+  TRITON_CALL(outs.Parse(R"json([
+  {
+    "name": "o1",
+    "dims": [3, 2, 3],
+    "data_type": "TYPE_FP32"
+  },
+  {
+    "name": "o2",
+    "dims": [5, 5]
+  }
+  ])json"));
+
+  std::vector<IOConfig> outs_config = {
+    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+    IOConfig("Pipe_o2", DALI_FLOAT16, {{5, 5}}),
+    IOConfig("Pipe_o3", DALI_UINT16, {{4}})
+  };
+
+
   SECTION("Outputs auto-config") {
     TritonJson::Value outputs_conf(TritonJson::ValueType::ARRAY);
-    AutofillInputsConfig(ios, ios_config, outputs_conf);
+    AutofillOutputsConfig(outs, outs_config, outputs_conf);
 
-    for (auto &config: ios_config) {
+    // In case of outputs, names from the config file take precedence and
+    // override the names coming from the pipeline
+    std::vector<std::string> names_order = {"o1", "o2", "Pipe_o3"};
+    REQUIRE(outputs_conf.ArraySize() == 3);
+    for (size_t i = 0; i < outputs_conf.ArraySize(); ++i) {
       TritonJson::Value out_object;
-      REQUIRE(FindObjectByName(outputs_conf, config.name, &out_object));
-      CheckIOConfigEquals(out_object, config);
+      REQUIRE(outputs_conf.IndexAsObject(i, &out_object) == TRITONJSON_STATUSSUCCESS);
+      std::string name;
+      REQUIRE(out_object.MemberAsString("name", &name) == TRITONJSON_STATUSSUCCESS);
+      REQUIRE(name == names_order[i]);
+      CheckIOConfigEquals(out_object, outs_config[i], false);
     }
+  }
+}
+
+
+TEST_CASE("Read max_batch_size") {
+  SECTION("correct bs") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+    "max_batch_size": 32,
+    "input": [
+      {
+        "name": "i1",
+        "dims": [3, 2, 3],
+        "data_type": "TYPE_FP32",
+        "allow_ragged_batches": true
+      },
+      {
+        "name": "i2",
+        "dims": [5, 5]
+      }
+    ],
+    "output": [
+      {
+        "name": "o1",
+        "dims": [3, 2, 3],
+        "data_type": "TYPE_FP32"
+      },
+      {
+        "name": "o2",
+        "dims": [5, 5]
+      }
+    ]
+    })json"));
+
+    REQUIRE(ReadMaxBatchSize(config) == 32);
+  }
+
+  SECTION("incorrect bs") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+    "max_batch_size": -2,
+    "input": [
+      {
+        "name": "i1",
+        "dims": [3, 2, 3],
+        "data_type": "TYPE_FP32",
+        "allow_ragged_batches": true
+      },
+      {
+        "name": "i2",
+        "dims": [5, 5]
+      }
+    ],
+    "output": [
+      {
+        "name": "o1",
+        "dims": [3, 2, 3],
+        "data_type": "TYPE_FP32"
+      },
+      {
+        "name": "o2",
+        "dims": [5, 5]
+      }
+    ]
+    })json"));
+
+    REQUIRE_THROWS_WITH(ReadMaxBatchSize(config),
+                        Contains("Invalid value of max_batch_size: -2"));
+  }
+}
+
+
+TEST_CASE("Validate config") {
+  std::vector<IOConfig> ins_config = {
+    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}})
+  };
+
+  std::vector<IOConfig> outs_config = {
+    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}})
+  };
+
+  SECTION("correct config") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+      "max_batch_size": 1,
+      "input": [
+        {
+          "name": "i1",
+          "dims": [3, 2, 1],
+          "data_type": "TYPE_FP16",
+          "allow_ragged_batches": true
+        }
+      ],
+      "output": [
+        {
+          "name": "o1",
+          "dims": [3, 2, 3],
+          "data_type": "TYPE_FP32"
+        }
+      ]
+    })json"));
+
+    ValidateConfig(config, ins_config, outs_config);
+  }
+
+  SECTION("missing inputs") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+      "max_batch_size": 1,
+      "output": [
+        {
+          "name": "o1",
+          "dims": [3, 2, 3],
+          "data_type": "TYPE_FP32"
+        }
+      ]
+    })json"));
+
+    REQUIRE_THROWS_WITH(ValidateConfig(config, ins_config, outs_config),
+                        Contains("Missing inputs config."));
+  }
+
+  SECTION("missing outputs") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+      "max_batch_size": 1,
+      "input": [
+        {
+          "name": "i1",
+          "dims": [3, 2, 1],
+          "data_type": "TYPE_FP16",
+          "allow_ragged_batches": true
+        }
+      ]
+    })json"));
+
+    REQUIRE_THROWS_WITH(ValidateConfig(config, ins_config, outs_config),
+                        Contains("Missing outputs config."));
+  }
+
+  SECTION("missing max_batch_size") {
+    TritonJson::Value config(TritonJson::ValueType::OBJECT);
+    TRITON_CALL(config.Parse(R"json({
+      "input": [
+        {
+          "name": "i1",
+          "dims": [3, 2, 1],
+          "data_type": "TYPE_FP16",
+          "allow_ragged_batches": true
+        }
+      ],
+      "output": [
+        {
+          "name": "o1",
+          "dims": [3, 2, 3],
+          "data_type": "TYPE_FP32"
+        }
+      ]
+    })json"));
+
+    REQUIRE_THROWS_WITH(ValidateConfig(config, ins_config, outs_config),
+                        Contains("Missing max_batch_size config."));
   }
 }
 

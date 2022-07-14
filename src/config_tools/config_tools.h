@@ -38,6 +38,8 @@ struct IOConfig {
   dali_data_type_t dtype;
   std::optional<std::vector<int64_t>> shape;
 
+  IOConfig() = default;
+
   explicit IOConfig(const std::string &name,
                     dali_data_type_t dtype = DALI_NO_TYPE,
                     std::optional<std::vector<int64_t>> shape = {})
@@ -132,8 +134,12 @@ void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config);
 
 
 /**
- * @brief Validates inputs array against provided config values
- * auto outputs auto-configured array to new_ios.
+ * @brief Validates inputs array against provided config values.
+ * Outputs auto-configured array to new_inputs.
+ *
+ * Auto-filled config keeps the order of inputs given in the original config file.
+ * If an input was not named in the original config, it is appended at the end.
+ * Inputs that do not appear in the original config are ordered lexicographically (pipeline order).
  */
 void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig> &in_configs,
                           TritonJson::Value &new_inputs);
@@ -141,16 +147,42 @@ void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig>
 
 /**
  * @brief Validates outputs array against provided config values
- * auto outputs auto-configured array to new_ios.
+ * Outputs auto-configured array to new_outputs.
+ *
+ * It's assumed that outputs in the config file have the same order as in the pipeline.
+ * If the config gives an output a name, it overrides the name coming from the pipeline.
  */
 void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfig> &out_configs,
                            TritonJson::Value &new_outputs);
 
 
 /**
- * @brief Validates inputs or outputs array against provided config values.
+ * @brief Validate outputs array against provided config values
+ *
+ * Names of the outputs in the config file may not match names of the outputs in the pipeline.
  */
-void ValidateIOsConfig(TritonJson::Value &ios, const std::vector<IOConfig> &io_configs);
+void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_configs);
+
+
+/**
+ * @brief Validate inputs array against provided config values.
+ *
+ * Names of the inputs in the config file must match the names of the inputs in the pipeline.
+ */
+void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs);
+
+
+/**
+ * @brief Read max_batch_size field from the config. Return -1 if the field is missing.
+ */
+int ReadMaxBatchSize(TritonJson::Value &config);
+
+
+/**
+ * @brief Validate the model max batch size and inputs and outputs configs against provided values.
+ */
+void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
+                    const std::vector<IOConfig> &out_configs);
 
 }}} // namespace triton::backend::dali
 
