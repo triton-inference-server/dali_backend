@@ -261,43 +261,6 @@ void ValidateAgainstTooManyInputs(TritonJson::Value &ins, const std::vector<IOCo
 }
 
 
-template <bool input>
-void AutofillIOsConfig(TritonJson::Value &ios, const std::vector<IOConfig> &io_configs,
-                       TritonJson::Value &new_ios) {
-  TRITON_CALL(ios.AssertType(common::TritonJson::ValueType::ARRAY));
-  TRITON_CALL(new_ios.AssertType(common::TritonJson::ValueType::ARRAY));
-
-  std::vector<TritonJson::Value> new_io_objs(io_configs.size());
-  auto end_ind = ios.ArraySize();
-  for (const auto &io_config: io_configs) {
-    TritonJson::Value io_object(TritonJson::ValueType::OBJECT);
-    auto ind = FindObjectByName(ios, io_config.name, &io_object);
-    size_t io_index;
-    if (ind) {
-      io_index = *ind;
-    } else {
-      io_index = end_ind++;
-    }
-    new_io_objs[io_index] = TritonJson::Value(new_ios, TritonJson::ValueType::OBJECT);
-    AutofillIOConfig(io_object, io_config, new_io_objs[io_index]);
-
-    if (input) {
-      bool ragged_batches;
-      if (io_object.MemberAsBool("allow_ragged_batches", &ragged_batches)
-            == TRITONJSON_STATUSSUCCESS) {
-        new_io_objs[io_index].AddBool("allow_ragged_batches", ragged_batches);
-      } else {
-        new_io_objs[io_index].AddBool("allow_ragged_batches", true);
-      }
-    }
-  }
-
-  for (auto &new_io : new_io_objs) {
-    new_ios.Append(std::move(new_io));
-  }
-}
-
-
 void AutofillInputsConfig(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs,
                           TritonJson::Value &new_ins) {
   TRITON_CALL(ins.AssertType(common::TritonJson::ValueType::ARRAY));
