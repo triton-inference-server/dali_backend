@@ -20,6 +20,8 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 configure_file(libtriton_dali.ldscript libtriton_dali.ldscript COPYONLY)
+configure_file(${tritondalibackend_SOURCE_DIR}/src/utils/purgatory.h.in
+               ${tritondalibackend_SOURCE_DIR}/src/utils/purgatory.h @ONLY)
 
 add_subdirectory(dali_executor)
 
