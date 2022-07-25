@@ -41,8 +41,9 @@ method) or use the [Autoserialization](#Autoserialization) to generate a Model f
 resizing pipeline:
 
         import nvidia.dali as dali
+        from nvidia.dali.plugin.triton import autoserialize
 
-        @dali.plugin.triton.autoserialize 
+        @autoserialize 
         @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0)
         def pipe():
             images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
