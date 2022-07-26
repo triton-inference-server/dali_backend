@@ -149,8 +149,8 @@ void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig>
  * @brief Validates outputs array against provided config values
  * Outputs auto-configured array to new_outputs.
  *
- * It's assumed that outputs in the config file have the same order as in the pipeline.
- * If the config gives an output a name, it overrides the name coming from the pipeline.
+ * It's assumed that outputs in the config file have the same order as those in the DALI pipeline.
+ * If the config sets the name of an output, it overrides the name specified in the DALI pipeline.
  */
 void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfig> &out_configs,
                            TritonJson::Value &new_outputs);
@@ -159,7 +159,8 @@ void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfi
 /**
  * @brief Validate outputs array against provided config values
  *
- * Names of the outputs in the config file may not match names of the outputs in the pipeline.
+ * Names of the outputs in the config file do not need to match the names of the outputs
+ * specified in the DALI pipeline.
  */
 void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_configs);
 

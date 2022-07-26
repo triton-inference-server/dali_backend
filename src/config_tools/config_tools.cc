@@ -248,11 +248,13 @@ void ValidateAgainstTooManyInputs(TritonJson::Value &ins, const std::vector<IOCo
     ins.IndexAsObject(i, &io_object);
     std::string name;
     if (io_object.MemberAsString("name", &name) != TRITONJSON_STATUSSUCCESS) {
-      throw TritonError::InvalidArg(make_string("Missing name in IO config at position ", i));
+      throw TritonError::InvalidArg(
+        make_string("The input at index ", i,
+                    " in the model configuration does not contain a `name` field."));
     }
 
     bool in_present = std::any_of(in_configs.begin(), in_configs.end(),
-                                  [&](const auto &ioc) { return ioc.name == name; });
+                                  [&name](const auto &ioc) { return ioc.name == name; });
     if (!in_present) {
       throw TritonError::InvalidArg(make_string("Configuration file contains config for ", name,
                                                 " but such input is not present in the pipeline."));
@@ -300,8 +302,10 @@ void AutofillOutputsConfig(TritonJson::Value &outs, const std::vector<IOConfig> 
   TRITON_CALL(new_outs.AssertType(common::TritonJson::ValueType::ARRAY));
   if (outs.ArraySize() > out_configs.size()) {
     throw TritonError::InvalidArg(
-      make_string("Invalid number of outputs in the configuration file: ", outs.ArraySize(),
-                  "\nProvided pipeline has only ", out_configs.size(), " outputs."));
+      make_string("The number of outputs specified in the DALI pipeline and the configuration"
+                  " file do not match."
+                  "\nModel config outputs: ", outs.ArraySize(),
+                  "\nPipeline outputs: ", out_configs.size()));
   }
 
   std::vector<TritonJson::Value> new_out_objs(out_configs.size());
@@ -318,18 +322,6 @@ void AutofillOutputsConfig(TritonJson::Value &outs, const std::vector<IOConfig> 
 }
 
 
-void ValidateIOsConfig(TritonJson::Value &ios, const std::vector<IOConfig> &io_configs) {
-  for (const auto &io_config: io_configs) {
-    TritonJson::Value io_object(TritonJson::ValueType::OBJECT);
-    auto ind = FindObjectByName(ios, io_config.name, &io_object);
-    if (!ind) {
-      throw TritonError::InvalidArg(make_string("Missing config for \"", io_config.name, "\""));
-    }
-    ValidateIOConfig(io_object, io_config);
-  }
-}
-
-
 void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs) {
   TRITON_CALL(ins.AssertType(common::TritonJson::ValueType::ARRAY));
   ValidateAgainstTooManyInputs(ins, in_configs);
@@ -337,7 +329,8 @@ void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_conf
     TritonJson::Value in_object(TritonJson::ValueType::OBJECT);
     auto ind = FindObjectByName(ins, in_config.name, &in_object);
     if (!ind) {
-      throw TritonError::InvalidArg(make_string("Missing config for \"", in_config.name, "\""));
+      throw TritonError::InvalidArg(
+        make_string("Missing config for \"", in_config.name, "\" input."));
     }
     ValidateIOConfig(in_object, in_config);
   }
@@ -348,8 +341,10 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_co
   TRITON_CALL(outs.AssertType(common::TritonJson::ValueType::ARRAY));
   if (outs.ArraySize() != out_configs.size()) {
     throw TritonError::InvalidArg(
-      make_string("Invalid number of outputs in the configuration file: ", outs.ArraySize(),
-                  "\nProvided pipeline has ", out_configs.size(), " outputs."));
+      make_string("The number of outputs specified in the DALI pipeline and the "
+                  "configuration file do not match."
+                  "\nModel config outputs: ", outs.ArraySize(),
+                  "\nPipeline outputs: ", out_configs.size()));
   }
   for (size_t i = 0; i < out_configs.size(); ++i) {
     TritonJson::Value out_object;
@@ -363,7 +358,8 @@ int ReadMaxBatchSize(TritonJson::Value &config) {
   int64_t bs = -1;
   config.MemberAsInt("max_batch_size", &bs);
   if (bs > std::numeric_limits<int>::max() || bs < -1) {
-    throw TritonError::InvalidArg(make_string("Invalid value of max_batch_size: ", bs));
+    throw TritonError::InvalidArg(
+      make_string("Invalid value of max_batch_size in model configuration: ", bs));
   }
   return static_cast<int>(bs);
 }
@@ -372,7 +368,7 @@ int ReadMaxBatchSize(TritonJson::Value &config) {
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs) {
   if (ReadMaxBatchSize(config) < 1) {
-    throw TritonError::InvalidArg("Missing max_batch_size config.");
+    throw TritonError::InvalidArg("Missing max_batch_size field in model configuration.");
   }
 
   TritonJson::Value inputs(TritonJson::ValueType::ARRAY);
