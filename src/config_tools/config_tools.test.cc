@@ -183,8 +183,10 @@ TEST_CASE("Outputs validation") {
     };
 
     REQUIRE_THROWS_WITH(ValidateOutputs(ios, ios_config),
-                        Contains("Invalid number of outputs in the configuration file: 2"
-                                 "\nProvided pipeline has 3 outputs."));
+                        Contains("The number of outputs specified in the DALI pipeline and the"
+                                 " configuration file do not match."
+                                 "\nModel config outputs: 2"
+                                 "\nPipeline outputs: 3"));
   }
 }
 
@@ -442,7 +444,7 @@ TEST_CASE("Read max_batch_size") {
     })json"));
 
     REQUIRE_THROWS_WITH(ReadMaxBatchSize(config),
-                        Contains("Invalid value of max_batch_size: -2"));
+                        Contains("Invalid value of max_batch_size in model configuration: -2"));
   }
 }
 
@@ -536,7 +538,7 @@ TEST_CASE("Validate config") {
     })json"));
 
     REQUIRE_THROWS_WITH(ValidateConfig(config, ins_config, outs_config),
-                        Contains("Missing max_batch_size config."));
+                        Contains("Missing max_batch_size field in model configuration."));
   }
 }
 
