@@ -95,10 +95,54 @@ void DaliPipeline::PutOutput(void* destination, int output_idx, device_type_t de
   daliOutputCopy(&handle_, destination, output_idx, destination_device, output_stream_, 0);
 }
 
+std::vector<std::string> DaliPipeline::ListInputs() {
+  int num_inputs = daliGetNumExternalInput(&handle_);
+  std::vector<std::string> result(num_inputs);
+  for (int i = 0; i < num_inputs; ++i) {
+    result[i] = daliGetExternalInputName(&handle_, i);
+  }
+  return result;
+}
+
+std::optional<std::vector<int64_t>> DaliPipeline::GetInputShape(const std::string &name) {
+  int ndim = daliGetExternalInputNdim(&handle_, name.c_str());
+  if (ndim >= 0) {
+    return {std::vector<int64_t>(ndim, -1)};
+  } else {
+    return {};
+  }
+}
+
+dali_data_type_t DaliPipeline::GetInputType(const std::string &name) {
+  return daliGetExternalInputType(&handle_, name.c_str());
+}
+
 device_type_t DaliPipeline::GetInputDevice(const std::string& name) {
   auto backend = daliGetOperatorBackend(&handle_, name.c_str());
   assert(backend != DALI_BACKEND_MIXED);
   return (backend == DALI_BACKEND_CPU) ? device_type_t::CPU : device_type_t::GPU;
+}
+
+
+std::string DaliPipeline::GetOutputName(int id) {
+  return std::string(daliGetOutputName(&handle_, id));
+}
+
+std::optional<std::vector<int64_t>> DaliPipeline::GetDeclaredOutputShape(int id) {
+  int ndim = daliGetDeclaredOutputNdim(&handle_, id);
+  if (ndim >= 0) {
+    return {std::vector<int64_t>(ndim, -1)};
+  } else {
+    return {};
+  }
+}
+
+dali_data_type_t DaliPipeline::GetDeclaredOutputType(int id) {
+  return daliGetDeclaredOutputDtype(&handle_, id);
+}
+
+int DaliPipeline::GetMaxBatchSize() {
+  return daliGetMaxBatchSize(&handle_);
 }
 
 }}}  // namespace triton::backend::dali

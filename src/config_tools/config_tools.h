@@ -162,7 +162,7 @@ void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfi
  * Names of the outputs in the config file do not need to match the names of the outputs
  * specified in the DALI pipeline.
  */
-void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_configs);
+void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_configs);
 
 
 /**

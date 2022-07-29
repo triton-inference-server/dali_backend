@@ -101,7 +101,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   InputsInfo GenerateInputs(const std::vector<TritonRequest>& requests);
 
   int32_t GetDaliDeviceId() {
-    return !CudaStream() ? ::dali::CPU_ONLY_DEVICE_ID : device_id_;
+    return !CudaStream() ? CPU_ONLY_DEVICE_ID : device_id_;
   }
 
   /**

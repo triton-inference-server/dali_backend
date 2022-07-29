@@ -112,7 +112,7 @@ std::vector<int64_t> MatchShapes(const std::string &name,
                                  const std::vector<int64_t> &config_shape,
                                  const std::vector<int64_t> &pipeline_shape) {
   if (config_shape.size() != pipeline_shape.size()) {
-    throw TritonError::InvalidArg(make_string("Mismatch in number of dimensions for ", name, "\n"
+    throw TritonError::InvalidArg(make_string("Mismatch in number of dimensions for \"", name, "\"\n"
                                   "Number of dimensions defined in config: ", config_shape.size(),
                                   "\nNumber of dimensions defined in pipeline: ",
                                   pipeline_shape.size()));
@@ -147,7 +147,7 @@ std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &
       if (dtype != DALI_NO_TYPE) {
         if (found_dtype != to_triton_config(dtype)) {
           throw TritonError::InvalidArg(make_string(
-            "Mismatch of data_type config for \"", name, "\". \n"
+            "Mismatch of data_type config for \"", name, "\".\n"
             "Data type defined in config: ", found_dtype, "\n"
             "Data type defined in pipeline: ", to_triton_config(dtype)));
         }
@@ -237,8 +237,10 @@ void AutofillIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
 
 void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config) {
   TRITON_CALL(io_object.AssertType(common::TritonJson::ValueType::OBJECT));
-  ValidateDtypeConfig(io_object, io_config.name, io_config.dtype);
-  ValidateShapeConfig(io_object, io_config.name, io_config.shape);
+  std::string name;
+  io_object.MemberAsString("name", &name);
+  ValidateDtypeConfig(io_object, name, io_config.dtype);
+  ValidateShapeConfig(io_object, name, io_config.shape);
 }
 
 
@@ -337,7 +339,7 @@ void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_conf
 }
 
 
-void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_configs) {
+void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_configs) {
   TRITON_CALL(outs.AssertType(common::TritonJson::ValueType::ARRAY));
   if (outs.ArraySize() != out_configs.size()) {
     throw TritonError::InvalidArg(
@@ -349,6 +351,12 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> out_co
   for (size_t i = 0; i < out_configs.size(); ++i) {
     TritonJson::Value out_object;
     TRITON_CALL(outs.IndexAsObject(i, &out_object));
+    std::string name;
+    if (out_object.MemberAsString("name", &name) != TRITONJSON_STATUSSUCCESS) {
+      throw TritonError::InvalidArg(
+        make_string("The output at index ", i,
+                    " in the model configuration does not contain a `name` field."));
+    }
     ValidateIOConfig(out_object, out_configs[i]);
   }
 }

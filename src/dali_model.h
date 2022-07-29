@@ -24,10 +24,12 @@
 #define DALI_BACKEND_DALI_MODEL_H_
 
 #include "src/dali_executor/dali_pipeline.h"
+#include "src/dali_executor/utils/dali.h"
 #include "src/model_provider/model_provider.h"
 #include "src/parameters.h"
 #include "src/utils/triton.h"
 #include "src/utils/utils.h"
+#include "src/config_tools/config_tools.h"
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 
@@ -45,6 +47,11 @@ class DaliModel : public ::triton::backend::BackendModel {
     RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer));
     LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
+    try {
+      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_);
+    } catch (TritonError &err) {
+      return err.release();
+    }
 
     return nullptr;  // success
   }
@@ -96,6 +103,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     fallback_model << model_path << fallback_model_filename_;
 
     LoadModel(default_model.str(), fallback_model.str());
+    ReadPipelineProperties();
   }
 
   /**
@@ -184,10 +192,85 @@ class DaliModel : public ::triton::backend::BackendModel {
     return ret.empty() ? "model.dali" : ret;
   }
 
+  /**
+   * @brief Returns a device id on which DALI pipeline can be instantiated,
+   *   or CPU_ONLY_DEVICE_ID if only cpu is available
+   */
+  int FindFittingDevice() {
+    triton::common::TritonJson::Value instance_groups;
+    bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
+    if (found_inst_groups) {
+      return ReadDeviceFromInstanceGroups(instance_groups);
+    } else {
+      // config doesn't specify any GPU so we can choose any available
+      int dev_count = 0;
+      cudaGetDeviceCount(&dev_count);
+      if (dev_count > 0) {
+        return 0;
+      } else {
+        return CPU_ONLY_DEVICE_ID;
+      }
+    }
+  }
+
+  // This method tries to find any GPU instance group and select any device id from it
+  // If there are no GPU inst. groups, it returns CPU_ONLY_DEVICE_ID
+  int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value &inst_groups) {
+    TRITON_CALL(inst_groups.AssertType(triton::common::TritonJson::ValueType::ARRAY));
+    auto count = inst_groups.ArraySize();
+    for (size_t i = 0; i < count; ++i) {
+      triton::common::TritonJson::Value inst_group;
+      inst_groups.IndexAsObject(i, &inst_group);
+      std::string kind_str;
+      if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
+        if (kind_str == "KIND_GPU") {
+          triton::common::TritonJson::Value dev_array;
+          if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {
+            int64_t dev_id;
+            dev_array.IndexAsInt(0, &dev_id);
+            return dev_id;
+          }
+        }
+      }
+    }
+    return CPU_ONLY_DEVICE_ID;
+  }
+
+  void ReadPipelineProperties() {
+    int config_max_batch_size = ReadMaxBatchSize(model_config_);
+    auto pipeline = InstantiateDaliPipeline(config_max_batch_size);
+    auto input_names = pipeline.ListInputs();
+    pipeline_inputs_.resize(input_names.size());
+    for (size_t i = 0; i < input_names.size(); ++i) {
+      auto name = input_names[i];
+      pipeline_inputs_[i].name = name;
+      pipeline_inputs_[i].dtype = pipeline.GetInputType(name);
+      pipeline_inputs_[i].shape  = pipeline.GetInputShape(name);
+    }
+    int num_outputs = pipeline.GetNumOutput();
+    pipeline_outputs_.resize(num_outputs);
+    for (int i = 0; i < num_outputs; ++i) {
+      pipeline_outputs_[i].name = pipeline.GetOutputName(i);
+      pipeline_outputs_[i].dtype = pipeline.GetDeclaredOutputType(i);
+      pipeline_outputs_[i].shape = pipeline.GetDeclaredOutputShape(i);
+    }
+  }
+
+  DaliPipeline InstantiateDaliPipeline(int config_max_batch_size) {
+    int device_id = FindFittingDevice();
+    const std::string &serialized_pipeline = GetModelProvider().GetModel();
+    try {
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
+    } catch (const DALIException &) {
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
+    }
+  }
 
   ModelParameters params_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
   std::unordered_map<std::string, int> output_order_;
+  std::vector<IOConfig> pipeline_inputs_;
+  std::vector<IOConfig> pipeline_outputs_;
   const std::string fallback_model_filename_ = "dali.py";
 };
 

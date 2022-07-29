@@ -25,16 +25,16 @@
 namespace triton { namespace backend { namespace dali {
 
 TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state) {
-  TRITONSERVER_Error* error = nullptr;  // success
   try {
     *state = new DaliModel(triton_model);
+  } catch (TritonError& e) {
+    return e.release();
+  } catch (DALIException& e) {
+    return TritonError::Unknown(make_string("Error while instantiating DALI pipeline: ", e.what()))
+             .release();
   } catch (const std::exception& e) {
-    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, e.what());
-    error = TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNKNOWN,
-                                  make_string("DALI Backend error: ", e.what()).c_str());
+    return TritonError::Unknown(make_string("DALI Backend error: ", e.what())).release();
   }
-
-  return error;
 }
 
 }}}  // namespace triton::backend::dali
