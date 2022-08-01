@@ -107,9 +107,9 @@ std::vector<std::string> DaliPipeline::ListInputs() {
 std::optional<std::vector<int64_t>> DaliPipeline::GetInputShape(const std::string &name) {
   int ndim = daliGetExternalInputNdim(&handle_, name.c_str());
   if (ndim >= 0) {
-    return {std::vector<int64_t>(ndim, -1)};
+    return std::vector<int64_t>(ndim, -1);
   } else {
-    return {};
+    return std::nullopt;
   }
 }
 
@@ -131,9 +131,9 @@ std::string DaliPipeline::GetOutputName(int id) {
 std::optional<std::vector<int64_t>> DaliPipeline::GetDeclaredOutputShape(int id) {
   int ndim = daliGetDeclaredOutputNdim(&handle_, id);
   if (ndim >= 0) {
-    return {std::vector<int64_t>(ndim, -1)};
+    return std::vector<int64_t>(ndim, -1);
   } else {
-    return {};
+    return std::nullopt;
   }
 }
 

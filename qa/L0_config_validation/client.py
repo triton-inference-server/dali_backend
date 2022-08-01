@@ -31,7 +31,7 @@ def assert_error(func, *args, contains=None):
   except InferenceServerException as err:
     err_msg = str(err)
   if contains is not None:
-    assert contains in err_msg, 'Error message:\n' + err_msg + '\nshould contain:\n' + contains
+    assert contains in err_msg, f'Error message:\n  {err_msg}\nshould contain:\n{contains}'
 
 def test_loading(url):
   client = t_client.InferenceServerClient(url=url)

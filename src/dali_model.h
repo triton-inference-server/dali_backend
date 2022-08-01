@@ -200,14 +200,11 @@ class DaliModel : public ::triton::backend::BackendModel {
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
     if (found_inst_groups) {
-      std::cout << "Found inst groups" << std::endl;
       return ReadDeviceFromInstanceGroups(instance_groups);
     } else {
       // config doesn't specify any GPU so we can choose any available
       int dev_count = 0;
-      std::cout << "No inst groups; dev count: ";
       CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
-      std::cout << dev_count << std::endl;
       if (dev_count > 0) {
         return 0;
       } else {
@@ -226,7 +223,6 @@ class DaliModel : public ::triton::backend::BackendModel {
       inst_groups.IndexAsObject(i, &inst_group);
       std::string kind_str;
       if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
-        std::cout << "\t" << kind_str << std::endl;
         if (kind_str == "KIND_GPU") {
           triton::common::TritonJson::Value dev_array;
           if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {

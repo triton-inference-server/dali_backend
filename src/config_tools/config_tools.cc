@@ -93,7 +93,7 @@ std::optional<size_t> FindObjectByName(TritonJson::Value &array, const std::stri
       return {i};
     }
   }
-  return {};
+  return std::nullopt;
 }
 
 
