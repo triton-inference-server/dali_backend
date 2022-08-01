@@ -196,15 +196,18 @@ class DaliModel : public ::triton::backend::BackendModel {
    * @brief Returns a device id on which DALI pipeline can be instantiated,
    *   or CPU_ONLY_DEVICE_ID if only cpu is available
    */
-  int FindFittingDevice() {
+  int FindDevice() {
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
     if (found_inst_groups) {
+      std::cout << "Found inst groups" << std::endl;
       return ReadDeviceFromInstanceGroups(instance_groups);
     } else {
       // config doesn't specify any GPU so we can choose any available
       int dev_count = 0;
-      cudaGetDeviceCount(&dev_count);
+      std::cout << "No inst groups; dev count: ";
+      CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
+      std::cout << dev_count << std::endl;
       if (dev_count > 0) {
         return 0;
       } else {
@@ -223,6 +226,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       inst_groups.IndexAsObject(i, &inst_group);
       std::string kind_str;
       if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
+        std::cout << "\t" << kind_str << std::endl;
         if (kind_str == "KIND_GPU") {
           triton::common::TritonJson::Value dev_array;
           if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {
@@ -257,7 +261,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   DaliPipeline InstantiateDaliPipeline(int config_max_batch_size) {
-    int device_id = FindFittingDevice();
+    int device_id = FindDevice();
     const std::string &serialized_pipeline = GetModelProvider().GetModel();
     try {
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
