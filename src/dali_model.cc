@@ -27,6 +27,7 @@ namespace triton { namespace backend { namespace dali {
 TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliModel** state) {
   try {
     *state = new DaliModel(triton_model);
+    return nullptr;
   } catch (TritonError& e) {
     return e.release();
   } catch (DALIException& e) {
