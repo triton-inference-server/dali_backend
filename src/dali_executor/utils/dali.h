@@ -55,6 +55,7 @@ using ::dali::TensorShape;
 using ::dali::ThreadPool;
 using ::dali::UniqueHandle;
 using ::dali::volume;
+using ::dali::CPU_ONLY_DEVICE_ID;
 
 
 inline int64_t dali_type_size(dali_data_type_t type) {

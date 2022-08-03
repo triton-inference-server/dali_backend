@@ -26,6 +26,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/dali.h"
@@ -127,6 +128,41 @@ class DaliPipeline {
   void SetInput(const IDescr& io_descr, bool force_no_copy = true);
 
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
+
+  /**
+   * @brief Get list of external inputs names in the pipeline.
+   */
+  std::vector<std::string> ListInputs();
+
+  /**
+   * @brief Get declared expected shape of the input with a given name.
+   */
+  std::optional<std::vector<int64_t>> GetInputShape(const std::string &name);
+
+  /**
+   * @brief Get declared exptect data type of the input with a given name.
+   */
+  dali_data_type_t GetInputType(const std::string &name);
+
+  /**
+   * @brief Get name of the pipeline output with a given id.
+   */
+  std::string GetOutputName(int id);
+
+  /**
+   * @brief Get shape declared for the pipeline output with a given id.
+   */
+  std::optional<std::vector<int64_t>> GetDeclaredOutputShape(int id);
+
+  /**
+   * @brief Get declared output data type for the pipeline output with a given id.
+   */
+  dali_data_type_t GetDeclaredOutputType(int id);
+
+  /**
+   * @brief Get max batch size of the pipeline.
+   */
+  int GetMaxBatchSize();
 
   /**
    * @brief Wait for the work scheduled on the copy stream.
