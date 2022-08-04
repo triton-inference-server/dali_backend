@@ -340,6 +340,7 @@ TEST_CASE("Inputs auto-config") {
   }
 }
 
+
 TEST_CASE("Outputs auto-config") {
   TritonJson::Value outs(TritonJson::ValueType::ARRAY);
   TRITON_CALL(outs.Parse(R"json([
@@ -381,23 +382,62 @@ TEST_CASE("Outputs auto-config") {
 }
 
 
+TEST_CASE("Autofill config") {
+  TritonJson::Value config(TritonJson::ValueType::OBJECT);
+  TRITON_CALL(config.Parse(R"json({
+    "max_batch_size": 1,
+    "input": [
+      {
+        "name": "i1",
+        "dims": [3, 2, 1],
+        "data_type": "TYPE_FP16"
+      },
+      {
+        "name": "i2",
+        "dims": [-1, -1, 3],
+        "data_type": "TYPE_FP32"
+      }
+    ],
+    "output": [
+      {
+        "name": "o1",
+        "dims": [-1, 2, 3],
+        "data_type": "TYPE_FP32"
+      }
+    ]
+  })json"));
+
+  std::vector<IOConfig> ins_config = {
+    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
+    IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
+    IOConfig("i3", DALI_INT32, {{1, 1, 1}})
+  };
+
+  std::vector<IOConfig> outs_config = {
+    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+    IOConfig("o2", DALI_INT32, {{-1, -1}})
+  };
+  AutofillConfig(config, ins_config, outs_config, 1);
+  // common::TritonJson::WriteBuffer buffer;
+  // config.PrettyWrite(&buffer);
+  // std::cout << buffer.Contents() << std::endl;
+  TritonJson::Value inps;
+  TritonJson::Value inp;
+  std::string name;
+  TRITON_CALL(config.MemberAsArray("input", &inps));
+  TRITON_CALL(inps.IndexAsObject(0, &inp));
+  TRITON_CALL(inp.MemberAsString("name", &name));
+  std::cout << "name: " << name << std::endl;
+  std::cout << "al rag ba: " << inp.Find("allow_ragged_batches") << std::endl;
+}
+
+
 TEST_CASE("Read max_batch_size") {
   SECTION("correct bs") {
     TritonJson::Value config(TritonJson::ValueType::OBJECT);
     TRITON_CALL(config.Parse(R"json({
     "max_batch_size": 32,
-    "input": [
-      {
-        "name": "i1",
-        "dims": [3, 2, 3],
-        "data_type": "TYPE_FP32",
-        "allow_ragged_batches": true
-      },
-      {
-        "name": "i2",
-        "dims": [5, 5]
-      }
-    ],
+    
     "output": [
       {
         "name": "o1",

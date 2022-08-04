@@ -86,7 +86,7 @@ std::optional<size_t> FindObjectByName(TritonJson::Value &array, const std::stri
   for (size_t i = 0; i < len; ++i) {
     array.IndexAsObject(i, &obj);
     std::string found_name;
-    auto err = obj.MemberAsString("name", &found_name);
+    TritonError err{obj.MemberAsString("name", &found_name)};
     if (!err && found_name == name) {
       ret->Release();
       array.IndexAsObject(i, ret);
@@ -179,7 +179,8 @@ void ProcessShapeConfig(TritonJson::Value &io_object, const std::string &name,
                         const std::optional<std::vector<int64_t>> &shape,
                         TritonJson::Value &resulting_dims) {
   TritonJson::Value dims_obj;
-  if (io_object.MemberAsArray("dims", &dims_obj) == TRITONJSON_STATUSSUCCESS) {
+  TritonError error{io_object.MemberAsArray("dims", &dims_obj)};
+  if (!error) {
     auto config_shape = ReadShape(dims_obj);
     if (shape) {
       auto resulting_shape = MatchShapes(name, config_shape, *shape);
@@ -219,7 +220,8 @@ void AutofillIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
   TRITON_CALL(new_io_object.AssertType(common::TritonJson::ValueType::OBJECT));
 
   std::string name;
-  if (io_object.MemberAsString("name", &name) == TRITONJSON_STATUSSUCCESS) {
+  TritonError error{io_object.MemberAsString("name", &name)};
+  if (!error) {
     new_io_object.AddString("name", name);
   } else {
     new_io_object.AddString("name", io_config.name);
@@ -283,9 +285,17 @@ void AutofillInputsConfig(TritonJson::Value &ins, const std::vector<IOConfig> &i
     }
     new_in_objs[in_index] = TritonJson::Value(new_ins, TritonJson::ValueType::OBJECT);
     AutofillIOConfig(in_object, in_config, new_in_objs[in_index]);
+
+    // std::string new_name;
+    // if (new_in_objs[in_index].MemberAsString("name", &new_name)) {
+    //   std::cout << "has name: " << new_name << std::endl;
+    // } else {
+    //   std::cout << "no name" << std::endl;
+    // }
+
     bool ragged_batches;
-    if (in_object.MemberAsBool("allow_ragged_batches", &ragged_batches)
-          == TRITONJSON_STATUSSUCCESS) {
+    TritonError error{in_object.MemberAsBool("allow_ragged_batches", &ragged_batches)};
+    if (!error) {
       new_in_objs[in_index].AddBool("allow_ragged_batches", ragged_batches);
     } else {
       new_in_objs[in_index].AddBool("allow_ragged_batches", true);
@@ -313,7 +323,7 @@ void AutofillOutputsConfig(TritonJson::Value &outs, const std::vector<IOConfig> 
   std::vector<TritonJson::Value> new_out_objs(out_configs.size());
   for (size_t i = 0; i < out_configs.size(); ++i) {
     TritonJson::Value out_object(TritonJson::ValueType::OBJECT);
-    outs.IndexAsObject(i, &out_object);
+    TritonError{outs.IndexAsObject(i, &out_object)};
     new_out_objs[i] = TritonJson::Value(new_outs, TritonJson::ValueType::OBJECT);
     AutofillIOConfig(out_object, out_configs[i], new_out_objs[i]);
   }
@@ -321,6 +331,32 @@ void AutofillOutputsConfig(TritonJson::Value &outs, const std::vector<IOConfig> 
   for (auto &new_out : new_out_objs) {
     new_outs.Append(std::move(new_out));
   }
+}
+
+
+void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
+                    const std::vector<IOConfig> &out_configs, int pipeline_max_batch_size) {
+  TritonJson::Value existing_ins;
+  bool found_inputs = config.Find("input", &existing_ins);
+
+  TritonJson::Value new_ins(config, TritonJson::ValueType::ARRAY);
+  AutofillInputsConfig(existing_ins, in_configs, new_ins);
+
+  if (found_inputs) {
+    config.Remove("input");
+  }
+  config.Add("input", std::move(new_ins));
+
+  TritonJson::Value existing_outs;
+  bool found_outputs = config.Find("output", &existing_outs);
+
+  TritonJson::Value new_outs(config, TritonJson::ValueType::ARRAY);
+  AutofillOutputsConfig(existing_outs, out_configs, new_outs);
+
+  // if (found_outputs) {
+  //   config.Remove("output");
+  // }
+  // config.Add("output", std::move(new_outs));
 }
 
 
@@ -364,7 +400,7 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
 
 int ReadMaxBatchSize(TritonJson::Value &config) {
   int64_t bs = -1;
-  config.MemberAsInt("max_batch_size", &bs);
+  TritonError{config.MemberAsInt("max_batch_size", &bs)};
   if (bs > std::numeric_limits<int>::max() || bs < -1) {
     throw TritonError::InvalidArg(
       make_string("Invalid value of max_batch_size in model configuration: ", bs));
@@ -379,14 +415,18 @@ void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_c
     throw TritonError::InvalidArg("Missing max_batch_size field in model configuration.");
   }
 
-  TritonJson::Value inputs(TritonJson::ValueType::ARRAY);
-  if (config.MemberAsArray("input", &inputs) != TRITONJSON_STATUSSUCCESS) {
+  TritonError err;
+
+  TritonJson::Value inputs(config, TritonJson::ValueType::ARRAY);
+  err = config.MemberAsArray("input", &inputs);
+  if (err) {
     throw TritonError::InvalidArg("Missing inputs config.");
   }
   ValidateInputs(inputs, in_configs);
 
-  TritonJson::Value outputs(TritonJson::ValueType::ARRAY);
-  if (config.MemberAsArray("output", &outputs) != TRITONJSON_STATUSSUCCESS) {
+  TritonJson::Value outputs(config, TritonJson::ValueType::ARRAY);
+  err = config.MemberAsArray("output", &outputs);
+  if (err) {
     throw TritonError::InvalidArg("Missing outputs config.");
   }
   ValidateOutputs(outputs, out_configs);

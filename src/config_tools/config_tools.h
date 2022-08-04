@@ -156,6 +156,10 @@ void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfi
                            TritonJson::Value &new_outputs);
 
 
+void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
+                    const std::vector<IOConfig> &out_configs, int pipeline_max_batch_size);
+
+
 /**
  * @brief Validate outputs array against provided config values
  *
