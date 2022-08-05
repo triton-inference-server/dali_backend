@@ -90,10 +90,9 @@ std::vector<int64_t> MatchShapes(const std::string &name,
 
 
 /**
- * @brief Validates data_type field in IO object against provided value.
- * Returns data type to be used for autofill.
+ * @brief Determine data type to be filled in `config_io` based on provided `dtype`.
  */
-std::string AutofillDtypeConfig(TritonJson::Value &io_object, const std::string &name,
+std::string AutofillDtypeConfig(TritonJson::Value &config_io, const std::string &name,
                                 dali_data_type_t dtype);
 
 
@@ -105,13 +104,11 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
 
 
 /**
- * @brief Validates dims field in IO object again provided value.
- * Matches the shape from IO object with the provided shape
- * and outputs the result of matching to resulting_dims.
+ * @brief Fills `config_io`'s dimensions field with value `model_io_shape`.
+ * `config` must be a top-level TritonJson object containing `config_io`
  */
-void AutofillShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                         const std::optional<std::vector<int64_t>> &shape,
-                         TritonJson::Value &resulting_dims);
+void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io,
+                         const std::vector<int64_t> &model_io_shape);
 
 /**
  * @brief Validates dims field in IO object again provided value.
@@ -120,11 +117,11 @@ void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
                          const std::optional<std::vector<int64_t>> &shape);
 
 /**
- * @brief Validates IO object against provided config values
- * and outputs auto-configured IO object to new_io_object.
+ * @brief Fills `config_io` IO object with values from model IO configuration `model_io`.
+ * `config` must be a top-level TritonJson object containing `config_io`.
  */
-void AutofillIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
-                      TritonJson::Value &new_io_object);
+void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
+                      const IOConfig &model_io);
 
 
 /**
@@ -134,30 +131,33 @@ void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config);
 
 
 /**
- * @brief Validates inputs array against provided config values.
- * Outputs auto-configured array to new_inputs.
+ * @brief Auto-fills `config_ins` inputs object with inputs provided in `model_ins`.
+ * `config` must be a top-level TritonJson object containing `config_ins`.
  *
  * Auto-filled config keeps the order of inputs given in the original config file.
  * If an input was not named in the original config, it is appended at the end.
  * Inputs that do not appear in the original config are ordered lexicographically (pipeline order).
  */
-void AutofillInputsConfig(TritonJson::Value &inputs, const std::vector<IOConfig> &in_configs,
-                          TritonJson::Value &new_inputs);
+void AutofillInputsConfig(TritonJson::Value &config, TritonJson::Value &config_ins,
+                          const std::vector<IOConfig> &model_ins);
 
 
 /**
- * @brief Validates outputs array against provided config values
- * Outputs auto-configured array to new_outputs.
+ * @brief Auto-fills `config_outs` outputs object with outputs provided in `model_outs`.
+ * `config` must be a top-level TritonJson object containing `config_outs`.
  *
  * It's assumed that outputs in the config file have the same order as those in the DALI pipeline.
  * If the config sets the name of an output, it overrides the name specified in the DALI pipeline.
  */
-void AutofillOutputsConfig(TritonJson::Value &outputs, const std::vector<IOConfig> &out_configs,
-                           TritonJson::Value &new_outputs);
+void AutofillOutputsConfig(TritonJson::Value &config, TritonJson::Value &config_outs,
+                           const std::vector<IOConfig> &model_outs);
 
 
-void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
-                    const std::vector<IOConfig> &out_configs, int pipeline_max_batch_size);
+/**
+ * @brief Auto-fills `config` with provided pipeline inputs, outputs and max batch size.
+ */
+void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &model_ins,
+                    const std::vector<IOConfig> &model_outs, int model_max_batch_size);
 
 
 /**
