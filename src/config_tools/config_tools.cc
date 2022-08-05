@@ -191,13 +191,6 @@ void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io
 }
 
 
-// void AutofillShapeConfig(TritonJson::Value &io_object, const std::string &name,
-//                          const std::optional<std::vector<int64_t>> &shape,
-//                          TritonJson::Value &resulting_dims) {
-//   ProcessShapeConfig<true>(io_object, name, shape, resulting_dims);
-// }
-
-
 void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
                          const std::optional<std::vector<int64_t>> &shape) {
   TritonJson::Value dims_obj;
