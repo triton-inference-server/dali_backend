@@ -64,7 +64,6 @@ class DaliModel : public ::triton::backend::BackendModel {
     return params_;
   }
 
-
   void ReadOutputsOrder() {
     using Value = ::triton::common::TritonJson::Value;
     Value outputs;
@@ -83,6 +82,27 @@ class DaliModel : public ::triton::backend::BackendModel {
     return output_order_;
   }
 
+  bool ShouldAutoCompleteConfig() const {
+    return should_auto_complete_config_;
+  }
+
+  TRITONSERVER_Error* AutoCompleteConfig() {
+    try {
+      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_);
+      common::TritonJson::WriteBuffer buffer;
+      RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer));
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                  (std::string("model configuration autofilled:\n") + buffer.Contents()).c_str());
+      TRITON_CALL(SetModelConfig());
+      common::TritonJson::WriteBuffer buffer2;
+      RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer2));
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                  (std::string("model configuration set:\n") + buffer2.Contents()).c_str());
+    } catch (TritonError &err) {
+      return err.release();
+    }
+    return nullptr;
+  }
 
  private:
   explicit DaliModel(TRITONBACKEND_Model* triton_model) :
@@ -91,7 +111,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
     const char* model_repo_path;
     TRITONBACKEND_ArtifactType artifact_type;
-    TRITON_CALL_GUARD(
+    TRITON_CALL(
         TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
     std::stringstream model_path_ss;
@@ -104,6 +124,10 @@ class DaliModel : public ::triton::backend::BackendModel {
 
     LoadModel(default_model.str(), fallback_model.str());
     ReadPipelineProperties();
+
+    TRITON_CALL(
+      TRITONBACKEND_ModelAutoCompleteConfig(triton_model_,
+                                            &should_auto_complete_config_));
   }
 
   /**
@@ -247,6 +271,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       pipeline_inputs_[i].dtype = pipeline.GetInputType(name);
       pipeline_inputs_[i].shape  = pipeline.GetInputShape(name);
     }
+
     int num_outputs = pipeline.GetNumOutput();
     pipeline_outputs_.resize(num_outputs);
     for (int i = 0; i < num_outputs; ++i) {
@@ -254,6 +279,8 @@ class DaliModel : public ::triton::backend::BackendModel {
       pipeline_outputs_[i].dtype = pipeline.GetDeclaredOutputType(i);
       pipeline_outputs_[i].shape = pipeline.GetDeclaredOutputShape(i);
     }
+
+    pipeline_max_batch_size_ = pipeline.GetMaxBatchSize();
   }
 
   DaliPipeline InstantiateDaliPipeline(int config_max_batch_size) {
@@ -269,9 +296,11 @@ class DaliModel : public ::triton::backend::BackendModel {
   ModelParameters params_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
   std::unordered_map<std::string, int> output_order_;
-  std::vector<IOConfig> pipeline_inputs_;
-  std::vector<IOConfig> pipeline_outputs_;
+  std::vector<IOConfig> pipeline_inputs_{};
+  std::vector<IOConfig> pipeline_outputs_{};
+  int pipeline_max_batch_size_ = -1;
   const std::string fallback_model_filename_ = "dali.py";
+  bool should_auto_complete_config_ = false;
 };
 
 }}}  // namespace triton::backend::dali
