@@ -269,7 +269,7 @@ TEST_CASE("Inputs auto-config") {
     "name": "i1",
     "dims": [3, 2, 3],
     "data_type": "TYPE_FP32",
-    "allow_ragged_batches": true
+    "allow_ragged_batch": true
   },
   {
     "name": "i2",
@@ -291,7 +291,7 @@ TEST_CASE("Inputs auto-config") {
       REQUIRE(FindObjectByName(ios, model_in.name, &inp_object));
       bool ragged_batches;
       REQUIRE(
-        inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+        inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
       );
       REQUIRE(ragged_batches);
       CheckIOConfigEquals(inp_object, model_in);
@@ -313,21 +313,21 @@ TEST_CASE("Inputs auto-config") {
     REQUIRE(ios.IndexAsObject(0, &inp_object) == TRITONJSON_STATUSSUCCESS);
     bool ragged_batches;
     REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
     );
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}));
 
     REQUIRE(ios.IndexAsObject(1, &inp_object) == TRITONJSON_STATUSSUCCESS);
     REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
     );
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i2", DALI_FLOAT16, {{5, 5}}));
 
     REQUIRE(ios.IndexAsObject(2, &inp_object) == TRITONJSON_STATUSSUCCESS);
     REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batches", &ragged_batches) == TRITONJSON_STATUSSUCCESS
+      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
     );
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i0", DALI_INT32, {{-1, -1}}));
@@ -420,7 +420,7 @@ TEST_CASE("Autofill config") {
                 1
             ],
             "data_type": "TYPE_FP16",
-            "allow_ragged_batches": true
+            "allow_ragged_batch": true
         },
         {
             "name": "i2",
@@ -430,7 +430,7 @@ TEST_CASE("Autofill config") {
                 3
             ],
             "data_type": "TYPE_FP32",
-            "allow_ragged_batches": true
+            "allow_ragged_batch": true
         },
         {
             "name": "i3",
@@ -440,7 +440,7 @@ TEST_CASE("Autofill config") {
                 1,
                 1
             ],
-            "allow_ragged_batches": true
+            "allow_ragged_batch": true
         }
     ],
     "output": [
@@ -503,7 +503,7 @@ TEST_CASE("Read max_batch_size") {
         "name": "i1",
         "dims": [3, 2, 3],
         "data_type": "TYPE_FP32",
-        "allow_ragged_batches": true
+        "allow_ragged_batch": true
       },
       {
         "name": "i2",
@@ -547,7 +547,7 @@ TEST_CASE("Validate config") {
           "name": "i1",
           "dims": [3, 2, 1],
           "data_type": "TYPE_FP16",
-          "allow_ragged_batches": true
+          "allow_ragged_batch": true
         }
       ],
       "output": [
@@ -588,7 +588,7 @@ TEST_CASE("Validate config") {
           "name": "i1",
           "dims": [3, 2, 1],
           "data_type": "TYPE_FP16",
-          "allow_ragged_batches": true
+          "allow_ragged_batch": true
         }
       ]
     })json"));
@@ -605,7 +605,7 @@ TEST_CASE("Validate config") {
           "name": "i1",
           "dims": [3, 2, 1],
           "data_type": "TYPE_FP16",
-          "allow_ragged_batches": true
+          "allow_ragged_batch": true
         }
       ],
       "output": [

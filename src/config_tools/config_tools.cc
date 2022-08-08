@@ -267,8 +267,8 @@ void AutofillInputsConfig(TritonJson::Value &config, TritonJson::Value &config_i
     TritonJson::Value config_in(config, TritonJson::ValueType::OBJECT);
     auto found = FindObjectByName(config_ins, model_in.name, &config_in);
     AutofillIOConfig(config, config_in, model_in);
-    if (!config_in.Find("allow_ragged_batches")) {
-      config_in.AddBool("allow_ragged_batches", true);
+    if (!config_in.Find("allow_ragged_batch")) {
+      config_in.AddBool("allow_ragged_batch", true);
     }
     if (!found) {
       config_ins.Append(std::move(config_in));
