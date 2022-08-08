@@ -181,8 +181,12 @@ void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io
   TritonJson::Value config_dims_obj;
   if (config_io.Find("dims", &config_dims_obj)) {
     auto config_dims = ReadShape(config_dims_obj);
-    auto new_dims = MatchShapes(name, config_dims, model_io_shape);
-    SetShapeArray(config_dims_obj, new_dims);
+    if (config_dims.size() > 0) {
+      auto new_dims = MatchShapes(name, config_dims, model_io_shape);
+      SetShapeArray(config_dims_obj, new_dims);
+    } else {
+      SetShapeArray(config_dims_obj, model_io_shape);
+    }
   } else {
     TritonJson::Value new_dims_obj(config, TritonJson::ValueType::ARRAY);
     SetShapeArray(new_dims_obj, model_io_shape);
@@ -327,7 +331,7 @@ void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &mode
   if (config.Find("max_batch_size", &config_max_bs)) {
     int64_t config_max_bs_int = -1;
     TritonError{config_max_bs.AsInt(&config_max_bs_int)};
-    if (config_max_bs_int < 0) {
+    if (config_max_bs_int <= 0) {
       config_max_bs.SetInt(model_max_batch_size);
     }
   } else {
@@ -381,7 +385,11 @@ int ReadMaxBatchSize(TritonJson::Value &config) {
     throw TritonError::InvalidArg(
       make_string("Invalid value of max_batch_size in model configuration: ", bs));
   }
-  return static_cast<int>(bs);
+  if (bs > 0) {
+    return static_cast<int>(bs);
+  } else {
+    return -1;
+  }
 }
 
 
