@@ -25,4 +25,4 @@
 
 perf_analyzer -m dali -i grpc -u $GRPC_ADDR -b 64 --input-data test_image --shape DALI_INPUT_0:"$(stat --printf='%s' test_image/DALI_INPUT_0)" -f results.txt
 # Test if the perf_analyzer output is in a proper format and the measured times are in a reasonable range.
-[[ "$(tail -n1 results.txt)" =~ ^1,[0-9]{1,}?\.*[0-9]{1,2},([0-9]{1,},){10}[0-9]{1,}$ ]] && echo "Output Correct"
+[[ "$(tail -n1 results.txt)" =~ ^1,[0-9]{1,}?\.*[0-9]*,([0-9]{1,},){10}[0-9]{1,}$ ]] && echo "Output Correct"
