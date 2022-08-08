@@ -89,15 +89,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
       AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_);
-      common::TritonJson::WriteBuffer buffer;
-      RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer));
-      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                  (std::string("model configuration autofilled:\n") + buffer.Contents()).c_str());
       TRITON_CALL(SetModelConfig());
-      common::TritonJson::WriteBuffer buffer2;
-      RETURN_IF_ERROR(model_config_.PrettyWrite(&buffer2));
-      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                  (std::string("model configuration set:\n") + buffer2.Contents()).c_str());
     } catch (TritonError &err) {
       return err.release();
     }
