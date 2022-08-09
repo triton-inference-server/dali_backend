@@ -155,6 +155,13 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
       return "";
     }
   }
+
+  TritonError &operator=(TRITONSERVER_Error *error) {
+    if (handle_ != error) {
+      UniqueHandle<TRITONSERVER_Error*, TritonError>::operator=(TritonError{error});
+    }
+    return *this;
+  }
 };
 
 class TritonInput {

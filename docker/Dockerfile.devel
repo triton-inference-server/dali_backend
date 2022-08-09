@@ -93,7 +93,7 @@ RUN pip install --force-reinstall \
 
 COPY . .
 
-ARG TRITON_BACKEND_API_VERSION="r21.05"
+ARG TRITON_BACKEND_API_VERSION="r22.06"
 
 RUN mkdir build_in_ci && cd build_in_ci && \
     cmake                                                         \
