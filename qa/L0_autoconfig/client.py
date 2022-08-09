@@ -54,7 +54,6 @@ def test_configs(url):
   check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'])
 
   conf2 = client.get_model_config("partial_autoconfig", as_json=True)
-  print(conf2)
   check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'])
 
 
