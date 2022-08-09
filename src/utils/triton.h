@@ -157,7 +157,9 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
   }
 
   TritonError &operator=(TRITONSERVER_Error *error) {
-    *this = TritonError(error);
+    if (handle_ != error) {
+      *this = TritonError(error);
+    }
     return *this;
   }
 };
