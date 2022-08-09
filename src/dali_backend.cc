@@ -147,10 +147,11 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInitialize(TRITONBACKEND_Model* model) {
   DaliModel* model_state;
   RETURN_IF_ERROR(DaliModel::Create(model, &model_state));
   RETURN_IF_ERROR(TRITONBACKEND_ModelSetState(model, reinterpret_cast<void*>(model_state)));
-  // One of the primary things to do in ModelInitialize is to examine
-  // the model configuration to ensure that it is something that this
-  // backend can support. If not, returning an error from this
-  // function will prevent the model from loading.
+
+  if (model_state->ShouldAutoCompleteConfig()) {
+    RETURN_IF_ERROR(model_state->AutoCompleteConfig());
+  }
+
   RETURN_IF_ERROR(model_state->ValidateModelConfig());
   model_state->ReadOutputsOrder();
 

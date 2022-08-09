@@ -330,7 +330,7 @@ void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &mode
   TritonJson::Value config_max_bs;
   if (config.Find("max_batch_size", &config_max_bs)) {
     int64_t config_max_bs_int = -1;
-    TritonError{config_max_bs.AsInt(&config_max_bs_int)};
+    TritonError{config_max_bs.AsInt(&config_max_bs_int)};  // immediately release error
     if (config_max_bs_int <= 0) {
       config_max_bs.SetInt(model_max_batch_size);
     }
@@ -380,7 +380,7 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
 
 int ReadMaxBatchSize(TritonJson::Value &config) {
   int64_t bs = -1;
-  TritonError{config.MemberAsInt("max_batch_size", &bs)};
+  TritonError{config.MemberAsInt("max_batch_size", &bs)};  // immediately release error
   if (bs > std::numeric_limits<int>::max() || bs < -1) {
     throw TritonError::InvalidArg(
       make_string("Invalid value of max_batch_size in model configuration: ", bs));
