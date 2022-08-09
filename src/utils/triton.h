@@ -158,7 +158,7 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
 
   TritonError &operator=(TRITONSERVER_Error *error) {
     if (handle_ != error) {
-      *this = TritonError(error);
+      UniqueHandle<TRITONSERVER_Error*, TritonError>::operator=(TritonError{error});
     }
     return *this;
   }
