@@ -87,7 +87,7 @@ namespace detail {
 inline std::string GenerateAutoserializeCmd(const std::string& module_path,
                                             const std::string& target_file_path) {
   std::stringstream cmd;
-  if (SKIP_DALI_DOWNLOAD) {
+  if (!SKIP_DALI_DOWNLOAD) {
     cmd << CONDA_ENVIRONMENT_PATH << "/bin/";
   }
   cmd << R"py(python3 -c "
