@@ -25,13 +25,7 @@
 
 #include "src/utils/cmake_config.h"
 
-#define STRINGIFY2(x) #x
-#define STRINGIFY(x) STRINGIFY2(x)
-
 static constexpr bool SKIP_DALI_DOWNLOAD = TRITON_DALI_SKIP_DOWNLOAD;
-static const char* CONDA_ENVIRONMENT_PATH = STRINGIFY(CONDA_ENVIRONMENT);
-
-#undef STRINGIFY
-#undef STRINGIFY2
+static const char* CONDA_ENVIRONMENT_PATH = CMAKE_CONDA_ENVIRONMENT;
 
 #endif  // DALI_BACKEND_UTILS_CMAKE_TO_CPP_H_
