@@ -23,7 +23,7 @@
 #ifndef DALI_BACKEND_UTILS_CMAKE_TO_CPP_H_
 #define DALI_BACKEND_UTILS_CMAKE_TO_CPP_H_
 
-#include "src/utils/purgatory.h"
+#include "src/utils/cmake_config.h"
 
 #define STRINGIFY2(x) #x
 #define STRINGIFY(x) STRINGIFY2(x)
