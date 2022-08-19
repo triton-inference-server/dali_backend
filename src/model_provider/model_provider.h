@@ -28,6 +28,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include "src/utils/cmake_to_cpp.h"
 
 namespace triton { namespace backend { namespace dali {
 
@@ -80,15 +81,15 @@ class FileModelProvider : public ModelProvider {
   std::string model_ = {};
 };
 
-#define STRINGIFY2(x) #x
-#define STRINGIFY(x) STRINGIFY2(x)
 
 namespace detail {
 
 inline std::string GenerateAutoserializeCmd(const std::string& module_path,
                                             const std::string& target_file_path) {
   std::stringstream cmd;
-  cmd << STRINGIFY(CONDA_ENVIRONMENT) << "/bin/";
+  if (!SKIP_DALI_DOWNLOAD) {
+    cmd << CONDA_ENVIRONMENT_PATH << "/bin/";
+  }
   cmd << R"py(python3 -c "
 import importlib, sys
 from nvidia.dali._utils.autoserialize import invoke_autoserialize
