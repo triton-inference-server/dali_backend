@@ -337,6 +337,12 @@ void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &mode
   } else {
     config.AddInt("max_batch_size", model_max_batch_size);
   }
+
+  if (!config.Find("dynamic_batching")) {
+    TritonJson::Value dyn_batching(config, TritonJson::ValueType::OBJECT);
+    // we add an empty object and rely on Triton server filling it with default values
+    config.Add("dynamic_batching", std::move(dyn_batching));
+  }
 }
 
 

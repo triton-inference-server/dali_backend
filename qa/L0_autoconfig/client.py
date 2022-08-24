@@ -23,7 +23,7 @@ import tritonclient.grpc as t_client
 import argparse
 
 
-def check_config(config, bs, out_names):
+def check_config(config, bs, out_names, dyn_batching):
   assert config['max_batch_size'] == bs
 
   inps = config['input']
@@ -45,16 +45,24 @@ def check_config(config, bs, out_names):
   assert outs[1]['name'] == out_names[1]
   assert outs[1]['data_type'] == 'TYPE_FP32'
   assert outs[1]['dims'] == ['-1']
+  assert config['dynamic_batching'] == dyn_batching
 
 
 def test_configs(url):
   client = t_client.InferenceServerClient(url=url)
 
   conf1 = client.get_model_config("full_autoconfig", as_json=True)
-  check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'])
+  dyn_batching = {
+    'preferred_batch_size': [256]
+  }
+  check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'], dyn_batching)
 
   conf2 = client.get_model_config("partial_autoconfig", as_json=True)
-  check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'])
+  dyn_batching = {
+    'preferred_batch_size': [16, 32],
+    'max_queue_delay_microseconds': '500'
+  }
+  check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'], dyn_batching)
 
 
 def parse_args():

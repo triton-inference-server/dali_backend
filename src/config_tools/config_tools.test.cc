@@ -462,7 +462,8 @@ TEST_CASE("Autofill config") {
             ]
         }
     ],
-    "max_batch_size": 13
+    "max_batch_size": 13,
+    "dynamic_batching": {}
 })json";
 
   AutofillConfig(config, model_ins, model_outs, 13);
