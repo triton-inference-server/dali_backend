@@ -90,7 +90,7 @@ Refer to [Configuration auto-complete](#Configuration-auto-complete) for the det
 
 ## Configuration auto-complete
 
-To simplify the process of deploying a model, Triton Server can infer parts of the
+To simplify deploying a model, Triton Server can infer parts of the
 configuration file from the model file itself. In case of DALI backend, the information
 about the inputs, outputs and the max batch size can be specified in the pipeline definition
 and does not need to be repeated in the configuration file. Below you can see how to include the
@@ -109,15 +109,15 @@ configuration info in the Python pipeline definition:
         return images
 
 As you can see, we added `dtype` and `ndim` (number of dimensions) arguments to the external source operator. They provide the information needed to
-fill the `inputs` field in the configuration file. To fill the `outputs` field, we need to also pass the `output_dtype` and `output_ndim` arguments to the pipeline definition. Those are expected to be lists with a value for each output.
+fill the `inputs` field in the configuration file. To fill the `outputs` field, we added the `output_dtype` and `output_ndim` arguments to the pipeline definition. Those are expected to be lists with a value for each output.
 
-This way, we can limit the configuration file to just naming the model and specifying the DALI backend:
+This way we can limit the configuration file to just naming the model and specifying the DALI backend:
 
     name: "dali"
     backend: "dali"
 
 ### Partial configuration
-You still can provide some of the information if it is not present in the pipeline definition
+You can still provide some of the information if it is not present in the pipeline definition
 or to override some of the values. For example, you can use the configuration file
 to give new names to the model outputs which might be useful when using them later in an ensemble model.
 You can also overwrite the max batch size. The configuration file for the pipeline defined above could
