@@ -90,7 +90,7 @@ Refer to [Configuration auto-complete](#Configuration-auto-complete) for the det
 
 ## Configuration auto-complete
 
-To simplify deploying a model, Triton Server can infer parts of the
+To simplify model deployment, Triton Server can infer parts of the
 configuration file from the model file itself. In case of DALI backend, the information
 about the inputs, outputs and the max batch size can be specified in the pipeline definition
 and does not need to be repeated in the configuration file. Below you can see how to include the
