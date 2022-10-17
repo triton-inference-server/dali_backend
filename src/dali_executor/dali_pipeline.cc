@@ -62,9 +62,10 @@ void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_
   if (force_no_copy) {
     flags |= DALI_ext_force_no_copy;
   }
+  const char *layout = daliGetExternalInputLayout(&handle_, name);
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
   daliSetExternalInput(&handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
-                       sample_ndims, nullptr, flags);
+                       sample_ndims, layout, flags);
 }
 
 

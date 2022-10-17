@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,11 @@ def type_to_string(dtype):
     return "FP16"
   if dtype == np.single:
     return "FP32"
-  elif dtype == np.double:
+  if dtype == np.double:
     return "FP64"
+  if dtype == np.uint8:
+    return "UINT8"
+
 
 def grouper(n, iterable):
     it = iter(iterable)
