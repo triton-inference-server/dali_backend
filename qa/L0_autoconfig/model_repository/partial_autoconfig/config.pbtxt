@@ -43,6 +43,6 @@ output [
 ]
 
 dynamic_batching {
-  preferred_batch_size: [ 32 ]
+  preferred_batch_size: [16, 32]
   max_queue_delay_microseconds: 500
 }
