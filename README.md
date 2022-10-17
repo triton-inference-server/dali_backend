@@ -79,10 +79,63 @@ Here's the whole `config.pbtxt` we use for the `ResizePipeline` example:
         output [
         {
             name: "DALI_OUTPUT_0"
-            data_type: TYPE_FP32
+            data_type: TYPE_UINT8
             dims: [ 224, 224, 3 ]
         }
         ]
+
+You can omit writing most of the configuration file if you specify information about the
+inputs, outputs and max batch size in the pipeline definition.
+Refer to [Configuration auto-complete](#Configuration-auto-complete) for the details about this feature.
+
+## Configuration auto-complete
+
+To simplify the model deployment, Triton Server can infer parts of the
+configuration file from the model file itself. In case of DALI backend, the information
+about the inputs, outputs and the max batch size can be specified in the pipeline definition
+and does not need to be repeated in the configuration file. Below you can see how to include the
+configuration info in the Python pipeline definition:
+
+    import nvidia.dali as dali
+    from nvidia.dali.plugin.triton import autoserialize
+    import nvidia.dali.types as types
+
+    @autoserialize
+    @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0, output_dtype=[types.UINT8], output_ndim=[3])
+    def pipe():
+        images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0", dtype=types.UINT8, ndim=1)
+        images = dali.fn.image_decoder(images, device="mixed")
+        images = dali.fn.resize(images, resize_x=224, resize_y=224)
+        return images
+
+As you can see, we added `dtype` and `ndim` (number of dimensions) arguments to the external source operator. They provide the information needed to
+fill the `inputs` field in the configuration file. To fill the `outputs` field, we added the `output_dtype` and `output_ndim` arguments to the pipeline definition. Those are expected to be lists with a value for each output.
+
+This way we can limit the configuration file to just naming the model and specifying the DALI backend:
+
+    name: "dali"
+    backend: "dali"
+
+### Partial configuration
+You can still provide some of the information if it is not present in the pipeline definition
+or to override some of the values. For example, you can use the configuration file
+to give new names to the model outputs which might be useful when using them later in an ensemble model.
+You can also overwrite the max batch size. The configuration file for the pipeline defined above could
+look like this:
+
+    name: "dali"
+    backend: "dali"
+    max_batch_size: 128
+
+    output [
+    {
+        name: "DALI_OUTPUT_0"
+        dims: [ 224, 224, 3 ]
+    }
+    ]
+
+Such configuration file overwrites the max batch size value to 128. It also renames the pipeline output
+to `"DALI_OUTPUT_0"` and specifies its shape to be `(224, 224, 3)`.
 
 ## Autoserialization
 
@@ -174,5 +227,3 @@ Building DALI Backend is really straightforward. One thing to remember is to clo
 
 The building process will generate `unittest` executable.
 You can use it to run unit tests for DALI Backend
-
-
