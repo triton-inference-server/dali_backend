@@ -64,6 +64,12 @@ def test_configs(url):
   }
   check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'], dyn_batching)
 
+  conf1 = client.get_model_config("no_config_file.dali", as_json=True)
+  dyn_batching = {
+    'preferred_batch_size': [256]
+  }
+  check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'], dyn_batching)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
