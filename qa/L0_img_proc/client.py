@@ -48,7 +48,7 @@ def parse_args():
 
 def main():
   args = parse_args()
-  client = TestClient('img_proc', ['DALI_INPUT_0'], ['DALI_OUTPUT_0',], args.url,
+  client = TestClient('img_proc.dali', ['DALI_INPUT_0'], ['DALI_OUTPUT_0',], args.url,
                       concurrency=args.concurrency)
   client.run_tests(random_gen(args.max_batch_size), ref_func,
                    n_infers=args.n_iters, eps=1e-4)
