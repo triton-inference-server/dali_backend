@@ -102,6 +102,27 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
   return result;
 }
 
+
+inline TensorListShape<> split_outer_dim(const TensorListShape<> &shape) {
+  auto in_ndim = shape.sample_dim();
+  ENFORCE(in_ndim >= 2, "To split outer dimension, batch must be at leat 2-dimensional.");
+  auto in_samples = shape.num_samples();
+  int64_t output_samples = 0;
+  for (int64_t i = 0; i < in_samples; ++i) {
+    output_samples += shape.tensor_shape(i)[0];
+  }
+  TensorListShape<> out(output_samples, in_ndim - 1);
+  int64_t out_idx = 0;
+  for (int64_t in_sample = 0; in_sample < in_samples; ++in_sample) {
+    auto in_sample_shape = shape.tensor_shape(in_sample);
+    auto out_sample_shape = TensorShape<>(in_sample_shape.begin() + 1, in_sample_shape.end());
+    for (int64_t s = 0; s < in_sample_shape[0]; ++s) {
+      out.set_tensor_shape(out_idx++, out_sample_shape);
+    }
+  }
+  return out;
+}
+
 namespace detail {
 
 struct NvtxDomain {

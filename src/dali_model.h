@@ -64,6 +64,11 @@ class DaliModel : public ::triton::backend::BackendModel {
     return params_;
   }
 
+  bool IsOutputSplit(const std::string &name) {
+    auto it = std::find(outputs_to_split_.begin(), outputs_to_split_.end(), name);
+    return it != outputs_to_split_.end();
+  }
+
   void ReadOutputsOrder() {
     using Value = ::triton::common::TritonJson::Value;
     Value outputs;
@@ -114,12 +119,18 @@ class DaliModel : public ::triton::backend::BackendModel {
     default_model << model_path << GetModelFilename();
     fallback_model << model_path << fallback_model_filename_;
 
+    ReadParams();
+
     LoadModel(default_model.str(), fallback_model.str());
     ReadPipelineProperties();
 
     TRITON_CALL(
       TRITONBACKEND_ModelAutoCompleteConfig(triton_model_,
                                             &should_auto_complete_config_));
+  }
+
+  void ReadParams() {
+    outputs_to_split_ = params_.GetOutputsToSplit();
   }
 
   /**
@@ -269,7 +280,11 @@ class DaliModel : public ::triton::backend::BackendModel {
     for (int i = 0; i < num_outputs; ++i) {
       pipeline_outputs_[i].name = pipeline.GetOutputName(i);
       pipeline_outputs_[i].dtype = pipeline.GetDeclaredOutputType(i);
-      pipeline_outputs_[i].shape = pipeline.GetDeclaredOutputShape(i);
+      auto shape = pipeline.GetDeclaredOutputShape(i);
+      if (shape && IsOutputSplit(pipeline_outputs_[i].name)) {
+        shape->erase(shape->begin());  // remove outer dimension
+      }
+      pipeline_outputs_[i].shape = shape;
     }
 
     pipeline_max_batch_size_ = pipeline.GetMaxBatchSize();
@@ -286,6 +301,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   ModelParameters params_;
+  std::vector<std::string> outputs_to_split_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
   std::unordered_map<std::string, int> output_order_;
   std::vector<IOConfig> pipeline_inputs_{};

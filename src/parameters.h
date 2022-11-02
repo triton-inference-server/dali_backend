@@ -56,6 +56,11 @@ class ModelParameters {
     return GetParam("num_threads", -1);
   }
 
+  std::vector<std::string> GetOutputsToSplit() {
+    std::string outs_list = GetParam<std::string>("split_outer_dim");
+    return split(outs_list, separator);
+  }
+
  private:
   template<typename T>
   void GetMember(const std::string& key, T& value) {
