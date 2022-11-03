@@ -30,11 +30,14 @@ OUT_HEIGHT = 300
 
 @autoserialize
 @dali.pipeline_def(batch_size=256, num_threads=min(mp.cpu_count(), 4), device_id=0,
-                   output_dtype=[dali.types.UINT8, dali.types.UINT8], output_ndim=[5, 1])
+                   output_dtype=dali.types.UINT8, output_ndim=[5, 4, 1])
 def pipeline():
   vid = fn.external_source(device='cpu', name='INPUT', ndim=1, dtype=dali.types.UINT8)
   seq = fn.experimental.decoders.video(vid, device='mixed')
   seq = fn.resize(seq, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
+  nonreshaped_sequence = seq
   seq = fn.pad(seq, axis_names='F', align=FRAMES_PER_SEQUENCE)
 
-  return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), vid
+  return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), \
+         fn.reinterpret(nonreshaped_sequence, layout='FHWC', name='OUTPUT_images'),                 \
+         vid

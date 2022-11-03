@@ -48,29 +48,34 @@ OUT_WIDTH = 300
 OUT_HEIGHT = 300
 
 @dali.pipeline_def(num_threads=min(mp.cpu_count(), 4), device_id=0,
-                   output_dtype=[dali.types.UINT8, dali.types.UINT8], output_ndim=[5, 1],
+                   output_dtype=dali.types.UINT8, output_ndim=[5, 4, 1],
                    prefetch_queue_depth=1)
 def pipeline():
   vid = fn.external_source(device='cpu', name='INPUT', ndim=1, dtype=dali.types.UINT8)
   seq = fn.experimental.decoders.video(vid, device='mixed')
   seq = fn.resize(seq, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
+  original_sequence = seq
   seq = fn.pad(seq, axis_names='F', align=FRAMES_PER_SEQUENCE)
 
-  return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), vid
+  return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), \
+         original_sequence,                                                                         \
+         vid
 
+
+def _split_outer_dim(output):
+    arrays = [output.at(i) for i in range(len(output.shape()))]
+    return np.concatenate(arrays)
 
 class RefFunc:
   def __init__(self, max_batch_size):
     self._pipeline = pipeline(batch_size=max_batch_size)
     self._pipeline.build()
 
+
   def __call__(self, vids):
     self._pipeline.feed_input("INPUT", vids)
-    out1, out2 = self._pipeline.run()
-    out1 = out1.as_cpu()
-    seqs = [out1.at(i) for i in range(len(vids))]
-    seqs = np.concatenate(seqs)
-    return seqs, out2.as_array()
+    out1, out2, out3 = self._pipeline.run()
+    return _split_outer_dim(out1.as_cpu()), _split_outer_dim(out2.as_cpu()), out3.as_array()
 
 
 def parse_args():
@@ -85,7 +90,7 @@ def parse_args():
 
 def main():
   args = parse_args()
-  client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'INPUT'], args.url,
+  client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
                       concurrency=args.concurrency)
   client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
                    n_infers=args.n_iters, eps=1e-4)

@@ -22,6 +22,6 @@
 parameters [
   {
     key: "split_outer_dim",
-    value: { string_value: "OUTPUT" }
+    value: { string_value: "OUTPUT:OUTPUT_images" }
   }
 ]
