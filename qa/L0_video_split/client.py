@@ -35,6 +35,8 @@ def get_dali_extra_path():
 
 def input_gen(batch_size):
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
+  filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
+  filenames = filter(lambda filename: 'hevc' not in filename, filenames)
   filenames = cycle(filenames)
   while True:
     batch = []
