@@ -20,12 +20,10 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import multiprocessing as mp
-
 import nvidia.dali as dali
 import nvidia.dali.fn as fn
 from nvidia.dali.plugin.triton import autoserialize
 
-FRAMES_PER_SEQUENCE = 5
 OUT_WIDTH = 1920
 OUT_HEIGHT = 1080
 
@@ -34,17 +32,28 @@ OUT_HEIGHT = 1080
 @dali.pipeline_def(batch_size=256, num_threads=min(mp.cpu_count(), 4), device_id=0,
                    output_dtype=dali.types.UINT8, output_ndim=[4])
 def pipeline():
+    """
+    DALI Pipeline, that performs the following processing:
+    1. INPUT - encoded video file.
+    2. Decode the video.
+    3. Introduce a distortion to showcase how the distortion can be applied or removed.
+    4. OUTPUT - distorted and decoded video.
+    """
     # Decode video
     data = fn.external_source(name="INPUT", dtype=dali.types.UINT8, ndim=1)
     vid = fn.experimental.decoders.video(data, device='mixed')
 
-    # Resize if necessary
+    # Resize to match sizes of Remap parameters. This step is artificial in real life case
+    # you most probably do not want to resize the image before removing the distortion.
     vid = fn.resize(vid, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
 
-    # Undistort
+    # Remove distortion
     mapx = fn.external_source(name="MAPX", ndim=2, dtype=dali.types.FLOAT).gpu()
     mapy = fn.external_source(name="MAPY", ndim=2, dtype=dali.types.FLOAT).gpu()
+    # Provided camera maps assume, that the (0,0) point is in the center of the image.
+    # Therefore, we have to modify them to have the origin in the top-left corner.
     mapx = mapx - OUT_WIDTH * 0.5
     mapy = mapy - OUT_HEIGHT * 0.5
-    vid = fn.experimental.remap(vid, mapx, mapy, pixel_origin='center')
+    vid = fn.experimental.remap(vid, mapx, mapy, pixel_origin='center', name="OUTPUT")
+
     return vid
