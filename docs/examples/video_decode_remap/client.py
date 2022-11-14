@@ -93,8 +93,8 @@ def main():
 
     # Config inputs 1 & 2: undistort (remap) maps
     npz = np.load('./remap.npz')
-    remap_u = [npz['remap_u'] for _ in range(batch_size)]
-    remap_v = [npz['remap_v'] for _ in range(batch_size)]
+    remap_u = [npz['remap_x'] for _ in range(batch_size)]
+    remap_v = [npz['remap_y'] for _ in range(batch_size)]
     remap_u = array_from_list(remap_u)
     remap_v = array_from_list(remap_v)
     map_shape = list(remap_u.shape)
