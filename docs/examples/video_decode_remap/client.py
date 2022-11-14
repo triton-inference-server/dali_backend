@@ -22,8 +22,8 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import argparse
-import sys
 import os
+import sys
 import numpy as np
 import tritonclient.grpc
 
@@ -32,16 +32,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
                         help='Inference server URL. Default is localhost:8001.')
+    parser.add_argument('--video', type=str, required=False, default=None,
+                        help='Path to a directory, where the video data is located.')
     return parser.parse_args()
-
-
-batch_size = 2
-dali_extra_path = os.environ['DALI_EXTRA_PATH']
-
-filenames = [
-    os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr-h264.mkv"),
-    os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr-h265.mkv"),
-]
 
 
 def load_videos(filenames):
@@ -65,6 +58,19 @@ def array_from_list(arrays):
 
 def main():
     FLAGS = parse_args()
+
+    # Load test data
+    if FLAGS.video is None:
+        dali_extra_path = os.environ['DALI_EXTRA_PATH']
+        filenames = [
+            os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr-h264.mkv"),
+            os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr-h265.mkv"),
+        ]
+    else:
+        filenames = os.listdir(FLAGS.video)
+
+    batch_size = len(filenames)
+
     try:
         triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url)
     except Exception as e:
@@ -104,7 +110,7 @@ def main():
     inputs[1].set_data_from_numpy(remap_u)
     inputs[2].set_data_from_numpy(remap_v)
 
-    print("Sending video to inference server, waiting for the result...")
+    print("Sending video to the inference server, waiting for the result...")
     results = triton_client.infer(model_name=model_name,
                                   inputs=inputs,
                                   outputs=outputs)
