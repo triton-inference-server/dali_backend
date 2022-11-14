@@ -11,8 +11,8 @@ OUT_WIDTH = 300
 OUT_HEIGHT = 300
 
 @autoserialize
-@dali.pipeline_def(batch_size=256, num_threads=min(mp.cpu_count(), 4), device_id=0,
-                   output_dtype=dali.types.UINT8, output_ndim=[5, 4, 1])
+@dali.pipeline_def(batch_size=256, num_threads=4, device_id=0,
+                   output_dtype=dali.types.UINT8, output_ndim=5)
 def pipeline():
   vid = fn.external_source(device='cpu', name='INPUT', ndim=1, dtype=dali.types.UINT8)
   seq = fn.experimental.decoders.video(vid, device='mixed')
