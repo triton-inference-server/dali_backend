@@ -57,7 +57,7 @@ class ModelParameters {
   }
 
   std::vector<std::string> GetOutputsToSplit() {
-    std::string outs_list = GetParam<std::string>("split_along_outer_dim");
+    std::string outs_list = GetParam<std::string>("split_along_outer_axis");
     return split(outs_list, separator);
   }
 
