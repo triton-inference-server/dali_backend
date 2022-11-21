@@ -137,6 +137,8 @@ look like this:
 Such configuration file overwrites the max batch size value to 128. It also renames the pipeline output
 to `"DALI_OUTPUT_0"` and specifies its shape to be `(224, 224, 3)`.
 
+Refer [DALI model configuration file](docs/config.md) documentation for details on model parameters that can specified in the configuation file.
+
 ## Autoserialization
 
 When using DALI Backend in Triton, user has to provide a DALI model in the Model Repository.
