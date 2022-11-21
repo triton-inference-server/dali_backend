@@ -105,7 +105,7 @@ std::vector<TensorListShape<Dims>> split_list_shape(const TensorListShape<Dims> 
 
 inline TensorListShape<> split_outer_dim(const TensorListShape<> &shape) {
   auto in_ndim = shape.sample_dim();
-  ENFORCE(in_ndim >= 2, "To split outer dimension, batch must be at leat 2-dimensional.");
+  ENFORCE(in_ndim >= 2, "To split outer dimension, the batch must be at least 2-dimensional.");
   auto in_samples = shape.num_samples();
   int64_t output_samples = 0;
   for (int64_t i = 0; i < in_samples; ++i) {

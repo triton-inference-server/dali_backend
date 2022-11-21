@@ -17,7 +17,7 @@ The value of the this parameter is a colon-separated list of output names that w
 
 Effect of the parameter can be described as follows. Let's assume that DALI pipeline produced a batch of _N_ _D+1_-dimensional tensors of following shapes:
 
-$$\{(n_1, d_1, ... d_D), ... (n_N, d_1, ... d_D)\}$$
+$$\lbrace (n_1, d_1, ... d_D), ... (n_N, d_1, ... d_D)\rbrace$$
 
 With the parameter set for this output, the batch produced by the model will uniformly shaped  _D_-dimensional samples, with batch-size equal to:
 
@@ -27,4 +27,4 @@ with each sample having a shape of:
 
 $$(d_1, ... d_D)$$
 
-The option can be used to split batch of sequences into a batch of images or sub-sequences. 
+The option can be used to split batch of sequences into a batch of images or sub-sequences.
