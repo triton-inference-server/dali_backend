@@ -50,8 +50,8 @@ add_custom_command(
 if(${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
 else()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali)
+    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali/include)
+    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
 endif()  # TRITON_DALI_SKIP_DOWNLOAD
 
