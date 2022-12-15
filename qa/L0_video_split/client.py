@@ -37,6 +37,7 @@ def input_gen(batch_size):
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
   filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+  # print(list(filenames))
   filenames = cycle(filenames)
   while True:
     batch = []
@@ -92,10 +93,15 @@ def parse_args():
 
 def main():
   args = parse_args()
-  client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
-                      concurrency=args.concurrency)
-  client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
-                   n_infers=args.n_iters, eps=1e-4)
+  # client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
+  #                     concurrency=args.concurrency)
+  # client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
+  #                  n_infers=args.n_iters, eps=1e-4)
+
+  ref_func = RefFunc(args.max_batch_size)
+  for i, vids in zip(range(10), input_gen(args.max_batch_size)):
+    ref_func(*vids)
+    print("Pass iteration: ", i)
 
 if __name__ == '__main__':
   main()
