@@ -1,6 +1,6 @@
 name: dalienv
 dependencies:
-  - python=3.8
+  - python=@PYTHON_VERSION@
   - pip
   - pip:
       - --extra-index-url @DALI_EXTRA_INDEX_URL@
