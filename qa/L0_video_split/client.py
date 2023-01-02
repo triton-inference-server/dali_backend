@@ -37,7 +37,6 @@ def input_gen(batch_size):
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
   filenames = filter(lambda filename: 'hevc' not in filename, filenames)
-  # print(list(filenames))
   filenames = cycle(filenames)
   while True:
     batch = []
@@ -50,7 +49,7 @@ FRAMES_PER_SEQUENCE = 5
 OUT_WIDTH = 300
 OUT_HEIGHT = 300
 
-@dali.pipeline_def(num_threads=min(mp.cpu_count(), 4),
+@dali.pipeline_def(num_threads=min(mp.cpu_count(), 4), device_id=0,
                    output_dtype=dali.types.UINT8, output_ndim=[5, 4, 1],
                    prefetch_queue_depth=1)
 def pipeline():
@@ -70,8 +69,8 @@ def _split_outer_dim(output):
     return np.concatenate(arrays)
 
 class RefFunc:
-  def __init__(self, max_batch_size, dev_id):
-    self._pipeline = pipeline(batch_size=max_batch_size, device_id=dev_id)
+  def __init__(self, max_batch_size):
+    self._pipeline = pipeline(batch_size=max_batch_size)
     self._pipeline.build()
 
 
@@ -93,17 +92,10 @@ def parse_args():
 
 def main():
   args = parse_args()
-  # client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
-  #                     concurrency=args.concurrency)
-  # client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
-  #                  n_infers=args.n_iters, eps=1e-4)
-
-  ref_func1 = RefFunc(args.max_batch_size, 0)
-  ref_func2 = RefFunc(args.max_batch_size, 1)
-  for i, vids in zip(range(10), input_gen(args.max_batch_size)):
-    ref_func1(*vids)
-    ref_func2(*vids)
-    print("Pass iteration: ", i)
+  client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
+                      concurrency=args.concurrency)
+  client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
+                   n_infers=args.n_iters, eps=1e-4)
 
 if __name__ == '__main__':
   main()
