@@ -42,7 +42,7 @@ configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml 
 add_custom_command(
     OUTPUT dali_env
     COMMAND
-        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q && conda env update -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv -q
     COMMAND touch dali_env  # So that this command won't be re-run every time
     COMMENT "Building DALI conda environment."
 )
