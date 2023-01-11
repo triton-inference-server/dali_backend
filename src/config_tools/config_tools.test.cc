@@ -22,6 +22,7 @@
 
 
 #include <catch2/catch.hpp>
+#include <sstream>
 
 #include "src/config_tools/config_tools.h"
 
@@ -80,38 +81,41 @@ TEST_CASE("ReadShape test") {
 }
 
 TEST_CASE("IO config validation") {
+  bool batched_model = GENERATE(true, false);
+
   TritonJson::Value io_config;
-  TRITON_CALL(io_config.Parse(R"json({
+  TRITON_CALL(io_config.Parse(std::string(R"json({
     "name": "io0",
-    "dims": [3, 2, 1],
-    "data_type": "TYPE_FP32"
+    "dims": )json") +
+    (batched_model ? "[3, 2, 1]," : "[-1, 3, 2, 1],") +
+    R"json("data_type": "TYPE_FP32"
   })json"));
 
   SECTION("Matching config") {
-    ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 1}}));
-    ValidateIOConfig(io_config, IOConfig("io0", DALI_NO_TYPE, {{3, 2, 1}}));
-    ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {}));
+    ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 1}}), batched_model);
+    ValidateIOConfig(io_config, IOConfig("io0", DALI_NO_TYPE, {{3, 2, 1}}), batched_model);
+    ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {}), batched_model);
   }
 
   SECTION("Mismatching dtype") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_INT32, {{3, 2, 1}})),
+      ValidateIOConfig(io_config, IOConfig("io0", DALI_INT32, {{3, 2, 1}}), batched_model),
       Contains("Data type defined in config: TYPE_FP32") &&
       Contains("Data type defined in pipeline: TYPE_INT32"));
   }
 
   SECTION("Mismatching ndims") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{-1, -1, -1, -1}})),
-      Contains("Number of dimensions defined in config: 3") &&
-      Contains("Number of dimensions defined in pipeline: 4"));
+      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{-1, -1, -1, -1}}), batched_model),
+      Contains(make_string("Number of dimensions defined in config: ", batched_model ? 3 : 4)) &&
+      Contains(make_string("Number of dimensions defined in pipeline: ", batched_model ? 4 : 5)));
   }
 
   SECTION("Mismatching shapes") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 2}})),
-      Contains("Dims defined in config: {3, 2, 1}") &&
-      Contains("Dims defined in pipeline: {3, 2, 2}"));
+      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 2}}), batched_model),
+      Contains(make_string("Dims defined in config: {", batched_model ? "" : "-1, ", "3, 2, 1}")) &&
+      Contains(make_string("Dims defined in pipeline: {", batched_model ? "" : "-1, ", "3, 2, 2}")));
   }
 }
 
@@ -467,6 +471,108 @@ TEST_CASE("Autofill config") {
 })json";
 
   AutofillConfig(config, model_ins, model_outs, 13);
+  common::TritonJson::WriteBuffer buffer;
+  config.PrettyWrite(&buffer);
+  REQUIRE(buffer.Contents() == expected_config);
+}
+
+
+TEST_CASE("Autofill config [unbatched]") {
+  TritonJson::Value config(TritonJson::ValueType::OBJECT);
+  TRITON_CALL(config.Parse(R"json({
+    "input": [
+      {
+        "name": "i1",
+        "dims": [5, 3, 2, 1],
+        "data_type": "TYPE_FP16"
+      },
+      {
+        "name": "i2",
+        "dims": [-1, -1, -1, 3],
+        "data_type": "TYPE_FP32"
+      }
+    ],
+    "output": [
+      {
+        "name": "o1",
+        "dims": [1, -1, 2, 3],
+        "data_type": "TYPE_FP32"
+      }
+    ]
+  })json"));
+
+  std::vector<IOConfig> model_ins = {
+    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
+    IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
+    IOConfig("i3", DALI_INT32, {{1, 1, 1}})
+  };
+
+  std::vector<IOConfig> model_outs = {
+    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+    IOConfig("o2", DALI_INT32, {{-1, -1}})
+  };
+
+  std::string expected_config = R"json({
+    "input": [
+        {
+            "name": "i1",
+            "dims": [
+                5,
+                3,
+                2,
+                1
+            ],
+            "data_type": "TYPE_FP16",
+            "allow_ragged_batch": true
+        },
+        {
+            "name": "i2",
+            "dims": [
+                -1,
+                -1,
+                3,
+                3
+            ],
+            "data_type": "TYPE_FP32",
+            "allow_ragged_batch": true
+        },
+        {
+            "name": "i3",
+            "data_type": "TYPE_INT32",
+            "dims": [
+                -1,
+                1,
+                1,
+                1
+            ],
+            "allow_ragged_batch": true
+        }
+    ],
+    "output": [
+        {
+            "name": "o1",
+            "dims": [
+                1,
+                3,
+                2,
+                3
+            ],
+            "data_type": "TYPE_FP32"
+        },
+        {
+            "name": "o2",
+            "data_type": "TYPE_INT32",
+            "dims": [
+                -1,
+                -1,
+                -1
+            ]
+        }
+    ],
+    "max_batch_size": 0
+})json";
+
+  AutofillConfig(config, model_ins, model_outs, -1, false);
   common::TritonJson::WriteBuffer buffer;
   config.PrettyWrite(&buffer);
   REQUIRE(buffer.Contents() == expected_config);

@@ -56,10 +56,28 @@ template<typename T>
 struct IODescr {
   IOMeta meta{};
   std::vector<BufferDescr<T>> buffers{};
+
+  void append(const IODescr &other) {
+    if (meta.shape.num_samples() == 0) {
+      meta = other.meta;
+    } else {
+      ENFORCE(meta.name == other.meta.name,
+              make_string("Cannot append IOs with different names. Expected name: ",
+                          meta.name, ", got: ", other.meta.name));
+      ENFORCE(meta.type == other.meta.type,
+              make_string("Cannot append IOs with different types. For IO ",
+                          meta.name, " the expected type is ", meta.type, ", got ", other.meta.type));
+      meta.shape.append(other.meta.shape);
+    }
+    for (auto &buffer: other.buffers) {
+      buffers.push_back(buffer);
+    }
+  }
 };
 
 using IDescr = IODescr<const void>;
 using ODescr = IODescr<void>;
+
 
 }}}  // namespace triton::backend::dali
 

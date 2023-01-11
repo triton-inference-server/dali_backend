@@ -48,7 +48,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
     try {
-      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_);
+      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, batched_model_);
     } catch (TritonError &err) {
       return err.release();
     }
@@ -88,12 +88,17 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
-      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_);
+      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
+                     pipeline_max_batch_size_, batched_model_);
       TRITON_CALL(SetModelConfig());
     } catch (TritonError &err) {
       return err.release();
     }
     return nullptr;
+  }
+
+  bool Batched() const {
+    return batched_model_;
   }
 
  private:
@@ -254,6 +259,10 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   void ReadPipelineProperties() {
     int config_max_batch_size = ReadMaxBatchSize(model_config_);
+    if (config_max_batch_size == 0) {
+      batched_model_ = false;
+      config_max_batch_size = -1;
+    }
     auto pipeline = InstantiateDaliPipeline(config_max_batch_size);
     auto input_names = pipeline.ListInputs();
     pipeline_inputs_.resize(input_names.size());
@@ -271,7 +280,6 @@ class DaliModel : public ::triton::backend::BackendModel {
       pipeline_outputs_[i].dtype = pipeline.GetDeclaredOutputType(i);
       pipeline_outputs_[i].shape = pipeline.GetDeclaredOutputShape(i);
     }
-
     pipeline_max_batch_size_ = pipeline.GetMaxBatchSize();
   }
 
@@ -291,6 +299,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::vector<IOConfig> pipeline_inputs_{};
   std::vector<IOConfig> pipeline_outputs_{};
   int pipeline_max_batch_size_ = -1;
+  bool batched_model_ = true;
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
 };

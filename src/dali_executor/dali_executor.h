@@ -57,6 +57,10 @@ class DaliExecutor {
    */
   void PutOutputs(const std::vector<ODescr>& outputs);
 
+  bool InputConsumed() {
+    return input_consumed_;
+  }
+
  private:
   void SetupInputs(const std::vector<IDescr>& inputs);
 
@@ -103,6 +107,7 @@ class DaliExecutor {
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
   std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
+  bool input_consumed_;
 };
 
 }}}  // namespace triton::backend::dali

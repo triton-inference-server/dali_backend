@@ -39,6 +39,10 @@ def type_to_string(dtype):
     return "FP64"
   if dtype == np.uint8:
     return "UINT8"
+  if dtype == np.int32:
+    return "INT32"
+  if dtype == np.int64:
+    return "INT64"
 
 
 def grouper(n, iterable):
@@ -86,11 +90,13 @@ class TestClient:
           ref = compare_to(*data)
           assert(len(results) == len(ref))
           for out_i, (out, ref_out) in enumerate(zip(results, ref)):
-            assert out.shape == ref_out.shape
+            assert out.shape == ref_out.shape, "Expected: {}, Actual: {}".format(ref_out.shape, out.shape)
             if not np.allclose(out, ref_out, atol=eps):
               print("Test failure in iteration", it)
               print("Output", out_i)
               print("Expected:\n", ref_out)
               print("Actual:\n", out)
+              print("Shape: ", ref_out.shape)
+              print("Mean err", (out - ref_out).mean())
               assert False
           print('PASS iteration:', it)

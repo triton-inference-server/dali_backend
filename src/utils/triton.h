@@ -135,6 +135,10 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
     return TritonError(err);
   }
 
+  static TritonError Success() {
+    return TritonError(nullptr);
+  }
+
   static TritonError Copy(TRITONSERVER_Error *other) {
     if (!other) {
       return TritonError();
@@ -177,9 +181,8 @@ class TritonInput {
                                               &input_dims_count, &byte_size_, &buffer_cnt_));
     meta_.name = std::string(name);
     meta_.type = to_dali(input_datatype);
-    auto batch_size = input_shape[0];
-    auto sample_shape = TensorShape<>(input_shape + 1, input_shape + input_dims_count);
-    auto shape = TensorListShape<>::make_uniform(batch_size, sample_shape);
+    TensorShape<> sample_shape(input_shape + 1, input_shape + input_dims_count);
+    auto shape = TensorListShape<>::make_uniform(input_shape[0], sample_shape);
     meta_.shape = shape;
   }
 
