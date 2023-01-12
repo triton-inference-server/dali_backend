@@ -89,7 +89,6 @@ ARG DALI_DOWNLOAD_VERSION
 ARG DALI_DOWNLOAD_EXTRA_OPTIONS
 
 COPY . .
-
 ARG TRITON_BACKEND_API_VERSION="r22.07"
 
 RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \

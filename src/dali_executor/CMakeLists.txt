@@ -42,7 +42,7 @@ configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml 
 add_custom_command(
     OUTPUT dali_env
     COMMAND
-        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q && conda update -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --all -c conda-forge -y -q
     COMMAND touch dali_env  # So that this command won't be re-run every time
     COMMENT "Building DALI conda environment."
 )
@@ -50,8 +50,8 @@ add_custom_command(
 if(${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
 else()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.8/site-packages/nvidia/dali)
+    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali/include)
+    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
 endif()  # TRITON_DALI_SKIP_DOWNLOAD
 

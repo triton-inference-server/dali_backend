@@ -284,6 +284,11 @@ std::vector<ODescr> DaliModelInstance::AllocateOutputs(
     auto name = out_index.first;
     int output_idx = out_index.second;
     auto shapes = split_list_shape(outputs_info[output_idx].shape, batch_sizes);
+    if (dali_model_->IsOutputSplit(name)) {
+      for (auto &shape: shapes) {
+        shape = split_outer_dim(shape);
+      }
+    }
     std::vector<OBufferDescr> buffers(requests.size());
     IOMeta out_meta{};
     out_meta.name = name;
