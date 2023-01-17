@@ -111,9 +111,18 @@ class DaliModel : public ::triton::backend::BackendModel {
     TRITON_CALL(
         TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
-    std::stringstream model_path_ss;
-    model_path_ss << model_repo_path << sep << version_ << sep;
-    std::string model_path = model_path_ss.str();
+    // std::stringstream model_path_ss;
+    // model_path_ss << model_repo_path << sep << version_ << sep;
+    std::string model_path = make_string(model_repo_path, sep, version_, sep);
+
+    std::string config_path = make_string(model_repo_path, sep, "config.pbtxt");
+    std::ifstream config_file(config_path);
+    if (config_file.good()) {
+      std::stringstream config_buffer;
+      config_buffer << config_file.rdbuf();
+      auto config_text = config_buffer.str();
+      config_max_batch_size_ = ReadMBSFromPBtxt(config_text).value_or(-1);
+    }
 
     std::stringstream default_model, fallback_model;
     default_model << model_path << GetModelFilename();
@@ -307,6 +316,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::vector<IOConfig> pipeline_inputs_{};
   std::vector<IOConfig> pipeline_outputs_{};
   int pipeline_max_batch_size_ = -1;
+  int config_max_batch_size_ = -1;
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
 };

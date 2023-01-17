@@ -623,4 +623,66 @@ TEST_CASE("Validate config") {
   }
 }
 
+TEST_CASE("Read MBS from pb txt") {
+  SECTION("Simple") {
+    std::string_view pb_txt(R"(max_batch_size: -1)");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(-1));
+  }
+
+  SECTION("OCT") {
+    std::string_view pb_txt(R"(max_batch_size: -010)");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(-8));
+  }
+
+  SECTION("HEX") {
+    std::string_view pb_txt(R"(max_batch_size: 0xF)");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(15));
+  }
+
+  SECTION("Positive field") {
+    std::string_view pb_txt(R"(
+      # this is a comment max_batch_size: 13
+      some_list [{f: 12}, {f: 12}, {f: 12}],
+      message {string_field: "max_batch_size: 14", max_batch_size: 15;
+      msg_field: {max_batch_size: 17},
+      another_string_field: "multiple literals" #interruption
+       "with \"quote\""}
+      max_batch_size #interruption
+      : 12;
+    )");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(12));
+  }
+
+  SECTION("Negative field") {
+    std::string_view pb_txt(R"(
+      # this is a comment max_batch_size: 13
+      some_list: [{f: 12}, {f: 12}, {f: 12}]
+      max_batch_size: - # interruption
+      12 message {string_field: "max_batch_size: 14", max_batch_size: 15;
+      msg_field: {max_batch_size: 17},
+      another_string_field: "multiple literals" #interruption
+       "with \"quote\""}
+    )");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(-12));
+  }
+
+  SECTION("Missing field") {
+    std::string_view pb_txt(R"(
+      # this is a comment max_batch_size: 13
+      some_list [{f: 12}, {f: 12}, {f: 12}]
+      message {string_field: "max_batch_size: 14", max_batch_size: 15;
+      msg_field: {max_batch_size: 17},
+      another_string_field: "multiple literals" #interruption
+       "with \"quote\""}
+    )");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+}
+
 }}}}  // namespace triton::backend::dali::test

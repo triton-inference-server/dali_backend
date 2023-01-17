@@ -189,6 +189,14 @@ int ReadMaxBatchSize(TritonJson::Value &config);
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs);
 
+
+/**
+ * @brief Read max_batch_size set in a config represented as protocol buffer text format
+ * Returns a max_batch_size value or an empty optional when
+ * the is absent or cannot me parsed as int
+ */
+std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt);
+
 }}} // namespace triton::backend::dali
 
 #endif  // DALI_BACKEND_CONFIG_TOOLS_CONFIG_TOOLS_H_
