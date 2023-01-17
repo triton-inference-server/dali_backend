@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -470,63 +470,6 @@ TEST_CASE("Autofill config") {
   common::TritonJson::WriteBuffer buffer;
   config.PrettyWrite(&buffer);
   REQUIRE(buffer.Contents() == expected_config);
-}
-
-
-TEST_CASE("Read max_batch_size") {
-  SECTION("correct bs") {
-    TritonJson::Value config(TritonJson::ValueType::OBJECT);
-    TRITON_CALL(config.Parse(R"json({
-    "max_batch_size": 32,
-
-    "output": [
-      {
-        "name": "o1",
-        "dims": [3, 2, 3],
-        "data_type": "TYPE_FP32"
-      },
-      {
-        "name": "o2",
-        "dims": [5, 5]
-      }
-    ]
-    })json"));
-
-    REQUIRE(ReadMaxBatchSize(config) == 32);
-  }
-
-  SECTION("incorrect bs") {
-    TritonJson::Value config(TritonJson::ValueType::OBJECT);
-    TRITON_CALL(config.Parse(R"json({
-    "max_batch_size": -2,
-    "input": [
-      {
-        "name": "i1",
-        "dims": [3, 2, 3],
-        "data_type": "TYPE_FP32",
-        "allow_ragged_batch": true
-      },
-      {
-        "name": "i2",
-        "dims": [5, 5]
-      }
-    ],
-    "output": [
-      {
-        "name": "o1",
-        "dims": [3, 2, 3],
-        "data_type": "TYPE_FP32"
-      },
-      {
-        "name": "o2",
-        "dims": [5, 5]
-      }
-    ]
-    })json"));
-
-    REQUIRE_THROWS_WITH(ReadMaxBatchSize(config),
-                        Contains("Invalid value of max_batch_size in model configuration: -2"));
-  }
 }
 
 

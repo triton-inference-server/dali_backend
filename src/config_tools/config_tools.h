@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,12 +175,6 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
  * Names of the inputs in the config file must match the names of the inputs in the pipeline.
  */
 void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs);
-
-
-/**
- * @brief Read max_batch_size field from the config. Return -1 if the field is missing.
- */
-int ReadMaxBatchSize(TritonJson::Value &config);
 
 
 /**

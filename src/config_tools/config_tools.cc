@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -384,24 +384,11 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
 }
 
 
-int ReadMaxBatchSize(TritonJson::Value &config) {
-  int64_t bs = -1;
-  TritonError{config.MemberAsInt("max_batch_size", &bs)};  // immediately release error
-  if (bs > std::numeric_limits<int>::max() || bs < -1) {
-    throw TritonError::InvalidArg(
-      make_string("Invalid value of max_batch_size in model configuration: ", bs));
-  }
-  if (bs > 0) {
-    return static_cast<int>(bs);
-  } else {
-    return -1;
-  }
-}
-
-
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs) {
-  if (ReadMaxBatchSize(config) < 1) {
+  int64_t bs = -1;
+  TritonError{config.MemberAsInt("max_batch_size", &bs)};  // immediately release error
+  if (bs < 1) {
     throw TritonError::InvalidArg("Missing max_batch_size field in model configuration.");
   }
 
