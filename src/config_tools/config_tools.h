@@ -178,7 +178,7 @@ void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_conf
 
 
 /**
- * @brief Validate the model max batch size and inputs and outputs configs against provided values.
+ * @brief Validate the model max batch size, inputs and outputs configs against provided values.
  */
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs);
@@ -187,7 +187,7 @@ void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_c
 /**
  * @brief Read max_batch_size set in a config represented as protocol buffer text format
  * Returns a max_batch_size value or an empty optional when
- * the is absent or cannot me parsed as int
+ * the field is absent or cannot be parsed as int
  */
 std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt);
 

@@ -591,7 +591,7 @@ TEST_CASE("Read MBS from pb txt") {
       some_list [{f: 12}, {f: 12}, {f: 12}],
       message {string_field: "max_batch_size: 14", max_batch_size: 15;
       msg_field: {max_batch_size: 17},
-      another_string_field: "multiple literals" #interruption
+      another_string_field: "{multiple literals" #interruption
        "with \"quote\""}
       max_batch_size #interruption
       : 12;
@@ -607,7 +607,7 @@ TEST_CASE("Read MBS from pb txt") {
       max_batch_size: - # interruption
       12 message {string_field: "max_batch_size: 14", max_batch_size: 15;
       msg_field: {max_batch_size: 17},
-      another_string_field: "multiple literals" #interruption
+      another_string_field: "multiple literals}" #interruption {}}
        "with \"quote\""}
     )");
 
@@ -620,7 +620,7 @@ TEST_CASE("Read MBS from pb txt") {
       some_list [{f: 12}, {f: 12}, {f: 12}]
       message {string_field: "max_batch_size: 14", max_batch_size: 15;
       msg_field: {max_batch_size: 17},
-      another_string_field: "multiple literals" #interruption
+      another_string_field: "multiple literals" #interruption }
        "with \"quote\""}
     )");
 
