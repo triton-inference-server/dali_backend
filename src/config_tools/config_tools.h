@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -178,16 +178,18 @@ void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_conf
 
 
 /**
- * @brief Read max_batch_size field from the config. Return -1 if the field is missing.
- */
-int ReadMaxBatchSize(TritonJson::Value &config);
-
-
-/**
- * @brief Validate the model max batch size and inputs and outputs configs against provided values.
+ * @brief Validate the model max batch size, inputs and outputs configs against provided values.
  */
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs);
+
+
+/**
+ * @brief Read max_batch_size set in a config represented as protocol buffer text format
+ * Returns a max_batch_size value or an empty optional when
+ * the field is absent or cannot be parsed as int
+ */
+std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt);
 
 }}} // namespace triton::backend::dali
 

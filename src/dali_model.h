@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -111,9 +111,16 @@ class DaliModel : public ::triton::backend::BackendModel {
     TRITON_CALL(
         TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
-    std::stringstream model_path_ss;
-    model_path_ss << model_repo_path << sep << version_ << sep;
-    std::string model_path = model_path_ss.str();
+    std::string config_path = make_string(model_repo_path, sep, "config.pbtxt");
+    std::ifstream config_file(config_path);
+    if (config_file.good()) {
+      std::stringstream config_buffer;
+      config_buffer << config_file.rdbuf();
+      auto config_text = config_buffer.str();
+      config_max_batch_size_ = ReadMBSFromPBtxt(config_text);
+    }
+
+    std::string model_path = make_string(model_repo_path, sep, version_, sep);
 
     std::stringstream default_model, fallback_model;
     default_model << model_path << GetModelFilename();
@@ -264,8 +271,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   void ReadPipelineProperties() {
-    int config_max_batch_size = ReadMaxBatchSize(model_config_);
-    auto pipeline = InstantiateDaliPipeline(config_max_batch_size);
+    auto pipeline = InstantiateDaliPipeline(config_max_batch_size_.value_or(-1));
     auto input_names = pipeline.ListInputs();
     pipeline_inputs_.resize(input_names.size());
     for (size_t i = 0; i < input_names.size(); ++i) {
@@ -307,6 +313,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::vector<IOConfig> pipeline_inputs_{};
   std::vector<IOConfig> pipeline_outputs_{};
   int pipeline_max_batch_size_ = -1;
+  std::optional<int> config_max_batch_size_ = {};
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
 };
