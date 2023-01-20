@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -404,24 +404,11 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
 }
 
 
-int ReadMaxBatchSize(TritonJson::Value &config) {
-  int64_t bs = -1;
-  TritonError{config.MemberAsInt("max_batch_size", &bs)};  // immediately release error
-  if (bs > std::numeric_limits<int>::max() || bs < -1) {
-    throw TritonError::InvalidArg(
-      make_string("Invalid value of max_batch_size in model configuration: ", bs));
-  }
-  if (bs >= 0) {
-    return static_cast<int>(bs);
-  } else {
-    return -1;
-  }
-}
-
-
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
                     const std::vector<IOConfig> &out_configs, bool batched_model) {
-  if (ReadMaxBatchSize(config) < 0) {
+  int64_t bs = -1;
+  TritonError{config.MemberAsInt("max_batch_size", &bs)};  // immediately release error
+  if (bs < 0) {
     throw TritonError::InvalidArg("Missing max_batch_size field in model configuration.");
   }
 
@@ -441,4 +428,121 @@ void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_c
   }
   ValidateOutputs(outputs, out_configs, batched_model);
 }
+
+
+bool is_whitespace(char c) {
+  return std::isspace(static_cast<unsigned char>(c));
+}
+
+
+bool is_sep(char c) {
+  return c == ';' || c == ',';
+}
+
+
+void skip_whitespace(std::string_view &text) {
+  size_t i = 0;
+  while (i < text.size() && is_whitespace(text[i])) ++i;
+  text.remove_prefix(i);
+}
+
+
+void skip_line(std::string_view &text) {
+  auto pos = text.find('\n');
+  if (pos == text.npos) {
+    text = std::string_view();
+  } else {
+    text.remove_prefix(pos+1);
+  }
+}
+
+
+void skip_ignored(std::string_view &text) {
+  skip_whitespace(text);
+  while (!text.empty() && text[0] == '#') {
+    skip_line(text); // remove comment
+    skip_whitespace(text);
+  }
+}
+
+
+void skip_string(std::string_view &text) {
+  // in loop, because string can consist of multiple literals
+  while (!text.empty() && text[0] == '\"') {
+    size_t end = 1;
+    while (end < text.size() && text[end] != '\"') {
+      if (text[end] == '\\') ++end; // escaped character
+      ++end;
+    }
+    text.remove_prefix(end + 1);
+    skip_ignored(text);
+  }
+}
+
+
+void skip_complex(std::string_view &text, char bra, char ket) {
+  if (text.empty()) return;
+  size_t open_bracket = 0;
+  do {
+    if (text[0] == '\"') {
+      skip_string(text);
+    } else {
+      if (text[0] == bra) ++open_bracket;
+      else if (text[0] == ket) --open_bracket;
+      text.remove_prefix(1);
+    }
+    skip_ignored(text);
+  } while (!text.empty() && open_bracket > 0);
+}
+
+
+std::optional<int64_t> parse_int(std::string_view &text) {
+  skip_ignored(text);
+  if (text.empty()) return {};
+  bool negative = false;
+  if (text[0] == '-') {
+    negative = true;
+    text.remove_prefix(1);
+    skip_ignored(text);
+  }
+  size_t end = 0;
+  while (end < text.size() && !(is_whitespace(text[end]) || is_sep(text[end]))) ++end;
+  try {
+    std::string value(text.substr(0, end));
+    int64_t v = std::stoll(value, nullptr, 0);
+    return (negative) ? -v : v;
+  } catch (std::logic_error &err) {
+    return {};
+  }
+}
+
+
+std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt) {
+  static const std::string field_name = "max_batch_size";
+  skip_ignored(pb_txt);
+  while (pb_txt.size() > field_name.size()) {
+    if (pb_txt.substr(0, field_name.size()) == field_name) {
+      pb_txt.remove_prefix(field_name.size());
+      skip_ignored(pb_txt);
+      if (pb_txt[0] == ':') {
+        pb_txt.remove_prefix(1); // remove :
+        return parse_int(pb_txt);
+      } else {
+        // scalar field name has to be followed by a colon
+        return {};
+      }
+    } else if (pb_txt[0] == '[') {
+      skip_complex(pb_txt, '[', ']');
+    } else if (pb_txt[0] == '{') {
+      skip_complex(pb_txt, '{', '}');
+    } else if (pb_txt[0] == '\"') {
+      skip_string(pb_txt);
+    } else {
+      pb_txt.remove_prefix(1);
+    }
+    skip_ignored(pb_txt);
+  }
+  return {};
+}
+
 }}}  // namespace triton::backend::dali

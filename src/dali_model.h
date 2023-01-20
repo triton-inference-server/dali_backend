@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
     try {
-      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, batched_model_);
+      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, Batched());
     } catch (TritonError &err) {
       return err.release();
     }
@@ -94,7 +94,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
       AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
-                     pipeline_max_batch_size_, batched_model_);
+                     pipeline_max_batch_size_, Batched());
       TRITON_CALL(SetModelConfig());
     } catch (TritonError &err) {
       return err.release();
@@ -103,7 +103,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   bool Batched() const {
-    return batched_model_;
+    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0) ;
   }
 
  private:
@@ -116,9 +116,16 @@ class DaliModel : public ::triton::backend::BackendModel {
     TRITON_CALL(
         TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
-    std::stringstream model_path_ss;
-    model_path_ss << model_repo_path << sep << version_ << sep;
-    std::string model_path = model_path_ss.str();
+    std::string config_path = make_string(model_repo_path, sep, "config.pbtxt");
+    std::ifstream config_file(config_path);
+    if (config_file.good()) {
+      std::stringstream config_buffer;
+      config_buffer << config_file.rdbuf();
+      auto config_text = config_buffer.str();
+      config_max_batch_size_ = ReadMBSFromPBtxt(config_text);
+    }
+
+    std::string model_path = make_string(model_repo_path, sep, version_, sep);
 
     std::stringstream default_model, fallback_model;
     default_model << model_path << GetModelFilename();
@@ -269,12 +276,11 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   void ReadPipelineProperties() {
-    int config_max_batch_size = ReadMaxBatchSize(model_config_);
-    if (config_max_batch_size == 0) {
-      batched_model_ = false;
-      config_max_batch_size = -1;
+    auto mbs_arg = config_max_batch_size_.value_or(-1);
+    if (mbs_arg == 0) {
+      mbs_arg = -1;
     }
-    auto pipeline = InstantiateDaliPipeline(config_max_batch_size);
+    auto pipeline = InstantiateDaliPipeline(mbs_arg);
     auto input_names = pipeline.ListInputs();
     pipeline_inputs_.resize(input_names.size());
     for (size_t i = 0; i < input_names.size(); ++i) {
@@ -315,7 +321,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::vector<IOConfig> pipeline_inputs_{};
   std::vector<IOConfig> pipeline_outputs_{};
   int pipeline_max_batch_size_ = -1;
-  bool batched_model_ = true;
+  std::optional<int> config_max_batch_size_ = {};
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
 };
