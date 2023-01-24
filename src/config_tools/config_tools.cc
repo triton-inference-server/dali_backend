@@ -345,7 +345,7 @@ void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &mode
   if (config.Find("max_batch_size", &config_max_bs)) {
     int64_t config_max_bs_int = -1;
     TritonError{config_max_bs.AsInt(&config_max_bs_int)};  // immediately release error
-    if (config_max_bs_int < 0) {
+    if (config_max_bs_int < 0 || (batched_model && config_max_bs_int == 0)) {
       config_max_bs.SetInt(model_max_batch_size);
     }
   } else {
