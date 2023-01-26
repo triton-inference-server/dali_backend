@@ -55,10 +55,6 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   void Execute(const std::vector<TritonRequest>& requests);
 
-  void ExecuteBatched(const std::vector<TritonRequest>& requests);
-
-  void ExecuteUnbatched(const std::vector<TritonRequest> &requests);
-
  private:
   DaliModelInstance(DaliModel* model, TRITONBACKEND_ModelInstance* triton_model_instance) :
       BackendModelInstance(model, triton_model_instance), dali_model_(model) {
@@ -127,6 +123,11 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   std::vector<ODescr> AllocateOutputs(const TritonRequest &request, const TritonResponse &response,
                                       const std::vector<OutputInfo>& outputs_info);
+
+
+  void ExecuteBatched(const std::vector<TritonRequest>& requests);
+
+  void ExecuteUnbatched(const std::vector<TritonRequest> &requests);
 
   std::unique_ptr<DaliExecutor> dali_executor_;
   DaliModel* dali_model_;

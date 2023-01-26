@@ -107,7 +107,7 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
  * @brief Auto-fills `config_io`'s dimensions field with value `model_io_shape`.
  * `config` must be a top-level TritonJson object containing `config_io`
  *
- * If `add_batch_dim` is set to true, the model_io_shape will be prepended with -1
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io,
@@ -117,7 +117,7 @@ void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io
 /**
  * @brief Validates dims field in IO object again provided value.
  *
- * If `add_batch_dim` is set to true, shape will be prepended with -1
+* If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
@@ -128,7 +128,7 @@ void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
  * @brief Auto-fills `config_io` IO object with values from model IO configuration `model_io`.
  * `config` must be a top-level TritonJson object containing `config_io`.
  *
- * If `add_batch_dim` is set to true, the shape of the model_io will be prepended with -1
+* If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
@@ -138,7 +138,7 @@ void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
 /**
  * @brief Validates IO object against provided config values.
  *
- * If `add_batch_dim` is set to true, the shape of the model_io will be prepended with -1
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,

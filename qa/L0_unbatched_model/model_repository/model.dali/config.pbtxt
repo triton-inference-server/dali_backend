@@ -24,10 +24,7 @@ max_batch_size: 0
 output [
   {
     name: "DALI_OUTPUT_0"
-  }
-]
-
-output [
+  },
   {
     name: "DALI_OUTPUT_1"
   }

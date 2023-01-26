@@ -189,8 +189,8 @@ TimeInterval DaliModelInstance::ProcessRequest(const TritonRequest &request) {
     dali_executor_->PutOutputs(dali_outputs);
     tr_copy.stop();
 
-    SendResponse(std::move(response), TritonError::Success());
-  } while (!dali_executor_->InputConsumed());
+    SendResponse(std::move(response));
+  } while (!dali_executor_->InputsConsumed());
   end_timer_ns(compute_interval);
   return compute_interval;
 }
@@ -206,21 +206,21 @@ InputsInfo DaliModelInstance::GenerateInputs(const std::vector<TritonRequest>& r
     ENFORCE(request.InputCount() == input_cnt,
             "Each request must provide the same number of inputs.");
     auto idescrs = GenerateInputs(request);
+    reqs_batch_sizes[ri] = idescrs[0].meta.shape.num_samples();
     if (ri == 0) {
       for (auto &input: idescrs) {
-        input_map[input.meta.name] = input;
+        input_map[input.meta.name] = std::move(input);
       }
     } else {
       for (auto &input: idescrs) {
         auto idescr = input_map.find(input.meta.name);
         ENFORCE(idescr != input_map.end(), "Got unexpected input with name " + input.meta.name);
-        idescr->second.append(input);
+        idescr->second.append(std::move(input));
       }
     }
-    reqs_batch_sizes[ri] = idescrs[0].meta.shape.num_samples();
   }
   for (const auto& descrs : input_map) {
-    inputs.push_back(descrs.second);
+    inputs.push_back(std::move(descrs.second));
   }
   return {inputs, reqs_batch_sizes};
 }
@@ -236,9 +236,9 @@ std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest &reque
     auto &idescr = inputs[input_idx];
     for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
       auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
-      idescr.buffers.push_back(buffer);
+      idescr.buffers.push_back(std::move(buffer));
     }
-    idescr.meta = meta;
+    idescr.meta = std::move(meta);
 
     if (input_idx == 0) {
       num_samples = meta.shape.num_samples();

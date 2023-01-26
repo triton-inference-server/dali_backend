@@ -135,10 +135,6 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
     return TritonError(err);
   }
 
-  static TritonError Success() {
-    return TritonError(nullptr);
-  }
-
   static TritonError Copy(TRITONSERVER_Error *other) {
     if (!other) {
       return TritonError();
@@ -385,7 +381,7 @@ class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
 };
 
 /** @brief Consume and send response and error. */
-void SendResponse(TritonResponse response, TritonError error);
+void SendResponse(TritonResponse response, TritonError error = TritonError{nullptr});
 
 }}}  // namespace triton::backend::dali
 

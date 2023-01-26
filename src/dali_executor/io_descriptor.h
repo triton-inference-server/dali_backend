@@ -40,7 +40,7 @@ struct BufferDescr {
   BufferDescr(BufferDescr<S> other) :
       device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
 
-  BufferDescr(){};
+  BufferDescr() {};
 };
 
 using IBufferDescr = BufferDescr<const void>;
@@ -50,6 +50,23 @@ struct IOMeta {
   std::string name{};
   dali_data_type_t type{};
   TensorListShape<> shape{};
+
+  IOMeta(const IOMeta &other): name(other.name), type(other.type), shape(other.shape) {}
+
+  IOMeta &operator=(IOMeta &&rhs) {
+    if (this != &rhs) {
+      name = std::move(rhs.name);
+      type = rhs.type;
+      shape = std::move(rhs.shape);
+    }
+    return *this;
+  }
+
+  IOMeta(IOMeta &&other) {
+    *this = std::move(other);
+  }
+
+  IOMeta() = default;
 };
 
 template<typename T>
@@ -57,9 +74,13 @@ struct IODescr {
   IOMeta meta{};
   std::vector<BufferDescr<T>> buffers{};
 
-  void append(const IODescr &other) {
+  /**
+   * @brief Moves and appends buffers from the second descriptor and adjusts
+   * the shape of this descriptor.
+  */
+  void append(IODescr &&other) {
     if (meta.shape.num_samples() == 0) {
-      meta = other.meta;
+      meta = std::move(other.meta);
     } else {
       ENFORCE(meta.name == other.meta.name,
               make_string("Cannot append IOs with different names. Expected name: ",
@@ -70,9 +91,27 @@ struct IODescr {
       meta.shape.append(other.meta.shape);
     }
     for (auto &buffer: other.buffers) {
-      buffers.push_back(buffer);
+      buffers.push_back(std::move(buffer));
     }
   }
+
+  IODescr(const IOMeta &meta, const std::vector<BufferDescr<T>> &buffers): meta(meta), buffers(buffers) {}
+
+  IODescr(const IODescr &other): meta(other.meta), buffers(other.buffers) {}
+
+  IODescr &operator=(IODescr &&rhs) {
+    if (this != &rhs) {
+      meta = std::move(rhs.meta);
+      buffers = std::move(rhs.buffers);
+    }
+    return *this;
+  }
+
+  IODescr(IODescr &&other) {
+    *this = std::move(other);
+  }
+
+  IODescr() = default;
 };
 
 using IDescr = IODescr<const void>;
