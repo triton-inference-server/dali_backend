@@ -106,28 +106,43 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
 /**
  * @brief Auto-fills `config_io`'s dimensions field with value `model_io_shape`.
  * `config` must be a top-level TritonJson object containing `config_io`
+ *
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * to extend it with the batch dimension.
  */
 void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io,
-                         const std::vector<int64_t> &model_io_shape);
+                         const std::vector<int64_t> &model_io_shape,
+                         bool batched_model = true);
 
 /**
  * @brief Validates dims field in IO object again provided value.
+ *
+* If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * to extend it with the batch dimension.
  */
 void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                         const std::optional<std::vector<int64_t>> &shape);
+                         const std::optional<std::vector<int64_t>> &shape,
+                         bool batched_model = true);
 
 /**
  * @brief Auto-fills `config_io` IO object with values from model IO configuration `model_io`.
  * `config` must be a top-level TritonJson object containing `config_io`.
+ *
+* If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * to extend it with the batch dimension.
  */
 void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
-                      const IOConfig &model_io);
+                      const IOConfig &model_io, bool batched_model = true);
 
 
 /**
  * @brief Validates IO object against provided config values.
+ *
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * to extend it with the batch dimension.
  */
-void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config);
+void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
+                      bool batched_model = true);
 
 
 /**
@@ -139,7 +154,7 @@ void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config);
  * Inputs that do not appear in the original config are ordered lexicographically (pipeline order).
  */
 void AutofillInputsConfig(TritonJson::Value &config, TritonJson::Value &config_ins,
-                          const std::vector<IOConfig> &model_ins);
+                          const std::vector<IOConfig> &model_ins, bool batched_model = true);
 
 
 /**
@@ -150,14 +165,15 @@ void AutofillInputsConfig(TritonJson::Value &config, TritonJson::Value &config_i
  * If the config sets the name of an output, it overrides the name specified in the DALI pipeline.
  */
 void AutofillOutputsConfig(TritonJson::Value &config, TritonJson::Value &config_outs,
-                           const std::vector<IOConfig> &model_outs);
+                           const std::vector<IOConfig> &model_outs, bool batched_model = true);
 
 
 /**
  * @brief Auto-fills `config` with provided pipeline inputs, outputs and max batch size.
  */
 void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &model_ins,
-                    const std::vector<IOConfig> &model_outs, int model_max_batch_size);
+                    const std::vector<IOConfig> &model_outs, int model_max_batch_size,
+                    bool batched_model = true);
 
 
 /**
@@ -166,7 +182,8 @@ void AutofillConfig(TritonJson::Value &config, const std::vector<IOConfig> &mode
  * Names of the outputs in the config file do not need to match the names of the outputs
  * specified in the DALI pipeline.
  */
-void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_configs);
+void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_configs,
+                     bool batched_model = true);
 
 
 /**
@@ -174,14 +191,15 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
  *
  * Names of the inputs in the config file must match the names of the inputs in the pipeline.
  */
-void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs);
+void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs,
+                    bool batched_model = true);
 
 
 /**
  * @brief Validate the model max batch size, inputs and outputs configs against provided values.
  */
 void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_configs,
-                    const std::vector<IOConfig> &out_configs);
+                    const std::vector<IOConfig> &out_configs, bool batched_model = true);
 
 
 /**

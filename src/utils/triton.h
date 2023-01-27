@@ -177,9 +177,8 @@ class TritonInput {
                                               &input_dims_count, &byte_size_, &buffer_cnt_));
     meta_.name = std::string(name);
     meta_.type = to_dali(input_datatype);
-    auto batch_size = input_shape[0];
-    auto sample_shape = TensorShape<>(input_shape + 1, input_shape + input_dims_count);
-    auto shape = TensorListShape<>::make_uniform(batch_size, sample_shape);
+    TensorShape<> sample_shape(input_shape + 1, input_shape + input_dims_count);
+    auto shape = TensorListShape<>::make_uniform(input_shape[0], sample_shape);
     meta_.shape = shape;
   }
 
@@ -382,7 +381,7 @@ class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
 };
 
 /** @brief Consume and send response and error. */
-void SendResponse(TritonResponse response, TritonError error);
+void SendResponse(TritonResponse response, TritonError error = TritonError{nullptr});
 
 }}}  // namespace triton::backend::dali
 

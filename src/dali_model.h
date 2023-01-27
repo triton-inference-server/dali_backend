@@ -48,7 +48,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
     try {
-      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_);
+      ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, Batched());
     } catch (TritonError &err) {
       return err.release();
     }
@@ -93,12 +93,17 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
-      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_);
+      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
+                     pipeline_max_batch_size_, Batched());
       TRITON_CALL(SetModelConfig());
     } catch (TritonError &err) {
       return err.release();
     }
     return nullptr;
+  }
+
+  bool Batched() const {
+    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0) ;
   }
 
  private:
@@ -271,7 +276,11 @@ class DaliModel : public ::triton::backend::BackendModel {
   }
 
   void ReadPipelineProperties() {
-    auto pipeline = InstantiateDaliPipeline(config_max_batch_size_.value_or(-1));
+    auto mbs_arg = config_max_batch_size_.value_or(-1);
+    if (mbs_arg == 0) {
+      mbs_arg = -1;
+    }
+    auto pipeline = InstantiateDaliPipeline(mbs_arg);
     auto input_names = pipeline.ListInputs();
     pipeline_inputs_.resize(input_names.size());
     for (size_t i = 0; i < input_names.size(); ++i) {
@@ -292,7 +301,6 @@ class DaliModel : public ::triton::backend::BackendModel {
       }
       pipeline_outputs_[i].shape = shape;
     }
-
     pipeline_max_batch_size_ = pipeline.GetMaxBatchSize();
   }
 

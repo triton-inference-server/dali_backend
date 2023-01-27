@@ -57,6 +57,13 @@ class DaliExecutor {
    */
   void PutOutputs(const std::vector<ODescr>& outputs);
 
+  /**
+   * @brief Returns true if any of the inputs consumed its data and requires providing next batch
+   */
+  bool InputsConsumed() {
+    return inputs_consumed_;
+  }
+
  private:
   void SetupInputs(const std::vector<IDescr>& inputs);
 
@@ -103,6 +110,7 @@ class DaliExecutor {
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
   std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
+  bool inputs_consumed_;
 };
 
 }}}  // namespace triton::backend::dali

@@ -49,6 +49,7 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   for (auto& inp : c_inputs) {
     pipeline_.SetInput(inp);
   }
+  inputs_consumed_ = false;
 }
 
 
@@ -147,6 +148,7 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
     ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
                     pipeline_.GetOutputDevice(out_idx)};
   }
+  inputs_consumed_ = true; // this will change with introduction of streamed input
   return ret;
 }
 
