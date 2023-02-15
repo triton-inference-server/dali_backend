@@ -53,7 +53,6 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
     input_names_.push_back(inp.meta.name);
     pipeline_.SetInput(inp, {request_id_str});
   }
-  inputs_consumed_ = false;
 }
 
 
@@ -140,6 +139,7 @@ bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   if (inputs_consumed_) {
     SetupInputs(inputs);
+    inputs_consumed_ = false;
   }
   try {
     pipeline_.Run();
@@ -156,7 +156,7 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   }
   for (auto &name: input_names_) {
     auto trace = pipeline_.GetOperatorTrace(name, "next_output_data_id");
-    if (trace != std::to_string(request_id_)) {
+    if (!trace.has_value() || std::stoull(*trace) != request_id_) {
       inputs_consumed_ = true;
     }
   }
