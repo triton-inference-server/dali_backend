@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +98,7 @@ void DaliModelInstance::ExecuteBatched(const std::vector<TritonRequest>& request
     proc_meta = ProcessRequests(requests, responses);
   } catch (...) { error = ErrorHandler(); }
   for (auto& response : responses) {
-    SendResponse(std::move(response), TritonError::Copy(error));
+    SendResponse(std::move(response), true, TritonError::Copy(error));
   }
   end_timer_ns(exec_interval);
   for (auto& request : requests) {
@@ -119,7 +119,7 @@ void DaliModelInstance::ExecuteUnbatched(const std::vector<TritonRequest>& reque
     } catch (...) {
       error = ErrorHandler();
       auto response = TritonResponse::New(request);
-      SendResponse(std::move(response), TritonError::Copy(error));
+      SendResponse(std::move(response), true, TritonError::Copy(error));
     }
 
     end_timer_ns(exec_interval);
@@ -189,7 +189,7 @@ TimeInterval DaliModelInstance::ProcessRequest(const TritonRequest &request) {
     dali_executor_->PutOutputs(dali_outputs);
     tr_copy.stop();
 
-    SendResponse(std::move(response));
+    SendResponse(std::move(response), dali_executor_->InputsConsumed());
   } while (!dali_executor_->InputsConsumed());
   end_timer_ns(compute_interval);
   return compute_interval;

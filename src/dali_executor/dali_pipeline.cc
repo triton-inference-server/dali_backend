@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,12 +55,15 @@ std::vector<TensorListShape<>> DaliPipeline::GetOutputShapes() {
 
 void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_t source_device,
                             dali_data_type_t data_type, span<const int64_t> inputs_shapes,
-                            int sample_ndims, bool force_no_copy) {
+                            int sample_ndims, const char *data_id, bool force_no_copy) {
   ENFORCE(inputs_shapes.size() % sample_ndims == 0, "Incorrect inputs shapes or sample ndims");
   int batch_size = inputs_shapes.size() / sample_ndims;
   unsigned int flags = DALI_ext_default;
   if (force_no_copy) {
     flags |= DALI_ext_force_no_copy;
+  }
+  if (data_id) {
+    daliSetExternalInputDataId(&handle_, name, data_id);
   }
   const char *layout = daliGetExternalInputLayout(&handle_, name);
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
@@ -71,16 +74,18 @@ void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_
 
 void DaliPipeline::SetInput(const void* ptr, const char* name, device_type_t source_device,
                             dali_data_type_t data_type, TensorListShape<> input_shape,
-                            bool force_no_copy) {
+                            std::optional<std::string_view> data_id, bool force_no_copy) {
   SetInput(ptr, name, source_device, data_type, make_span(input_shape.shapes),
-           input_shape.sample_dim(), force_no_copy);
+           input_shape.sample_dim(), data_id ? data_id->data() : nullptr, force_no_copy);
 }
 
-void DaliPipeline::SetInput(const IDescr& io_descr, bool force_no_copy) {
+void DaliPipeline::SetInput(const IDescr& io_descr, std::optional<std::string_view> data_id,
+                            bool force_no_copy) {
   ENFORCE(io_descr.buffers.size() == 1, "DALI pipeline input has to be a single chunk of memory");
   auto meta = io_descr.meta;
   auto buffer = io_descr.buffers[0];
-  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape, force_no_copy);
+  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape,
+           data_id, force_no_copy);
 }
 
 void DaliPipeline::SyncStream() {
@@ -144,6 +149,16 @@ dali_data_type_t DaliPipeline::GetDeclaredOutputType(int id) {
 
 int DaliPipeline::GetMaxBatchSize() {
   return daliGetMaxBatchSize(&handle_);
+}
+
+std::optional<std::string> DaliPipeline::GetOperatorTrace(std::string_view operator_name,
+                                                          std::string_view trace_name) {
+  if (daliHasOperatorTrace(&handle_, operator_name.data(), trace_name.data())) {
+    std::string trace = daliGetOperatorTrace(&handle_, operator_name.data(), trace_name.data());
+    return trace;
+  } else {
+    return std::nullopt;
+  }
 }
 
 }}}  // namespace triton::backend::dali

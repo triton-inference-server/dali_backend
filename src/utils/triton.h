@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2022 NVIDIA CORPORATION
+// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -380,8 +380,11 @@ class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
   TRITONBACKEND_Response *handle_ = nullptr;
 };
 
-/** @brief Consume and send response and error. */
-void SendResponse(TritonResponse response, TritonError error = TritonError{nullptr});
+/** @brief Consume and send response and error.
+ * final_response - true if it's the last response for a current request
+*/
+void SendResponse(TritonResponse response, bool final_response = true,
+                  TritonError error = TritonError{nullptr});
 
 }}}  // namespace triton::backend::dali
 

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -110,7 +110,9 @@ class DaliExecutor {
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
   std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
-  bool inputs_consumed_;
+  bool inputs_consumed_ = true;
+  std::vector<std::string> input_names_;
+  uint64_t request_id_ = 0;
 };
 
 }}}  // namespace triton::backend::dali

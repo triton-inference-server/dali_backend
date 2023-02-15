@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,8 +46,12 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
     }
   }
   WaitForCopies();
+  input_names_.clear();
+  request_id_ += 1;
+  std::string request_id_str = std::to_string(request_id_);
   for (auto& inp : c_inputs) {
-    pipeline_.SetInput(inp);
+    input_names_.push_back(inp.meta.name);
+    pipeline_.SetInput(inp, {request_id_str});
   }
   inputs_consumed_ = false;
 }
@@ -134,7 +138,9 @@ bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
 }
 
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
-  SetupInputs(inputs);
+  if (inputs_consumed_) {
+    SetupInputs(inputs);
+  }
   try {
     pipeline_.Run();
     pipeline_.Output();
@@ -148,7 +154,12 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
     ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
                     pipeline_.GetOutputDevice(out_idx)};
   }
-  inputs_consumed_ = true; // this will change with introduction of streamed input
+  for (auto &name: input_names_) {
+    auto trace = pipeline_.GetOperatorTrace(name, "next_output_data_id");
+    if (trace != std::to_string(request_id_)) {
+      inputs_consumed_ = true;
+    }
+  }
   return ret;
 }
 
