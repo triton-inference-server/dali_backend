@@ -33,7 +33,7 @@ timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--model_name', type=str, required=True, help='Model name.',
-                        choices=['rn50', 'jasper'])
+                        choices=['rn50', 'jasper', 'rn50_cvcuda'])
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
                         help='Inference server URL. Default is localhost:8001.')
     parser.add_argument('-s', '--scenario', type=str, required=True, help='Model name.',
@@ -93,7 +93,7 @@ def run_perf_analyzer(model_name: str, input_name: str, backend: str, batch_size
         cmd_options['-f'] = results_file.name
         cmd = create_cmd(cmd_options=cmd_options)
         subprocess.run(cmd, capture_output=True, encoding='utf-8', check=True)
-    output_filename = f"result_{model_name}_{backend}_{timestamp}.csv"
+    output_filename = f"/results/result_{model_name}_{backend}_{timestamp}.csv"
     merge_csvs(csv_fd_list=result_files,
                output_filename=output_filename,
                batch_sizes=batch_sizes)

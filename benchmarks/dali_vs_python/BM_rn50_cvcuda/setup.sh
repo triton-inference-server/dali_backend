@@ -1,3 +1,5 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
@@ -19,23 +21,6 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG TRITON_VERSION=23.01
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
-FROM ${BASE_IMAGE} as builder
-
-RUN pip3 install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
-RUN pip3 install librosa==0.8.1 ipdb
-RUN apt-get update && apt-get install -y libsndfile1
-
-# CV-CUDA
-RUN wget https://github.com/CVCUDA/CV-CUDA/releases/download/v0.2.0-alpha/nvcv-lib-0.2.0_alpha-cuda11-x86_64-linux.deb && \
-    dpkg -i nvcv-lib-0.2.0_alpha-cuda11-x86_64-linux.deb && \
-    wget https://github.com/CVCUDA/CV-CUDA/releases/download/v0.2.0-alpha/nvcv_python-0.2.0_alpha-cp38-cp38-linux_x86_64.whl && \
-    pip3 install nvcv_python-0.2.0_alpha-cp38-cp38-linux_x86_64.whl
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib/python3.8/dist-packages
-ENV PYTHONPATH "${PYTHONPATH}:/usr/local/lib/python3.8/dist-packages/python"
-
-# torchnvjpeg
-RUN git clone --depth 1 https://github.com/itsliupeng/torchnvjpeg && cd torchnvjpeg && \
-    python3 setup.py bdist_wheel && cd dist && \
-    pip3 install torchnvjpeg-0.1.0-*.whl && cd .. && rm -rf torchnvjpeg
+mkdir -p test_sample
+cp images/baboon-174073_1280.jpg test_sample/DALI_INPUT_0
+cp images/baboon-174073_1280.jpg test_sample/PYTHON_INPUT_0

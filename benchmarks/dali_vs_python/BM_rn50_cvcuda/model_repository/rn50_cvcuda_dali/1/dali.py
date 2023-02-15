@@ -19,23 +19,21 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-ARG TRITON_VERSION=23.01
-ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
-FROM ${BASE_IMAGE} as builder
+import nvidia.dali as dali
+import nvidia.dali.types as types
+from nvidia.dali.plugin.triton import autoserialize
 
-RUN pip3 install torch==1.10.2+cu113 torchvision==0.11.3+cu113 torchaudio==0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
-RUN pip3 install librosa==0.8.1 ipdb
-RUN apt-get update && apt-get install -y libsndfile1
 
-# CV-CUDA
-RUN wget https://github.com/CVCUDA/CV-CUDA/releases/download/v0.2.0-alpha/nvcv-lib-0.2.0_alpha-cuda11-x86_64-linux.deb && \
-    dpkg -i nvcv-lib-0.2.0_alpha-cuda11-x86_64-linux.deb && \
-    wget https://github.com/CVCUDA/CV-CUDA/releases/download/v0.2.0-alpha/nvcv_python-0.2.0_alpha-cp38-cp38-linux_x86_64.whl && \
-    pip3 install nvcv_python-0.2.0_alpha-cp38-cp38-linux_x86_64.whl
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib/python3.8/dist-packages
-ENV PYTHONPATH "${PYTHONPATH}:/usr/local/lib/python3.8/dist-packages/python"
-
-# torchnvjpeg
-RUN git clone --depth 1 https://github.com/itsliupeng/torchnvjpeg && cd torchnvjpeg && \
-    python3 setup.py bdist_wheel && cd dist && \
-    pip3 install torchnvjpeg-0.1.0-*.whl && cd .. && rm -rf torchnvjpeg
+@autoserialize
+@dali.pipeline_def(batch_size=1, num_threads=16, device_id=0)
+def pipe():
+    images = dali.fn.external_source(device='cpu', name="DALI_INPUT_0", no_copy=True)
+    images = dali.fn.decoders.image(images, device='mixed', output_type=types.RGB)
+    images = dali.fn.resize(images, resize_x=224, resize_y=224)
+    images = dali.fn.crop_mirror_normalize(images,
+                                           dtype=types.FLOAT,
+                                           output_layout="CHW",
+                                           crop=(224, 224),
+                                           mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+                                           std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+    return images
