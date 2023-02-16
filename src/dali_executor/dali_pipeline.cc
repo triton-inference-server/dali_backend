@@ -151,11 +151,10 @@ int DaliPipeline::GetMaxBatchSize() {
   return daliGetMaxBatchSize(&handle_);
 }
 
-std::optional<std::string> DaliPipeline::GetOperatorTrace(std::string_view operator_name,
-                                                          std::string_view trace_name) {
+std::optional<std::string> DaliPipeline::TryGetOperatorTrace(std::string_view operator_name,
+                                                             std::string_view trace_name) {
   if (daliHasOperatorTrace(&handle_, operator_name.data(), trace_name.data())) {
-    std::string trace = daliGetOperatorTrace(&handle_, operator_name.data(), trace_name.data());
-    return trace;
+    return daliGetOperatorTrace(&handle_, operator_name.data(), trace_name.data());
   } else {
     return std::nullopt;
   }

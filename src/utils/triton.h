@@ -380,9 +380,10 @@ class TritonResponseView : public TritonResponseWrapper<TritonResponseView> {
   TRITONBACKEND_Response *handle_ = nullptr;
 };
 
-/** @brief Consume and send response and error.
+/**
+ * @brief Consume and send response and error.
  * final_response - true if it's the last response for a current request
-*/
+ */
 void SendResponse(TritonResponse response, bool final_response = true,
                   TritonError error = TritonError{nullptr});
 

@@ -171,8 +171,8 @@ class DaliPipeline {
    */
   void SyncStream();
 
-  std::optional<std::string> GetOperatorTrace(std::string_view operator_name,
-                                              std::string_view trace_name);
+  std::optional<std::string> TryGetOperatorTrace(std::string_view operator_name,
+                                                 std::string_view trace_name);
 
   cudaStream_t CopyStream() {
     return output_stream_;

@@ -156,7 +156,7 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
                     pipeline_.GetOutputDevice(out_idx)};
   }
   for (auto &name: input_names_) {
-    auto trace = pipeline_.GetOperatorTrace(name, "next_output_data_id");
+    auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
     if (!trace.has_value() || std::stoull(*trace) != request_id_) {
       inputs_consumed_ = true;
     }

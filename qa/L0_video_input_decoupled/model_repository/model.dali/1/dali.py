@@ -21,21 +21,10 @@
 
 import nvidia.dali as dali
 import nvidia.dali.fn as fn
-import multiprocessing as mp
-import argparse
+from nvidia.dali.plugin.triton import autoserialize
 
-@dali.pipeline_def(batch_size=3, num_threads=1, device_id=0, output_ndim=4, output_dtype=dali.types.UINT8)
+
+@autoserialize
+@dali.pipeline_def(batch_size=3, num_threads=3, device_id=0, output_ndim=4, output_dtype=dali.types.UINT8)
 def pipeline():
-  return dali.fn.experimental.inputs.video(sequence_length=5, name='INPUT', last_sequence_policy='pad')
-
-
-def main(filename):
-    pipe = pipeline()
-    pipe.serialize(filename=filename)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
-    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
-    args = parser.parse_args()
-    main(args.file_path)
+  return fn.experimental.inputs.video(sequence_length=5, name='INPUT', last_sequence_policy='pad')
