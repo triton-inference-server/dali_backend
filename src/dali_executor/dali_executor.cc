@@ -146,6 +146,7 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
     pipeline_.Output();
   } catch (std::runtime_error& e) {
     pipeline_.Reset();
+    inputs_consumed_ = true;
     throw e;
   }
   std::vector<OutputInfo> ret(pipeline_.GetNumOutput());
