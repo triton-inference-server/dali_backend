@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -119,13 +119,13 @@ class DaliPipeline {
 
   void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
                 dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims,
-                bool force_no_copy = true);
+                const char *data_id, bool force_no_copy = true);
 
   void SetInput(const void* ptr, const char* name, device_type_t source_device,
                 dali_data_type_t data_type, TensorListShape<> input_shape,
-                bool force_no_copy = true);
+                std::optional<std::string_view> data_id = {}, bool force_no_copy = true);
 
-  void SetInput(const IDescr& io_descr, bool force_no_copy = true);
+  void SetInput(const IDescr& io_descr, std::optional<std::string_view> data_id = {}, bool force_no_copy = true);
 
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 
@@ -170,6 +170,9 @@ class DaliPipeline {
    * This should be always called after copying all of the pipeline outputs.
    */
   void SyncStream();
+
+  std::optional<std::string> TryGetOperatorTrace(std::string_view operator_name,
+                                                 std::string_view trace_name);
 
   cudaStream_t CopyStream() {
     return output_stream_;
