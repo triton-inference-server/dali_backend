@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -30,7 +30,7 @@ OUT_HEIGHT = 1080
 
 
 @autoserialize
-@dali.pipeline_def(batch_size=256, num_threads=min(mp.cpu_count(), 4), device_id=0,
+@dali.pipeline_def(batch_size=3, num_threads=3, device_id=0,
                    output_dtype=dali.types.UINT8, output_ndim=[4])
 def pipeline():
     """
@@ -41,8 +41,7 @@ def pipeline():
     4. OUTPUT - distorted and decoded video.
     """
     # Decode video
-    data = fn.external_source(name="INPUT", dtype=dali.types.UINT8, ndim=1)
-    vid = fn.experimental.decoders.video(data, device='mixed')
+    vid = fn.experimental.inputs.video(name="INPUT", sequence_length=5, device='mixed')
 
     # Resize to match sizes of Remap parameters. This step is artificial in real life case
     # you most probably do not want to resize the image before removing the distortion.

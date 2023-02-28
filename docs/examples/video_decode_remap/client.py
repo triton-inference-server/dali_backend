@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -27,7 +27,6 @@ import sys
 import numpy as np
 import tritonclient.grpc
 
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
@@ -35,6 +34,16 @@ def parse_args():
     parser.add_argument('--video', type=str, required=False, default=None,
                         help='Path to a directory, where the video data is located.')
     return parser.parse_args()
+
+
+def handle_dali_result(result, error):
+    if error is not None:
+        print(error)
+    else:
+        # Get the output and show the result
+        output0_data = result.as_numpy("OUTPUT")
+        print(output0_data.shape)
+        # Do something with the output...
 
 
 def load_videos(filenames):
@@ -59,6 +68,9 @@ def array_from_list(arrays):
 def main():
     FLAGS = parse_args()
 
+    input_batch_size = 1  # `fn.inputs.video` accepts only one sample at the input,
+    max_batch_size = 3    # but the output from `fn.inputs.video` has always max_batch_size.
+
     # Load test data
     if FLAGS.video is None:
         dali_extra_path = os.environ['DALI_EXTRA_PATH']
@@ -67,9 +79,8 @@ def main():
             os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr-h265.mkv"),
         ]
     else:
-        filenames = os.listdir(FLAGS.video)
-
-    batch_size = len(filenames)
+        filenames = [os.path.join(FLAGS.video, p) for p in os.listdir(FLAGS.video)]
+        filenames = filenames[:input_batch_size]
 
     try:
         triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url)
@@ -80,6 +91,9 @@ def main():
     model_name = "model.dali"
     model_version = -1
 
+    # Start stream
+    triton_client.start_stream(callback=handle_dali_result)
+
     # Config output
     outputs = []
     output_name = "OUTPUT"
@@ -89,12 +103,12 @@ def main():
     video_raw = load_videos(filenames)
     video_raw = array_from_list(video_raw)
     input_shape = list(video_raw.shape)
-    assert batch_size == input_shape[0]
+    assert input_batch_size == input_shape[0]
 
     # Config inputs 1 & 2: undistort (remap) maps
     npz = np.load('./remap.npz')
-    remap_u = [npz['remap_x'] for _ in range(batch_size)]
-    remap_v = [npz['remap_y'] for _ in range(batch_size)]
+    remap_u = [npz['remap_x'] for _ in range(max_batch_size)]
+    remap_v = [npz['remap_y'] for _ in range(max_batch_size)]
     remap_u = array_from_list(remap_u)
     remap_v = array_from_list(remap_v)
     map_shape = list(remap_u.shape)
@@ -110,20 +124,9 @@ def main():
     inputs[1].set_data_from_numpy(remap_u)
     inputs[2].set_data_from_numpy(remap_v)
 
-    print("Sending video to the inference server, waiting for the result...")
-    results = triton_client.infer(model_name=model_name,
-                                  inputs=inputs,
-                                  outputs=outputs)
-
-    # Get the output and show the result
-    output0_data = results.as_numpy(output_name)
-    print(output0_data.shape)
-
-    # Show the distorted video (first one from the batch)
-    import cv2
-    for frame in output0_data[0]:
-        cv2.imshow("Frame", frame)
-        cv2.waitKey(100)
+    request_id = "0"
+    triton_client.async_stream_infer(model_name=model_name, inputs=inputs, request_id=request_id,
+                                     outputs=outputs)
 
 
 if __name__ == '__main__':
