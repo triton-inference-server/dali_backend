@@ -125,8 +125,7 @@ dali_data_type_t DaliPipeline::GetInputType(const std::string &name) {
 
 device_type_t DaliPipeline::GetInputDevice(const std::string& name) {
   auto backend = daliGetOperatorBackend(&handle_, name.c_str());
-  assert(backend != DALI_BACKEND_MIXED);
-  return (backend == DALI_BACKEND_CPU) ? device_type_t::CPU : device_type_t::GPU;
+  return (backend == DALI_BACKEND_GPU) ? device_type_t::GPU : device_type_t::CPU;
 }
 
 
