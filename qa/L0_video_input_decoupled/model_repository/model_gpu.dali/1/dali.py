@@ -1,5 +1,3 @@
-#!/bin/bash -ex
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES
@@ -21,9 +19,12 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-echo "RUN CPU CLIENT"
-python client.py -u $GRPC_ADDR -n 16 -d cpu
-echo "PASS"
-echo "RUN GPU CLIENT"
-python client.py -u $GRPC_ADDR -n 16 -d gpu
-echo "PASS"
+import nvidia.dali as dali
+import nvidia.dali.fn as fn
+from nvidia.dali.plugin.triton import autoserialize
+
+
+@autoserialize
+@dali.pipeline_def(batch_size=3, num_threads=3, device_id=0, output_ndim=4, output_dtype=dali.types.UINT8)
+def pipeline():
+  return fn.experimental.inputs.video(sequence_length=5, name='INPUT', device='mixed', last_sequence_policy='pad')

@@ -31,7 +31,8 @@ import argparse
 from tritonclient.utils import *
 import tritonclient.grpc as t_client
 
-import nvidia.dali.experimental.eager as eager
+import nvidia.dali.fn as fn
+from nvidia.dali import pipeline_def
 
 class UserData:
 
@@ -49,6 +50,7 @@ def callback(user_data, result, error):
 def get_dali_extra_path():
   return environ['DALI_EXTRA_PATH']
 
+
 def input_gen():
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
@@ -57,22 +59,31 @@ def input_gen():
     yield np.fromfile(filename, dtype=np.uint8)
 
 
+
 FRAMES_PER_SEQUENCE = 5
 BATCH_SIZE = 3
 FRAMES_PER_BATCH = FRAMES_PER_SEQUENCE * BATCH_SIZE
-model_name = "model.dali"
 
 user_data = UserData()
+
+@pipeline_def(batch_size=1, num_threads=1, device_id=0, prefetch_queue_depth=1)
+def ref_pipeline(device):
+    inp = fn.external_source(name='data')
+    decoded = fn.experimental.decoders.video(inp, device='mixed' if device == 'gpu' else 'cpu')
+    return fn.pad(decoded, axes=0, align=FRAMES_PER_SEQUENCE)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
                         help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument('-d', '--device', type=str, required=False, default='cpu', help='cpu or gpu')
     parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
+    model_name = 'model.dali' if args.device == 'cpu' else 'model_gpu.dali'
     with t_client.InferenceServerClient(url=args.url) as triton_client:
         triton_client.start_stream(callback=partial(callback, user_data))
 
@@ -88,9 +99,15 @@ if __name__ == '__main__':
                                              request_id=request_id,
                                              outputs=[outp])
 
+            ref_pipe = ref_pipeline(device=args.device)
+            ref_pipe.build()
+            ref_pipe.feed_input('data', [input_data])
 
-            expected_result = eager.experimental.decoders.video([input_data])
-            expected_result = eager.pad(expected_result, axes=0, align=FRAMES_PER_SEQUENCE).at(0)
+            expected_result, = ref_pipe.run()
+            if args.device == 'gpu':
+                expected_result = expected_result.as_cpu()
+            expected_result = expected_result.at(0)
+
             n_frames = expected_result.shape[0]
             recv_count = 0
             expected_count = (n_frames + FRAMES_PER_BATCH - 1) // FRAMES_PER_BATCH
@@ -112,6 +129,6 @@ if __name__ == '__main__':
                 expected_batch = expected_result[i * BATCH_SIZE : min((i+1) * BATCH_SIZE, len(expected_result))]
                 expected_batch = np.asarray(expected_batch)
                 result_data = result.as_numpy('OUTPUT')
-                assert np.array_equal(expected_batch, result_data)
+                assert np.allclose(expected_batch, result_data)
 
             print(f'ITER {req_id}: OK')
