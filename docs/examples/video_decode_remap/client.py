@@ -57,9 +57,9 @@ def array_from_list(arrays):
     """
     Convert list of ndarrays to single ndarray with ndims+=1. Pad if necessary.
     """
-    lengths = list(map(lambda x, arr=arrays: arr[x].shape[0], [x for x in range(len(arrays))]))
+    lengths = [arr.shape[0] for arr in arrays]
     max_len = max(lengths)
-    arrays = list(map(lambda arr, ml=max_len: np.pad(arr, (0, ml - arr.shape[0])), arrays))
+    arrays = [np.pad(arr, (0, max_len - arr.shape[0])) for arr in arrays]
     for arr in arrays:
         assert arr.shape == arrays[0].shape, "Arrays must have the same shape"
     return np.stack(arrays)
