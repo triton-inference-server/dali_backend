@@ -12,7 +12,7 @@ These two guides explain the concept and are good starting points.
 
 ## GPU-accelerated video processing
 
-In most data processing libraries (image or video, like PIL, OpenCV etc...), data decoding is fused
+In most data processing libraries (image or video, like PIL, OpenCV etc...), data decoding is coupled
 with data loading. For example, whenever `cv2.imread()` or `PIL.Image.open()` is used, the decoding
 happens automatically under the hood. On the other hand, in DALI user explicitly calls decoding step,
 gaining greater control over the process, for example to accelerate this operation using GPU.
