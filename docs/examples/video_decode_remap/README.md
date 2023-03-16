@@ -12,15 +12,15 @@ These two guides explain the concept and are good starting points.
 
 ## GPU-accelerated video processing
 
-While in most of data processing libraries (image or video, like PIL, OpenCV etc...), data decoding
-is transparent for user, in DALI we do put emphasis in this step. Actually, whenever `cv2.imread()`
-function is used, or `PIL.Image.open()`, the decoding happens underneath. In DALI, user explicitly
-calls decoding step, thus gaining a opporunity to use accelerate this operation using GPU.
+In most data processing libraries (image or video, like PIL, OpenCV etc...), data decoding is fused
+with data loading. For example, whenever `cv2.imread()` or `PIL.Image.open()` is used, the decoding
+happens automatically under the hood. On the other hand, in DALI user explicitly calls decoding step,
+gaining greater control over the process, for example to accelerate this operation using GPU.
 
-It's no different in video case, although currently we do face a constraint that every sample passed
-to a `fn.experimental.decoders.video()` operator must be a whole video file - including the header.
-The following is the canonical way to read the video file into byte-buffer, which can be further
-passed to a DALI pipeline:
+It's no different in video case, although currently we face a constraint that every sample passed
+to a `fn.experimental.decoders.video()` or `fn.experimental.inputs.video()` operator 
+must be a whole video file - including the header. The following is the canonical way to read 
+the video file into byte-buffer, which can be further passed to a DALI pipeline:
 
     decoded_video = np.fromfile(video_file_path, dtype=np.uin8)
 
@@ -48,11 +48,11 @@ Remap parameters. To find out more, please refer to [`fn.remap` documentation](h
 
 ### `client.py`
 
-Lastly, our example needs a Triton client. Our client loads the video from local memory (the path
+Lastly, our example needs a Triton client. The client loads the video from local memory (the path
 to the videos can be configured with `--videos` argument), sends them to the `tritonserver` instance
 and receives the result. Please note, that the script assumes, that the user has the
 [DALI_extra repository](https://github.com/NVIDIA/DALI_extra) cloned and the path to this repository
-in the local storage is specified in `DALI_EXTRA_PATH` environment variable. If otherwise, please
+in the local storage is specified in `DALI_EXTRA_PATH` environment variable. If not, please
 specify the path to video data manually.
 
 ### Running the example
