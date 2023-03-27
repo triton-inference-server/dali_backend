@@ -226,14 +226,11 @@ class DaliPipeline {
   void CreatePipeline() {
     daliCreatePipeline(&handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),
                        max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
-    assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
 
   void ReleasePipeline() {
-    if (handle_.pipe && handle_.ws) {
-      daliDeletePipeline(&handle_);
-    }
+    daliDeletePipeline(&handle_);
   }
 
   void ReleaseStream() {
