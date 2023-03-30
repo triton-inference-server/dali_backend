@@ -58,11 +58,9 @@ class DaliPipeline {
       device_id_ = dp.device_id_;
       handle_ = dp.handle_;
       output_stream_ = dp.output_stream_;
-      dali_pipeline_created_ = dp.dali_pipeline_created_;
 
       dp.handle_ = nullptr;
       dp.output_stream_ = nullptr;
-      dp.dali_pipeline_created_ = false;
     }
     return *this;
   }
