@@ -59,7 +59,7 @@ class DaliPipeline {
       handle_ = dp.handle_;
       output_stream_ = dp.output_stream_;
 
-      dp.handle_ = daliPipelineHandle{};
+      dp.handle_ = nullptr;
       dp.output_stream_ = nullptr;
     }
     return *this;
@@ -226,14 +226,13 @@ class DaliPipeline {
   void CreatePipeline() {
     daliCreatePipeline(&handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),
                        max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
-    assert(handle_.pipe != nullptr && handle_.ws != nullptr);
   }
 
 
   void ReleasePipeline() {
-    if (handle_.pipe && handle_.ws) {
-      daliDeletePipeline(&handle_);
-    }
+    if (!handle_) return;
+    daliDeletePipeline(&handle_);
+    handle_ = nullptr;
   }
 
   void ReleaseStream() {
@@ -264,7 +263,7 @@ class DaliPipeline {
   int num_threads_ = 0;
   int device_id_ = 0;
 
-  daliPipelineHandle handle_{};
+  daliPipelineHandle handle_ = nullptr;
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
 };
