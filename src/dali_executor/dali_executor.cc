@@ -173,7 +173,14 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
       ScheduleOutputCopy(outputs[output_idx], output_idx);
     }
   }
-  WaitForCopies();
+    WaitForCopies();
+    std::cout << "OUTPUTS: \n";
+    for (size_t i = 0; i < outputs[0].buffers.size(); i++) {
+        for (int j = 0; j < 100; j++) {
+            std::cout << static_cast<uint8_t>(outputs[0].buffers[i].data[j]) << " ";
+        }
+        std::cout << std::endl;
+    }
 }
 
 }}}  // namespace triton::backend::dali
