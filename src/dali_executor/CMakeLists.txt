@@ -82,11 +82,6 @@ target_link_libraries(dali_executor PUBLIC
         CUDA::cudart
         ${DALI_LIBRARIES})
 
-install(
-    DIRECTORY ${DALI_LIB_DIR}
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
-)
-
 target_compile_definitions(dali_executor PUBLIC)
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
     install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
