@@ -176,9 +176,9 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
     WaitForCopies();
     std::cout << "OUTPUTS: \n";
     for (size_t i = 0; i < outputs[0].buffers.size(); i++) {
+        auto ptr = reinterpret_cast<uint8_t *>(outputs[0].buffers[i].data);
         for (int j = 0; j < 100; j++) {
-            auto ptr = reinterpret_cast<uint8_t *>(outputs[0].buffers[i].data);
-            std::cout << ptr[j] << " ";
+            std::cout << static_cast<int>(ptr[j]) << " ";
         }
         std::cout << std::endl;
     }
