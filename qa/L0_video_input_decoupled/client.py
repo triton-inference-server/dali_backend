@@ -34,6 +34,7 @@ import tritonclient.grpc as t_client
 import nvidia.dali.fn as fn
 from nvidia.dali import pipeline_def
 
+
 class UserData:
 
     def __init__(self):
@@ -48,29 +49,30 @@ def callback(user_data, result, error):
 
 
 def get_dali_extra_path():
-  return environ['DALI_EXTRA_PATH']
+    return environ['DALI_EXTRA_PATH']
 
 
 def input_gen():
-  filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
-  filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
-  filenames = filter(lambda filename: 'hevc' not in filename, filenames)
-  for filename in filenames:
-    yield np.fromfile(filename, dtype=np.uint8)
-
+    filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
+    filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
+    filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+    for filename in filenames:
+        print(filename)
+        yield np.fromfile(filename, dtype=np.uint8)
 
 
 FRAMES_PER_SEQUENCE = 5
 BATCH_SIZE = 3
 FRAMES_PER_BATCH = FRAMES_PER_SEQUENCE * BATCH_SIZE
+N_FRAMES = 50
 
 user_data = UserData()
 
-@pipeline_def(batch_size=1, num_threads=1, device_id=0, prefetch_queue_depth=1)
+
+@pipeline_def(batch_size=3, num_threads=3, device_id=0, prefetch_queue_depth=1)
 def ref_pipeline(device):
-    inp = fn.external_source(name='data')
-    decoded = fn.experimental.decoders.video(inp, device='mixed' if device == 'gpu' else 'cpu')
-    return fn.pad(decoded, axes=0, align=FRAMES_PER_SEQUENCE)
+    return fn.experimental.inputs.video(sequence_length=FRAMES_PER_SEQUENCE, name='data',
+                                        device='mixed' if device == 'gpu' else 'cpu', last_sequence_policy='pad')
 
 
 def parse_args():
@@ -80,6 +82,7 @@ def parse_args():
     parser.add_argument('-d', '--device', type=str, required=False, default='cpu', help='cpu or gpu')
     parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -103,15 +106,10 @@ if __name__ == '__main__':
             ref_pipe.build()
             ref_pipe.feed_input('data', [input_data])
 
-            expected_result, = ref_pipe.run()
-            if args.device == 'gpu':
-                expected_result = expected_result.as_cpu()
-            expected_result = expected_result.at(0)
-
-            n_frames = expected_result.shape[0]
             recv_count = 0
-            expected_count = (n_frames + FRAMES_PER_BATCH - 1) // FRAMES_PER_BATCH
+            expected_count = (N_FRAMES + FRAMES_PER_BATCH - 1) // FRAMES_PER_BATCH
             result_dict = {}
+            expected_dict = {}
             while recv_count < expected_count:
                 data_item = user_data._completed_requests.get()
                 if type(data_item) == InferenceServerException:
@@ -121,14 +119,28 @@ if __name__ == '__main__':
                     if this_id not in result_dict.keys():
                         result_dict[this_id] = []
                     result_dict[this_id].append(data_item)
+
+                expected_result, = ref_pipe.run()
+                if args.device == 'gpu':
+                    expected_result = expected_result.as_cpu().as_array()
+                else:
+                    expected_result = expected_result.as_array()
+                if this_id not in expected_dict.keys():
+                    expected_dict[this_id] = []
+                expected_dict[this_id].append(expected_result)
+
                 recv_count += 1
 
             result_list = result_dict[request_id]
-            expected_result = np.split(expected_result, n_frames / FRAMES_PER_SEQUENCE)
-            for i, result in enumerate(result_list):
-                expected_batch = expected_result[i * BATCH_SIZE : min((i+1) * BATCH_SIZE, len(expected_result))]
-                expected_batch = np.asarray(expected_batch)
-                result_data = result.as_numpy('OUTPUT')
-                assert np.allclose(expected_batch, result_data)
+            expected_list = expected_dict[request_id]
+            for res, exp in zip(result_list, expected_list):
+                res = res.as_numpy("OUTPUT")
+                if not np.allclose(res, exp):
+                    import cv2
+                    for i in range(res.shape[0]):
+                        for j in range(res.shape[1]):
+                            cv2.imwrite(f'res{i}.{j}.png', res[i][j])
+                            cv2.imwrite(f'exp{i}.{j}.png', exp[i][j])
+                    assert False, f"Results do not match: {res=} vs {exp=}. Shapes: {res.shape=} vs {exp.shape=}"
 
             print(f'ITER {req_id}: OK')
