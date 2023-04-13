@@ -56,6 +56,7 @@ def input_gen():
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
   filenames = filter(lambda filename: 'hevc' not in filename, filenames)
   for filename in filenames:
+    print(f"Yielding from file {filename=}")
     yield np.fromfile(filename, dtype=np.uint8)
 
 
@@ -129,6 +130,10 @@ if __name__ == '__main__':
                 expected_batch = expected_result[i * BATCH_SIZE : min((i+1) * BATCH_SIZE, len(expected_result))]
                 expected_batch = np.asarray(expected_batch)
                 result_data = result.as_numpy('OUTPUT')
+                if not np.allclose(expected_batch, result_data):
+                    print(f"Subiteration {i=} failed. {result_data[0][0][:100]=} vs {expected_batch[0][0][:100]=}")
+                else:
+                    print(f"Subiteration {i=} OK.")
                 assert np.allclose(expected_batch, result_data)
 
             print(f'ITER {req_id}: OK')
