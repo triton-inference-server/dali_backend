@@ -28,6 +28,7 @@
 #include <sstream>
 #include <vector>
 #include <iomanip>
+#include <atomic>
 
 namespace triton { namespace backend { namespace dali {
 
@@ -87,9 +88,9 @@ std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket
 }
 
 
-inline std::string timestamp() {
-  auto timestamp = std::chrono::steady_clock::now();
-  return std::to_string(timestamp.time_since_epoch().count());
+inline std::string tmpname() {
+  static std::atomic<int64_t> ts{std::chrono::steady_clock::now().time_since_epoch().count()};
+  return std::to_string(ts++);
 }
 
 }}}  // namespace triton::backend::dali
