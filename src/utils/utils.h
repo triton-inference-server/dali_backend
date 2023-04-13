@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2022 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
-#include <ctime>
+#include <chrono>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -88,11 +88,8 @@ std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket
 
 
 inline std::string timestamp() {
-  std::time_t t = std::time(nullptr);
-  std::tm tm = *std::localtime(&t);
-  std::stringstream timestamp;
-  timestamp << std::put_time(&tm, "%Y%m%d_%H%M%S");
-  return timestamp.str();
+  auto timestamp = std::chrono::steady_clock::now();
+  return std::to_string(timestamp.time_since_epoch().count());
 }
 
 }}}  // namespace triton::backend::dali
