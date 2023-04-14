@@ -88,9 +88,12 @@ std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket
 }
 
 
-inline std::string tmpname() {
-  static std::atomic<int64_t> ts{std::chrono::steady_clock::now().time_since_epoch().count()};
-  return std::to_string(ts++);
+inline std::string tmp_model_file() {
+  char templat[] = "/tmp/serialized.modelXXXXXX";
+  int fd = mkstemp(templat);
+  ENFORCE(fd != -1, "Could not create a temporary file for pipeline auto-serialization.");
+  close(fd);
+  return std::string(templat);
 }
 
 }}}  // namespace triton::backend::dali

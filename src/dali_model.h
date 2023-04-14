@@ -157,7 +157,7 @@ class DaliModel : public ::triton::backend::BackendModel {
    */
   void LoadModel(std::string default_model_filename, std::string fallback_model_filename) {
     std::string& model_filename = default_model_filename;
-    std::string target = make_string("/tmp/serialized.model.", tmpname(), ".dali");
+    std::string target = tmp_model_file();
     bool load_succeeded = false;
 
     // Try to load model from the default location
