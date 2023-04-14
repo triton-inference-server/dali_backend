@@ -23,12 +23,15 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
-#include <chrono>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <iomanip>
-#include <atomic>
+
+#include <unistd.h>
+
+#include "src/error_handling.h"
+
 
 namespace triton { namespace backend { namespace dali {
 
