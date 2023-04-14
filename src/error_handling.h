@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 #include <cassert>
 #include <stdexcept>
 #include <string>
+
+#include "dali_executor/utils/dali.h"
 
 namespace triton { namespace backend { namespace dali {
 
