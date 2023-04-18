@@ -106,6 +106,16 @@ class DaliExecutor {
    */
   IOBufferI* GetOutputBuffer(const std::string& name, device_type_t device);
 
+  /**
+   * @brief Checks if current input has been consumed by current iteration.
+   *
+   * When input has been consumed, the Backend shall wrap up current request. Also, it is necessary to provide
+   * data with the next request for the next DALI iteration.
+   *
+   * @return True, if input has been consumed.
+   */
+  bool IsInputConsumed();
+
   DaliPipeline pipeline_;
   ThreadPool thread_pool_;
   std::map<std::string, IOBuffer<CPU>> cpu_buffers_;

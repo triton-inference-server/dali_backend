@@ -21,17 +21,14 @@
 // SOFTWARE.
 
 #include "src/dali_executor/dali_executor.h"
+#include <cstring>
 #include "src/dali_executor/utils/dali.h"
 
-namespace triton { namespace backend { namespace dali {
+namespace triton::backend::dali {
 
 void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   assert(!inputs.empty());
   int batch_size = inputs[0].meta.shape.num_samples();
-  for (size_t i = 1; i < inputs.size(); ++i) {
-    assert(inputs[i].meta.shape.num_samples() == batch_size &&
-           "All inputs should have equal batch size.");
-  }
   std::vector<IDescr> c_inputs{};
   for (auto& inp : inputs) {
     size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
@@ -101,6 +98,7 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   return IDescr{input.meta, {descriptor}};
 }
 
+
 void DaliExecutor::ScheduleOutputCopy(const ODescr& output, int output_idx) {
   const auto& name = output.meta.name;
   const auto& out_buffers = output.buffers;
@@ -136,6 +134,32 @@ bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
           input.buffers[0].device_id == pipeline_.DeviceId());
 }
 
+
+static bool streq(const char * lhs, const char * rhs) {
+  return strcmp(lhs, rhs) == 0;
+}
+
+
+bool DaliExecutor::IsInputConsumed() {
+  for (auto &name : input_names_) {
+    auto trace = pipeline_.TryGetOperatorTrace(name, "depleted");
+    if (!trace.has_value()) {
+      throw std::runtime_error("DALI Error: 'depleted' trace shall be available for every input operator.");
+    }
+    if (streq(trace->c_str(), "true")) {
+      return true;
+    }
+  }
+  for (auto &name : input_names_) {
+    auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
+    if (trace.has_value() && std::stoull(*trace) != request_id_) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   if (inputs_consumed_) {
     SetupInputs(inputs);
@@ -155,12 +179,9 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
     ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
                     pipeline_.GetOutputDevice(out_idx)};
   }
-  for (auto &name: input_names_) {
-    auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
-    if (!trace.has_value() || std::stoull(*trace) != request_id_) {
-      inputs_consumed_ = true;
-    }
-  }
+
+  inputs_consumed_ = IsInputConsumed();
+
   return ret;
 }
 
@@ -176,4 +197,4 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   WaitForCopies();
 }
 
-}}}  // namespace triton::backend::dali
+}  // namespace triton::backend::dali
