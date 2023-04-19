@@ -44,8 +44,7 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   }
   WaitForCopies();
   input_names_.clear();
-  request_id_ += 1;
-  std::string request_id_str = std::to_string(request_id_);
+  request_id_++;
   for (auto& inp : c_inputs) {
     input_names_.push_back(inp.meta.name);
     pipeline_.SetInput(inp, {request_id_str});
