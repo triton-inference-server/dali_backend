@@ -30,8 +30,9 @@
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/io_buffer.h"
 #include "src/dali_executor/io_descriptor.h"
+#include "src/dali_executor/request_id.h"
 
-namespace triton { namespace backend { namespace dali {
+namespace triton::backend::dali {
 
 
 struct OutputInfo {
@@ -122,9 +123,9 @@ class DaliExecutor {
   std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
   bool inputs_consumed_ = true;
   std::vector<std::string> input_names_;
-  uint64_t request_id_ = 0;
+  RequestId<uint64_t> request_id_;
 };
 
-}}}  // namespace triton::backend::dali
+}  // namespace triton::backend::dali
 
 #endif  // DALI_BACKEND_DALI_EXECUTOR_DALI_EXECUTOR_H_

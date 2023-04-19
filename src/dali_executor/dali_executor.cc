@@ -145,6 +145,7 @@ bool DaliExecutor::IsInputConsumed() {
     auto trace = pipeline_.TryGetOperatorTrace(name, "depleted");
     if (!trace.has_value()) {
       throw std::runtime_error("DALI Error: 'depleted' trace shall be available for every input operator.");
+      throw std::logic_error(make_string("DALI internal error: \"depleted\" trace not found for input \"" , name ,"\". It must be defined by all input operators."));
     }
     if (streq(trace->c_str(), "true")) {
       return true;
@@ -152,7 +153,7 @@ bool DaliExecutor::IsInputConsumed() {
   }
   for (auto &name : input_names_) {
     auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
-    if (trace.has_value() && std::stoull(*trace) != request_id_) {
+    if (trace.has_value() && *trace != request_id_.str()) {
       return true;
     }
   }
