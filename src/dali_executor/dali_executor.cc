@@ -21,17 +21,14 @@
 // SOFTWARE.
 
 #include "src/dali_executor/dali_executor.h"
+#include <cstring>
 #include "src/dali_executor/utils/dali.h"
 
-namespace triton { namespace backend { namespace dali {
+namespace triton::backend::dali {
 
 void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   assert(!inputs.empty());
   int batch_size = inputs[0].meta.shape.num_samples();
-  for (size_t i = 1; i < inputs.size(); ++i) {
-    assert(inputs[i].meta.shape.num_samples() == batch_size &&
-           "All inputs should have equal batch size.");
-  }
   std::vector<IDescr> c_inputs{};
   for (auto& inp : inputs) {
     size_t inp_size = inp.meta.shape.num_elements() * dali_type_size(inp.meta.type);
@@ -47,11 +44,10 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
   }
   WaitForCopies();
   input_names_.clear();
-  request_id_ += 1;
-  std::string request_id_str = std::to_string(request_id_);
+  request_id_++;
   for (auto& inp : c_inputs) {
     input_names_.push_back(inp.meta.name);
-    pipeline_.SetInput(inp, {request_id_str});
+    pipeline_.SetInput(inp, {request_id_.str()});
   }
 }
 
@@ -101,6 +97,7 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
   return IDescr{input.meta, {descriptor}};
 }
 
+
 void DaliExecutor::ScheduleOutputCopy(const ODescr& output, int output_idx) {
   const auto& name = output.meta.name;
   const auto& out_buffers = output.buffers;
@@ -136,6 +133,33 @@ bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
           input.buffers[0].device_id == pipeline_.DeviceId());
 }
 
+
+static bool streq(const char * lhs, const char * rhs) {
+  return strcmp(lhs, rhs) == 0;
+}
+
+
+bool DaliExecutor::IsInputConsumed() {
+  for (auto &name : input_names_) {
+    auto trace = pipeline_.TryGetOperatorTrace(name, "depleted");
+    if (!trace.has_value()) {
+      throw std::logic_error(make_string("DALI internal error: \"depleted\" trace not found for input \"" ,
+                                         name ,"\". It must be defined by all input operators."));
+    }
+    if (streq(trace->c_str(), "true")) {
+      return true;
+    }
+  }
+  for (auto &name : input_names_) {
+    auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
+    if (trace.has_value() && *trace != request_id_.str()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
   if (inputs_consumed_) {
     SetupInputs(inputs);
@@ -155,12 +179,9 @@ std::vector<OutputInfo> DaliExecutor::Run(const std::vector<IDescr>& inputs) {
     ret[out_idx] = {outputs_shapes[out_idx], pipeline_.GetOutputType(out_idx),
                     pipeline_.GetOutputDevice(out_idx)};
   }
-  for (auto &name: input_names_) {
-    auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
-    if (!trace.has_value() || std::stoull(*trace) != request_id_) {
-      inputs_consumed_ = true;
-    }
-  }
+
+  inputs_consumed_ = IsInputConsumed();
+
   return ret;
 }
 
@@ -176,4 +197,4 @@ void DaliExecutor::PutOutputs(const std::vector<ODescr>& outputs) {
   WaitForCopies();
 }
 
-}}}  // namespace triton::backend::dali
+}  // namespace triton::backend::dali
