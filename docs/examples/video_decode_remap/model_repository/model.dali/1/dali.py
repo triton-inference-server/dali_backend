@@ -48,8 +48,8 @@ def pipeline():
     vid = fn.resize(vid, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
 
     # Remove distortion.
-    mapx = fn.external_source(name="MAPX", ndim=2, dtype=dali.types.FLOAT, repeat_last=True).gpu()
-    mapy = fn.external_source(name="MAPY", ndim=2, dtype=dali.types.FLOAT, repeat_last=True).gpu()
+    mapx = fn.external_source(name="MAPX", ndim=2, dtype=dali.types.FLOAT).gpu()
+    mapy = fn.external_source(name="MAPY", ndim=2, dtype=dali.types.FLOAT).gpu()
     # Provided camera maps assume, that the (0,0) point is in the center of the image.
     # Therefore, we have to modify them to have the origin in the top-left corner.
     mapx = mapx - OUT_WIDTH * 0.5
