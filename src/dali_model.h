@@ -265,7 +265,7 @@ class DaliModel : public ::triton::backend::BackendModel {
         if (kind_str == "KIND_GPU") {
           triton::common::TritonJson::Value dev_array;
           if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {
-            int64_t dev_id;
+            int64_t dev_id = CPU_ONLY_DEVICE_ID;
             dev_array.IndexAsInt(0, &dev_id);
             return dev_id;
           }
