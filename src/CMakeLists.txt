@@ -80,7 +80,15 @@ target_link_libraries(
         triton-dali-backend-utils
 )
 
-string(REGEX MATCH "dalienv/.*" DALI_ENV_INSTALL_PATH ${DALI_LIB_DIR})
+if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+        # path to the DALI backend
+        string(REGEX MATCH "dalienv/.*" DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
+        set(DALI_NV_INSTALL_PATH "$\{ORIGIN\}/conda/envs/${DALI_NV_INSTALL_PATH}")
+else(NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+        # path to the predownloaded DALI instance
+        set(DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
+endif(NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+
 set_target_properties(
         triton-dali-backend
         PROPERTIES
@@ -91,7 +99,7 @@ set_target_properties(
             SKIP_BUILD_RPATH TRUE
             BUILD_WITH_INSTALL_RPATH TRUE
             INSTALL_RPATH_USE_LINK_PATH FALSE
-            INSTALL_RPATH "$\{ORIGIN\}/conda/envs/${DALI_ENV_INSTALL_PATH}"
+            INSTALL_RPATH "${DALI_NV_INSTALL_PATH}"
             CXX_STANDARD 17
 )
 
