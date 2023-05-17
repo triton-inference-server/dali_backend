@@ -105,6 +105,6 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
       .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
-ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:/opt/tritonserver/backends/dali/dali:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:${LD_LIBRARY_PATH}
 
 WORKDIR /opt/tritonserver
