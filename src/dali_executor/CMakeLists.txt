@@ -42,7 +42,7 @@ configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml 
 add_custom_command(
     OUTPUT dali_env
     COMMAND
-        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q && conda update -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --all -c conda-forge -y -q
+        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q && conda update -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --all -c conda-forge -y -q && curl https://patch-diff.githubusercontent.com/raw/python/cpython/pull/99421.patch | patch -d ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.10/ -p2 -s -t || true
     COMMAND touch dali_env  # So that this command won't be re-run every time
     COMMENT "Building DALI conda environment."
 )
