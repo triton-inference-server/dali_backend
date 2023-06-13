@@ -24,4 +24,4 @@
 # Install PyTorch
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-echo "Segmentation ensemble model ready."
+echo "Segmentation BLS model ready."

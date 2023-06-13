@@ -24,3 +24,4 @@
 cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/segmentation/model_repository model_repository/
 
 bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/segmentation/setup_segmentation_example.sh
+
