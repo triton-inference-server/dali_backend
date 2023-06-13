@@ -21,7 +21,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-mkdir -p model_repository/segmentation_ensemble/1
+mkdir -p model_repository/segmentation_bls/1
 
 # Install PyTorch
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
