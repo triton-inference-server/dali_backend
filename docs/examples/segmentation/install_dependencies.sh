@@ -21,7 +21,8 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# Install PyTorch
+# Install additional dependencies inside tritonserver docker image
+
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 echo "Segmentation BLS model ready."

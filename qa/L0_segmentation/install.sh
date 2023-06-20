@@ -21,4 +21,4 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/segmentation/model_repository model_repository/
+bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/segmentation/install_dependencies.sh
