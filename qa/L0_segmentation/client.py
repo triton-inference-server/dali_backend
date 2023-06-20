@@ -49,7 +49,7 @@ def infer_model(named_inputs, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--url",
+        '-u', "--url",
         default="localhost",
         help=(
             "Url to Triton server (ex. grpc://localhost:8001)."
@@ -60,7 +60,7 @@ def main():
     parser.add_argument(
         "--init-timeout-s",
         type=float,
-        default=600.0,
+        default=3000.0,
         help="Server and model ready state timeout in seconds.",
         required=False,
     )

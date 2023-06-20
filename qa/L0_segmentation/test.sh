@@ -24,4 +24,4 @@
 
 : ${GRPC_ADDR:=${1:-"localhost:8001"}}
 
-python client.py --url $GRPC_ADDR
+python client.py -u $GRPC_ADDR
