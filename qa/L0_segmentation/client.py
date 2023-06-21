@@ -30,7 +30,7 @@ def load_video(video_path):
 
 
 def infer_model(named_inputs, args):
-    with ModelClient(args.url, "segmentation_bls", init_timeout_s=args.init_timeout_s) as client:
+    with ModelClient(f"grpc://{args.url}", "segmentation_bls", init_timeout_s=args.init_timeout_s) as client:
         result_data = client.infer_batch(**named_inputs)
 
         original = result_data["original"]
@@ -60,7 +60,7 @@ def main():
     parser.add_argument(
         "--init-timeout-s",
         type=float,
-        default=3000.0,
+        default=600.0,
         help="Server and model ready state timeout in seconds.",
         required=False,
     )
