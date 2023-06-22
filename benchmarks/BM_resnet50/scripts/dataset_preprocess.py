@@ -46,7 +46,11 @@ def parse_meta_mat(metafile) -> Dict[int, str]:
 
     meta = scipy.io.loadmat(metafile, squeeze_me=True)["synsets"]
     nums_children = list(zip(*meta))[4]
-    meta = [meta[idx] for idx, num_children in enumerate(nums_children) if num_children == 0]
+    meta = [
+        meta[idx]
+        for idx, num_children in enumerate(nums_children)
+        if num_children == 0
+    ]
     idcs, wnids = list(zip(*meta))[:2]
     idx_to_wnid = {idx: wnid for idx, wnid in zip(idcs, wnids)}
     return idx_to_wnid
@@ -57,13 +61,17 @@ def _process_image(image_file, target_size):
     original_size = image.size
 
     # scale image to size where minimal size is _RESIZE_MIN
-    scale_factor = max(_RESIZE_MIN / original_size[0], _RESIZE_MIN / original_size[1])
-    resize_to = int(original_size[0] * scale_factor), int(original_size[1] * scale_factor)
+    scale_factor = max(_RESIZE_MIN / original_size[0],
+                       _RESIZE_MIN / original_size[1])
+    resize_to = int(original_size[0] * scale_factor), int(original_size[1] *
+                                                          scale_factor)
     resized_image = image.resize(resize_to)
 
     # central crop of image to target_size
-    left, upper = (resize_to[0] - target_size[0]) // 2, (resize_to[1] - target_size[1]) // 2
-    cropped_image = resized_image.crop((left, upper, left + target_size[0], upper + target_size[1]))
+    left, upper = (resize_to[0] - target_size[0]) // 2, (resize_to[1] -
+                                                         target_size[1]) // 2
+    cropped_image = resized_image.crop(
+        (left, upper, left + target_size[0], upper + target_size[1]))
     return cropped_image
 
 
@@ -73,27 +81,25 @@ def main():
     parser = argparse.ArgumentParser(description="short_description")
     parser.add_argument(
         "--dataset-dir",
-        help="Path to dataset directory where imagenet archives are stored and processed files will be saved.",
+        help=
+        "Path to dataset directory where imagenet archives are stored and processed files will be saved.",
         required=False,
         default=DATASETS_DIR,
     )
-    parser.add_argument(
-      '--save',
-      help='Save processed images.',
-      required=False, default=False
-    )
+    parser.add_argument('--save',
+                        help='Save processed images.',
+                        required=False,
+                        default=False)
     parser.add_argument(
         "--target-size",
         help="Size of target image. Format it as <width>,<height>.",
         required=False,
         default=",".join(map(str, TARGET_SIZE)),
     )
-    parser.add_argument(
-      '--perf-file',
-      required=False,
-      default=None,
-      help='Path to save a file with time measurements.'
-    )
+    parser.add_argument('--perf-file',
+                        required=False,
+                        default=None,
+                        help='Path to save a file with time measurements.')
     args = parser.parse_args()
 
     if args.dataset_dir is None:
@@ -130,17 +136,20 @@ def main():
 
         # remap WNID into index in sorted list of all WNIDs - this is how network outputs class
         available_wnids = sorted(set(labels_wnid))
-        wnid_to_newidx = {wnid: new_cls for new_cls, wnid in enumerate(available_wnids)}
+        wnid_to_newidx = {
+            wnid: new_cls for new_cls, wnid in enumerate(available_wnids)
+        }
         labels = [wnid_to_newidx[wnid] for wnid in labels_wnid]
     if args.perf_file is None:
-      perf = False
+        perf = False
     else:
-      times = []
-      perf = True
+        times = []
+        perf = True
     output_dir = datasets_dir / IMAGENET_DIRNAME
     with tarfile.open(image_archive_path, mode="r") as image_archive_file:
         image_rel_paths = sorted(image_archive_file.getnames())
-        for cls, image_rel_path in tqdm(zip(labels, image_rel_paths), total=len(image_rel_paths)):
+        for cls, image_rel_path in tqdm(zip(labels, image_rel_paths),
+                                        total=len(image_rel_paths)):
             output_path = output_dir / str(cls) / image_rel_path
             original_image_file = image_archive_file.extractfile(image_rel_path)
             file_data = original_image_file.read()
@@ -148,14 +157,14 @@ def main():
             processed_image = _process_image(io.BytesIO(file_data), target_size)
             end = time.perf_counter()
             if perf:
-              times.append(end-start)
+                times.append(end - start)
             if args.save:
-              output_path.parent.mkdir(parents=True, exist_ok=True)
-              processed_image.save(output_path.as_posix())
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                processed_image.save(output_path.as_posix())
 
     if perf:
-      with open(args.perf_file, 'w') as perf_file:
-        print(times, file=perf_file)
+        with open(args.perf_file, 'w') as perf_file:
+            print(times, file=perf_file)
 
 
 if __name__ == "__main__":

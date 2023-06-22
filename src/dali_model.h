@@ -23,13 +23,13 @@
 #ifndef DALI_BACKEND_DALI_MODEL_H_
 #define DALI_BACKEND_DALI_MODEL_H_
 
+#include "src/config_tools/config_tools.h"
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/model_provider/model_provider.h"
 #include "src/parameters.h"
 #include "src/utils/triton.h"
 #include "src/utils/utils.h"
-#include "src/config_tools/config_tools.h"
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 
@@ -49,7 +49,7 @@ class DaliModel : public ::triton::backend::BackendModel {
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
     try {
       ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, Batched());
-    } catch (TritonError &err) {
+    } catch (TritonError& err) {
       return err.release();
     }
 
@@ -64,7 +64,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return params_;
   }
 
-  bool IsOutputSplit(const std::string &name) {
+  bool IsOutputSplit(const std::string& name) {
     auto it = std::find(outputs_to_split_.begin(), outputs_to_split_.end(), name);
     return it != outputs_to_split_.end();
   }
@@ -93,17 +93,17 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
-      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
-                     pipeline_max_batch_size_, Batched());
+      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_,
+                     Batched());
       TRITON_CALL(SetModelConfig());
-    } catch (TritonError &err) {
+    } catch (TritonError& err) {
       return err.release();
     }
     return nullptr;
   }
 
   bool Batched() const {
-    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0) ;
+    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0);
   }
 
  private:
@@ -113,8 +113,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
     const char* model_repo_path;
     TRITONBACKEND_ArtifactType artifact_type;
-    TRITON_CALL(
-        TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
+    TRITON_CALL(TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
     std::string config_path = make_string(model_repo_path, sep, "config.pbtxt");
     std::ifstream config_file(config_path);
@@ -137,8 +136,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     ReadPipelineProperties();
 
     TRITON_CALL(
-      TRITONBACKEND_ModelAutoCompleteConfig(triton_model_,
-                                            &should_auto_complete_config_));
+        TRITONBACKEND_ModelAutoCompleteConfig(triton_model_, &should_auto_complete_config_));
   }
 
   void ReadParams() {
@@ -254,7 +252,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   // This method tries to find any GPU instance group and select any device id from it
   // If there are no GPU inst. groups, it returns CPU_ONLY_DEVICE_ID
-  int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value &inst_groups) {
+  int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value& inst_groups) {
     TRITON_CALL(inst_groups.AssertType(triton::common::TritonJson::ValueType::ARRAY));
     auto count = inst_groups.ArraySize();
     for (size_t i = 0; i < count; ++i) {
@@ -287,7 +285,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       auto name = input_names[i];
       pipeline_inputs_[i].name = name;
       pipeline_inputs_[i].dtype = pipeline.GetInputType(name);
-      pipeline_inputs_[i].shape  = pipeline.GetInputShape(name);
+      pipeline_inputs_[i].shape = pipeline.GetInputShape(name);
     }
 
     int num_outputs = pipeline.GetNumOutput();
@@ -306,10 +304,10 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   DaliPipeline InstantiateDaliPipeline(int config_max_batch_size) {
     int device_id = FindDevice();
-    const std::string &serialized_pipeline = GetModelProvider().GetModel();
+    const std::string& serialized_pipeline = GetModelProvider().GetModel();
     try {
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
-    } catch (const DALIException &) {
+    } catch (const DALIException&) {
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
     }
   }

@@ -40,12 +40,9 @@ struct IOConfig {
 
   IOConfig() = default;
 
-  explicit IOConfig(const std::string &name,
-                    dali_data_type_t dtype = DALI_NO_TYPE,
-                    std::optional<std::vector<int64_t>> shape = {})
-    : name(name)
-    , dtype(dtype)
-    , shape(shape) {}
+  explicit IOConfig(const std::string &name, dali_data_type_t dtype = DALI_NO_TYPE,
+                    std::optional<std::vector<int64_t>> shape = {}) :
+      name(name), dtype(dtype), shape(shape) {}
 };
 
 /**
@@ -84,8 +81,7 @@ std::vector<int64_t> ReadShape(TritonJson::Value &dims_array);
  *
  * Throws an error when shapes cannot be matched.
  */
-std::vector<int64_t> MatchShapes(const std::string &name,
-                                 const std::vector<int64_t> &config_shape,
+std::vector<int64_t> MatchShapes(const std::string &name, const std::vector<int64_t> &config_shape,
                                  const std::vector<int64_t> &pipeline_shape);
 
 
@@ -111,13 +107,12 @@ void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
  * to extend it with the batch dimension.
  */
 void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io,
-                         const std::vector<int64_t> &model_io_shape,
-                         bool batched_model = true);
+                         const std::vector<int64_t> &model_io_shape, bool batched_model = true);
 
 /**
  * @brief Validates dims field in IO object again provided value.
  *
-* If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
@@ -128,7 +123,7 @@ void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
  * @brief Auto-fills `config_io` IO object with values from model IO configuration `model_io`.
  * `config` must be a top-level TritonJson object containing `config_io`.
  *
-* If `batched_model` is set to false, the model_io_shape will be prepended with -1
+ * If `batched_model` is set to false, the model_io_shape will be prepended with -1
  * to extend it with the batch dimension.
  */
 void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
@@ -209,6 +204,6 @@ void ValidateConfig(TritonJson::Value &config, const std::vector<IOConfig> &in_c
  */
 std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt);
 
-}}} // namespace triton::backend::dali
+}}}  // namespace triton::backend::dali
 
 #endif  // DALI_BACKEND_CONFIG_TOOLS_CONFIG_TOOLS_H_

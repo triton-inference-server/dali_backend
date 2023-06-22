@@ -45,7 +45,8 @@ class DaliExecutor {
  public:
   DaliExecutor(DaliPipeline pipeline) :
       pipeline_(std::move(pipeline)),
-      thread_pool_(GetNumThreads(), pipeline_.DeviceId(), false, "[DALI Backend][Executor ThreadPool]") {}
+      thread_pool_(GetNumThreads(), pipeline_.DeviceId(), false,
+                   "[DALI Backend][Executor ThreadPool]") {}
 
   /**
    * @brief Run DALI pipeline.
@@ -110,8 +111,8 @@ class DaliExecutor {
   /**
    * @brief Checks if current input has been consumed by current iteration.
    *
-   * When input has been consumed, the Backend shall wrap up current request. Also, it is necessary to provide
-   * data with the next request for the next DALI iteration.
+   * When input has been consumed, the Backend shall wrap up current request. Also, it is necessary
+   * to provide data with the next request for the next DALI iteration.
    *
    * @return True, if input has been consumed.
    */

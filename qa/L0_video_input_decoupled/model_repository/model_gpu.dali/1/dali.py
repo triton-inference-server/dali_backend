@@ -25,6 +25,13 @@ from nvidia.dali.plugin.triton import autoserialize
 
 
 @autoserialize
-@dali.pipeline_def(batch_size=3, num_threads=3, device_id=0, output_ndim=4, output_dtype=dali.types.UINT8)
+@dali.pipeline_def(batch_size=3,
+                   num_threads=3,
+                   device_id=0,
+                   output_ndim=4,
+                   output_dtype=dali.types.UINT8)
 def pipeline():
-  return fn.experimental.inputs.video(sequence_length=5, name='INPUT', device='mixed', last_sequence_policy='pad')
+    return fn.experimental.inputs.video(sequence_length=5,
+                                        name='INPUT',
+                                        device='mixed',
+                                        last_sequence_policy='pad')

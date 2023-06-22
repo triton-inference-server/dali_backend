@@ -24,60 +24,66 @@ import argparse
 
 
 def check_config(config, bs, out_names, dyn_batching):
-  assert config['max_batch_size'] == bs
+    assert config['max_batch_size'] == bs
 
-  inps = config['input']
-  assert len(inps) == 2
-  assert inps[0]['name'] == 'DALI_INPUT_0'
-  assert inps[0]['data_type'] == 'TYPE_FP16'
-  assert inps[0]['dims'] == ['-1']
-  assert inps[0]['allow_ragged_batch'] == True
-  assert inps[1]['name'] == 'DALI_INPUT_1'
-  assert inps[1]['data_type'] == 'TYPE_FP16'
-  assert inps[1]['dims'] == ['-1']
-  assert inps[1]['allow_ragged_batch'] == True
+    inps = config['input']
+    assert len(inps) == 2
+    assert inps[0]['name'] == 'DALI_INPUT_0'
+    assert inps[0]['data_type'] == 'TYPE_FP16'
+    assert inps[0]['dims'] == ['-1']
+    assert inps[0]['allow_ragged_batch'] == True
+    assert inps[1]['name'] == 'DALI_INPUT_1'
+    assert inps[1]['data_type'] == 'TYPE_FP16'
+    assert inps[1]['dims'] == ['-1']
+    assert inps[1]['allow_ragged_batch'] == True
 
-  outs = config['output']
-  assert len(outs) == 2
-  assert outs[0]['name'] == out_names[0]
-  assert outs[0]['data_type'] == 'TYPE_FP16'
-  assert outs[0]['dims'] == ['-1']
-  assert outs[1]['name'] == out_names[1]
-  assert outs[1]['data_type'] == 'TYPE_FP32'
-  assert outs[1]['dims'] == ['-1']
-  assert config['dynamic_batching'] == dyn_batching
+    outs = config['output']
+    assert len(outs) == 2
+    assert outs[0]['name'] == out_names[0]
+    assert outs[0]['data_type'] == 'TYPE_FP16'
+    assert outs[0]['dims'] == ['-1']
+    assert outs[1]['name'] == out_names[1]
+    assert outs[1]['data_type'] == 'TYPE_FP32'
+    assert outs[1]['dims'] == ['-1']
+    assert config['dynamic_batching'] == dyn_batching
 
 
 def test_configs(url):
-  client = t_client.InferenceServerClient(url=url)
+    client = t_client.InferenceServerClient(url=url)
 
-  conf1 = client.get_model_config("full_autoconfig", as_json=True)
-  dyn_batching = {
-    'preferred_batch_size': [256]
-  }
-  check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'], dyn_batching)
+    conf1 = client.get_model_config("full_autoconfig", as_json=True)
+    dyn_batching = {'preferred_batch_size': [256]}
+    check_config(conf1['config'], 256,
+                 ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'],
+                 dyn_batching)
 
-  conf2 = client.get_model_config("partial_autoconfig", as_json=True)
-  dyn_batching = {
-    'preferred_batch_size': [16, 32],
-    'max_queue_delay_microseconds': '500'
-  }
-  check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'], dyn_batching)
+    conf2 = client.get_model_config("partial_autoconfig", as_json=True)
+    dyn_batching = {
+        'preferred_batch_size': [16, 32],
+        'max_queue_delay_microseconds': '500'
+    }
+    check_config(conf2['config'], 32, ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'],
+                 dyn_batching)
 
-  conf1 = client.get_model_config("no_config_file.dali", as_json=True)
-  dyn_batching = {
-    'preferred_batch_size': [256]
-  }
-  check_config(conf1['config'], 256, ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'], dyn_batching)
+    conf1 = client.get_model_config("no_config_file.dali", as_json=True)
+    dyn_batching = {'preferred_batch_size': [256]}
+    check_config(conf1['config'], 256,
+                 ['__ArithmeticGenericOp_2', '__ArithmeticGenericOp_4'],
+                 dyn_batching)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument(
+        '-u',
+        '--url',
+        type=str,
+        required=False,
+        default='localhost:8001',
+        help='Inference server GRPC URL. Default is localhost:8001.')
     return parser.parse_args()
 
 
 if __name__ == '__main__':
-  args = parse_args()
-  test_configs(args.url)
+    args = parse_args()
+    test_configs(args.url)

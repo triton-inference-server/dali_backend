@@ -124,14 +124,14 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
   }
 
   static TritonError InvalidArg(const std::string &msg) {
-    auto err = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INVALID_ARG,
-                                     msg.c_str());
+    auto err =
+        TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INVALID_ARG, msg.c_str());
     return TritonError(err);
   }
 
   static TritonError Internal(const std::string &msg) {
-    auto err = TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INTERNAL,
-                                     msg.c_str());
+    auto err =
+        TRITONSERVER_ErrorNew(TRITONSERVER_Error_Code::TRITONSERVER_ERROR_INTERNAL, msg.c_str());
     return TritonError(err);
   }
 
@@ -158,7 +158,7 @@ class TritonError : public UniqueHandle<TRITONSERVER_Error *, TritonError>, publ
 
   TritonError &operator=(TRITONSERVER_Error *error) {
     if (handle_ != error) {
-      UniqueHandle<TRITONSERVER_Error*, TritonError>::operator=(TritonError{error});
+      UniqueHandle<TRITONSERVER_Error *, TritonError>::operator=(TritonError{error});
     }
     return *this;
   }

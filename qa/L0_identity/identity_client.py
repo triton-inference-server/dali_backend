@@ -30,17 +30,35 @@ import math
 
 np.random.seed(100019)
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action="store_true", required=False, default=False,
+    parser.add_argument('-v',
+                        '--verbose',
+                        action="store_true",
+                        required=False,
+                        default=False,
                         help='Enable verbose output')
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
+    parser.add_argument('-u',
+                        '--url',
+                        type=str,
+                        required=False,
+                        default='localhost:8001',
                         help='Inference server URL. Default is localhost:8001.')
-    parser.add_argument('--batch_size', type=int, required=False, default=4,
+    parser.add_argument('--batch_size',
+                        type=int,
+                        required=False,
+                        default=4,
                         help='Batch size')
-    parser.add_argument('--n_iter', type=int, required=False, default=-1,
+    parser.add_argument('--n_iter',
+                        type=int,
+                        required=False,
+                        default=-1,
                         help='Number of iterations , with `batch_size` size')
-    parser.add_argument('--model_name', type=str, required=False, default="dali_identity",
+    parser.add_argument('--model_name',
+                        type=str,
+                        required=False,
+                        default="dali_identity",
                         help='Model name')
     return parser.parse_args()
 
@@ -49,9 +67,13 @@ def array_from_list(arrays):
     """
     Convert list of ndarrays to single ndarray with ndims+=1
     """
-    lengths = list(map(lambda x, arr=arrays: arr[x].shape[0], [x for x in range(len(arrays))]))
+    lengths = list(
+        map(lambda x, arr=arrays: arr[x].shape[0],
+            [x for x in range(len(arrays))]))
     max_len = max(lengths)
-    arrays = list(map(lambda arr, ml=max_len: np.pad(arr, ((0, ml - arr.shape[0]))), arrays))
+    arrays = list(
+        map(lambda arr, ml=max_len: np.pad(arr, ((0, ml - arr.shape[0]))),
+            arrays))
     for arr in arrays:
         assert arr.shape == arrays[0].shape, "Arrays must have the same shape"
     return np.stack(arrays)
@@ -68,31 +90,34 @@ def batcher(dataset, max_batch_size, n_iterations=-1):
             raise StopIteration
         batch_size = min(randint(1, max_batch_size), len(dataset) - data_idx)
         iter_idx += 1
-        yield dataset[data_idx : data_idx + batch_size]
+        yield dataset[data_idx:data_idx + batch_size]
         data_idx += batch_size
 
 
 def main():
     FLAGS = parse_args()
     try:
-        triton_client = tritongrpcclient.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
+        triton_client = tritongrpcclient.InferenceServerClient(
+            url=FLAGS.url, verbose=FLAGS.verbose)
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit(1)
 
-    if not (triton_client.is_server_live() or
-            triton_client.is_server_ready() or
+    if not (triton_client.is_server_live() or triton_client.is_server_ready() or
             triton_client.is_model_ready(model_name=FLAGS.model_name)):
-        print("Error connecting to server: Server live {}. Server ready {}. Model ready {}".format(
-            triton_client.is_server_live, triton_client.is_server_ready,
-            triton_client.is_model_ready(model_name=FLAGS.model_name)))
+        print(
+            "Error connecting to server: Server live {}. Server ready {}. Model ready {}"
+            .format(triton_client.is_server_live, triton_client.is_server_ready,
+                    triton_client.is_model_ready(model_name=FLAGS.model_name)))
         sys.exit(1)
 
     model_name = FLAGS.model_name
     model_version = -1
 
-    input_data = [randint(0, 255, size=randint(100), dtype='uint8') for _ in
-                  range(randint(100) * FLAGS.batch_size)]
+    input_data = [
+        randint(0, 255, size=randint(100), dtype='uint8')
+        for _ in range(randint(100) * FLAGS.batch_size)
+    ]
     input_data = array_from_list(input_data)
 
     # Infer
