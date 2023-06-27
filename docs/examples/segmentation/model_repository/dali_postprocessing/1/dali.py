@@ -26,7 +26,7 @@ import nvidia.dali.types as types
 
 
 @autoserialize
-@pipeline_def(batch_size=32, num_threads=4, device_id=0, output_ndim=[3], output_dtype=[types.UINT8])
+@pipeline_def(batch_size=256, num_threads=4, device_id=0, output_ndim=[3], output_dtype=[types.UINT8])
 def dali_postprocessing_pipe(class_idx=0, prob_threshold=0.6):
     """
     DALI post-processing pipeline definition

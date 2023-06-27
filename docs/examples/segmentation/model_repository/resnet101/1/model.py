@@ -19,7 +19,7 @@ import json
 import torch  # pytype: disable=import-error
 from torchvision.models import segmentation as segmentation_models  # pytype: disable=import-error
 import triton_python_backend_utils as pb_utils
-from torch.utils.dlpack import from_dlpack
+from torch.utils.dlpack import from_dlpack, to_dlpack
 
 
 class SegmentationPyTorch:
@@ -95,7 +95,7 @@ class TritonPythonModel:
             in0 = pb_utils.get_input_tensor_by_name(request, "preprocessed")
             in0_t = from_dlpack(in0.to_dlpack()).cuda()
             out0_t = self.segmentation_model(in0_t)
-            out0 = pb_utils.Tensor.from_dlpack("probabilities", out0_t)
+            out0 = pb_utils.Tensor.from_dlpack("probabilities", to_dlpack(out0_t))
 
         response = pb_utils.InferenceResponse(output_tensors=[out0])
         responses.append(response)

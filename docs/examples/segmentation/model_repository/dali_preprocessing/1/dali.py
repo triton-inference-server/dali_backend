@@ -26,7 +26,7 @@ import nvidia.dali.types as types
 
 
 @autoserialize
-@pipeline_def(batch_size=32, num_threads=4, device_id=0)
+@pipeline_def(batch_size=16, num_threads=4, device_id=0)
 def dali_preprocessing_pipe():
     """
     DALI pre-processing pipeline definition.

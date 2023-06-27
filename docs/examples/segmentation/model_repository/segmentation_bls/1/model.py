@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import json
+
 import numpy as np
+import torch
 import triton_python_backend_utils as pb_utils
 
 
@@ -30,6 +31,12 @@ def run_inference(model_name, inputs, output_names):
             response.error().message())
 
     return map(lambda oname: pb_utils.get_output_tensor_by_name(response, oname), output_names)
+
+
+def extract_subtensor(tensor, start_idx, size):
+    tensor_pt = torch.from_dlpack(tensor.to_dlpack())
+    subtensor = tensor_pt[start_idx: start_idx + size]
+    return pb_utils.Tensor.from_dlpack(tensor.name(), torch.utils.dlpack.to_dlpack(subtensor))
 
 
 class TritonPythonModel:

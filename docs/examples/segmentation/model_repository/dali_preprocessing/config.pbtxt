@@ -21,7 +21,7 @@
 
 name: "dali_preprocessing"
 backend: "dali"
-max_batch_size: 256
+max_batch_size: 16
 input [
   {
     name: "encoded"
