@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -23,41 +23,38 @@
 
 : ${GRPC_ADDR:=${1:-"localhost:8001"}}
 
-
-
 load_models() {
-  echo "LOAD MODELS"
+  echo "Loading models..."
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m dali_preprocessing
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m resnet101
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m dali_postprocessing
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m segmentation_bls
+  sleep 5
+  echo "...models loaded"
 }
 
 unload_models() {
-  echo "UNLOAD MODELS"
+  echo "Unloading models..."
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m segmentation_bls
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m dali_postprocessing
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m resnet101
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m dali_preprocessing
+  sleep 5
+  echo "...models unloaded"
 }
 
 TIME_WINDOW=10000
-BATCH_SIZES="1 2 4 6 8 16"
-#BATCH_SIZES="2 8 16 32 64 128"
-
+BATCH_SIZES="1 2 4 6 8"
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW"
 
-#echo "WARMUP"
-#perf_analyzer $PERF_ANALYZER_ARGS -m segmentation_bls --input-data test_sample --shape encoded:`stat --printf="%s" test_sample/encoded` -b 1
-
-#echo "ResNet101 Benchmark: single-sample"
-#perf_analyzer $PERF_ANALYZER_ARGS -m segmentation_bls --input-data test_sample --shape encoded:`stat --printf="%s" test_sample/encoded` --concurrency-range=16:128:16
+echo "ResNet101 Benchmark: single-sample"
+load_models
+perf_analyzer $PERF_ANALYZER_ARGS -m segmentation_bls --input-data test_sample --shape encoded:$(stat --printf="%s" test_sample/encoded) --concurrency-range=16:128:16
+unload_models
 
 echo "ResNet101 Benchmark: batched"
-for BS in $BATCH_SIZES ; do
+for BS in $BATCH_SIZES; do
   load_models
-  sleep 5
-  perf_analyzer $PERF_ANALYZER_ARGS -m segmentation_bls --input-data test_sample --shape encoded:`stat --printf="%s" test_sample/encoded` -b$BS ;
+  perf_analyzer $PERF_ANALYZER_ARGS -m segmentation_bls --input-data test_sample --shape encoded:$(stat --printf="%s" test_sample/encoded) -b$BS
   unload_models
-  sleep 5
 done
