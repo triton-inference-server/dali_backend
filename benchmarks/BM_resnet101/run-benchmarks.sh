@@ -44,7 +44,7 @@ unload_models() {
 }
 
 TIME_WINDOW=10000
-BATCH_SIZES="1 2 4 6 8"
+BATCH_SIZES="1 2"
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW"
 
 echo "ResNet101 Benchmark: single-sample"
