@@ -1,3 +1,5 @@
+mkdir -p efficientnet_ensemble/1
+
 pushd examples/public/PyTorch/Classification/ConvNets || exit
 wget --content-disposition https://api.ngc.nvidia.com/v2/models/nvidia/efficientnet_b4_pyt_amp/versions/20.12.0/zip -O efficientnet_b4_pyt_amp_20.12.0.zip
 unzip -o efficientnet_b4_pyt_amp_20.12.0.zip
