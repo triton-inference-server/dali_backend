@@ -61,3 +61,6 @@ for BS in $BATCH_SIZES; do
   perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b$BS -f "$BENCH_DIR/batched/report-$BS.csv"
   unload_models
 done
+
+pip install -U pandas
+python scripts/concatenate_results.py -p "$BENCH_DIR/batched"
