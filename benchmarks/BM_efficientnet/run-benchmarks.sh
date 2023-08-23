@@ -1,5 +1,3 @@
-#!/bin/bash -ex
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES
@@ -43,24 +41,19 @@ unload_models() {
 
 TIME_WINDOW=10000
 BATCH_SIZES="1 2 4 8 16 32 64"
+CONCURRENCY_RANGE="16:512:16"
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
-mkdir -p "$BENCH_DIR/single_sample"
-mkdir -p "$BENCH_DIR/batched"
+mkdir -p "$BENCH_DIR"
 
-echo "ResNet101 Benchmark: single-sample"
-load_models
-perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=16:256:16 -f "$BENCH_DIR/single_sample/report.csv"
-unload_models
-
-echo "ResNet101 Benchmark: batched"
 for BS in $BATCH_SIZES; do
+  echo "Efficientnet Benchmark. Batch size: $BS"
   load_models
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b$BS -f "$BENCH_DIR/batched/report-$BS.csv"
+  perf_analyzer "$PERF_ANALYZER_ARGS" -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-$BS.csv"
   unload_models
 done
 
 pip install -U pandas
-python scripts/concatenate_results.py -p "$BENCH_DIR/batched"
+python scripts/concatenate_results.py -p "$BENCH_DIR"
