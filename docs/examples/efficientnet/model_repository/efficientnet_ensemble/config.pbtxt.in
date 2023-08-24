@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2023 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -21,7 +21,7 @@
 
 name: "efficientnet_ensemble"
 platform: "ensemble"
-max_batch_size: 64
+max_batch_size: INSERT_BATCH_SIZE
 input [
   {
     name: "INPUT"
@@ -32,7 +32,7 @@ input [
 output [
   {
     name: "OUTPUT"
-    data_type: TYPE_FP16
+    data_type: TYPE_FP32
     dims: [ 1000 ]
   }
 ]
@@ -51,7 +51,7 @@ ensemble_scheduling {
       }
     },
     {
-      model_name: "efficientnet-b4"
+      model_name: "efficientnet-b0"
       model_version: -1
       input_map {
         key: "INPUT__0"

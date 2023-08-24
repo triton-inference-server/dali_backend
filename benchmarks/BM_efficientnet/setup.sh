@@ -1,5 +1,3 @@
-#!/bin/bash -ex
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES

@@ -1,5 +1,3 @@
-#!/bin/bash -ex
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES
@@ -21,8 +19,29 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# Install additional dependencies inside tritonserver docker image
+import argparse
+import os
 
-pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+import pandas as pd
 
-echo "Efficientnet model ready."
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--reports-path', type=str, required=True, help='Path to the directory with the reports')
+    return parser.parse_args()
+
+
+def list_reports(reports_path):
+    return os.listdir(reports_path)
+
+
+def main(reports_path, result_path):
+    reports_list = list_reports(reports_path)
+    reports = [pd.read_csv(os.path.join(reports_path, rep)) for rep in reports_list]
+    result = pd.concat(reports)
+    result.to_csv(result_path, sep=',')
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    main(args.reports_path, f'{args.reports_path}/combined.csv')

@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2023 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -21,7 +21,7 @@
 
 name: "preprocessing"
 backend: "dali"
-max_batch_size: 64
+max_batch_size: INSERT_BATCH_SIZE
 input [
   {
     name: "DALI_INPUT_0"
@@ -33,7 +33,7 @@ input [
 output [
   {
     name: "DALI_OUTPUT_0"
-    data_type: TYPE_FP16
+    data_type: TYPE_FP32
     dims: [ 3, 224, 224 ]
   }
 ]

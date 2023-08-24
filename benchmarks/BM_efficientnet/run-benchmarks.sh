@@ -24,7 +24,7 @@
 load_models() {
   echo "Loading models..."
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m preprocessing
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet-b4
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet-b0
   python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble
   sleep 5
   echo "...models loaded"
@@ -33,7 +33,7 @@ load_models() {
 unload_models() {
   echo "Unloading models..."
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m preprocessing
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet-b4
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet-b0
   python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble
   sleep 5
   echo "...models unloaded"
@@ -51,7 +51,7 @@ mkdir -p "$BENCH_DIR"
 for BS in $BATCH_SIZES; do
   echo "Efficientnet Benchmark. Batch size: $BS"
   load_models
-  perf_analyzer "$PERF_ANALYZER_ARGS" -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-$BS.csv"
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-$BS.csv"
   unload_models
 done
 
