@@ -1,44 +1,49 @@
 # Classification end-to-end benchmark
 
 ## Overview
-This is a benchmark that present end-to-end classification use-case. Composing parts of this
+This is a benchmark that presents end-to-end classification use-case. Composing parts of this
 benchmark are:
 1. GPU-powered data preprocessing using DALI,
 2. Image classification using EfficientNet,
 3. Inference deployment for Triton Inference Server.
 
 ## How to run the benchmark?
-Running the benchmark requires two steps:
+Running the benchmark requires three steps:
 1. Setup
 2. Run
 3. (optional) Tuning
 
-In the `Setup` step the script downloads the EfficientNet model, converts it to TensorRT format
-and puts together model repository and all the configuration files necessary for
+In the `Setup` step, the script downloads the EfficientNet model, converts it to TensorRT format
+and puts together a model repository and all the configuration files necessary for
 Triton Inference Server. It needs to be run only once for a given rig.
 
 In the `Run` step the script runs a Triton's `perf_analyzer` to benchmark the use-case.
 There are handful of parameters that can be tuned for the benchmark, you'd most probably
-like to turn these nobs in the `Run` step. Details about tuning the solution are presented
-in the relevant section below.
+like to turn these nobs in the `Tuning` step.
 
 Lastly, the `Tuning` step involves polishing the use-case parameters to find the optimal setup
-for a given hardware configuration.
+for a given hardware configuration. Details about tuning the solution are presented
+in the relevant section below.
 
 ### Setup + run
 Running both `Setup` and `Run` is required the first time the benchmark is conducted on a given rig.
-Please you the following command and provide the maximum batch size you expect :
+Please you the following command and provide the maximum batch size you expect (please refer to
+the section below for more information on the max batch size):
 ```bash
-$ cd //dali_backend/benchmarks/BM_efficientnet
+$ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
 $ bash benchmark.sh do_setup MAX_BATCH_SIZE
+
+e.g.
+$ cd /home/myuser/Triton/dali_backend/benchmarks/BM_efficientnet
+$ bash benchmark.sh do_setup 32
 ```
 
 ### Run
 Running the benchmark without the `Setup` step is possible with the command below. Please note
 that the script will assume that the benchmark is properly initialized. If not, unpredictable
-things may happen. You've been warned!
+things may happen. You've been warned.
 ```bash
-$ cd //dali_backend/benchmarks/BM_efficientnet
+$ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
 $ bash benchmark.sh
 ```
 
@@ -46,24 +51,41 @@ $ bash benchmark.sh
 Factory resetting benchmark might come in handy if an error occurred during the `Setup` step.
 To reset the benchmark, please run:
 ```bash
-$ cd //dali_backend/benchmarks/BM_efficientnet
+$ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
 $ bash reset_benchmark.sh 
 ```
 
 ## Tuning the inference
 Since this benchmark is targeted into DALI's usage in inference, we'll be focusing on tuning DALI
-rather than the EfficientNet model. For the information about the latter, please consult [Triton's
-documentation]().
+rather than the EfficientNet model. For the information about the latter, please consult [Model Navigator documentation](https://triton-inference-server.github.io/model_navigator/0.7.1/).
 
 To obtain optimal performance numbers for your given hardware configuration, the scenario has
 to be tuned. DALI provides handful of parameters to manipulate. Here we are presenting details
 about where these parameters can be found. More information about the parameters themselves
-may be found in the [DALI documentation]().
+may be found in the [DALI documentation](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/index.html).
 
 You may tune the benchmark in the following places:
-1. `run-benchmark.sh` script. Using `BATCH_SIZES` and `CONCURRENCY_RANGE` variables you can set the values that will be used for the benchmarking.
+1. `run-benchmark.sh` script. Using `BATCH_SIZES` and `CONCURRENCY_RANGE` variables you can set
+the values that will be used for the benchmarking.
 2. `dali.py` file. This is the file with DALI model definition. As mentioned earlier, DALI provides
-handful on parameters (both on the level of pipeline definition and particular operators).
+handful on parameters (both on the level of pipeline definition and particular operators). It is
+out of scope of this document to explain thoroughly how to tune DALI Pipeline. In the EfficientNet
+use case, one of the tuning parameters is the `hw_decoder_load` inside the Pipeline definition.
 3. Setup command (In the [Setup + run]() section above). There you can set the max batch size used
-for inference. The general rule of setting this value for the purposes of the benchmark
-is that is should be as big as possible for your hardware setup.
+for inference. The general rule of setting this value for the purposes of this benchmark
+is that the batch size should be as big as possible for your hardware setup.
+4. `config.pbtxt` files. [DALI Backend documentation](https://github.com/triton-inference-server/dali_backend/blob/main/docs/config.md)
+provides information about the Model Configuration typical for DALI. Particularly, the nob to tune
+in the `config.pbtxt` file is the `num_threads` parameter, which denotes number of CPU threads used
+by DALI. Also, regular Triton's tuning may be leveraged here, such as configuring model
+instances per device (CPU/GPU).
+
+## Benchmark result
+The result of the benchmark will be captured as a `csv` file. This file will be saved in the
+subdirectory with the date and time of running the benchmark (e.g. `bench-20230824_075412`).
+In case the benchmark has been run using multiple batch sizes, the results for every batch
+size will be dumped into a separate file, with the pattern: `report-<batch_size>.csv`. Additionally,
+all the reports will be combined into one output file per benchmark run in the `combined.csv` file.
+
+Since `perf_analyzer` is used for the benchmark, the meaning of all the values in the report
+may be found in the [`perf_analyzer` documentation](https://github.com/triton-inference-server/client/blob/main/src/c++/perf_analyzer/README.md).
