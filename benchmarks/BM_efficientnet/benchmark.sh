@@ -19,6 +19,8 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# IMPORTANT: $3 argument is used for the CI
+
 source setup.sh
 
 pushd ../.. || exit 1  # Repo's root directory
@@ -36,6 +38,12 @@ if [[ "$1" == "do_setup" ]]; then
   source setup.sh "$2"
 fi
 
+if [[ -z "$3" ]]; then
+    DOCKER_RUN_ARGS="--gpus all --net host -p8000:8000 -p8001:8001 -p8002:8002 --privileged"
+  else
+    DOCKER_RUN_ARGS=$3
+fi
+
 echo "Assuming that model is configured. Check the model_repository: "
 ls -R model_repository
 
@@ -43,7 +51,7 @@ popd || exit 1
 
 MODEL_REPO="$(pwd)/docs/examples/efficientnet/model_repository"
 
-docker run -t -d --rm --name effnet_bench_cnt --gpus all --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 -p8000:8000 -p8001:8001 -p8002:8002 --privileged -v $MODEL_REPO:/models nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /models --log-verbose 1 --model-control-mode explicit
+docker run -t -d --rm $DOCKER_RUN_ARGS --name effnet_bench_cnt --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 -v $MODEL_REPO:/models nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /models --log-verbose 1 --model-control-mode explicit
 
 echo "Waiting for tritonserver to wake up..."
 sleep 10
