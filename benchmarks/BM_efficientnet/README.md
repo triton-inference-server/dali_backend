@@ -17,8 +17,8 @@ In the `Setup` step, the script downloads the EfficientNet model, converts it to
 and puts together a model repository and all the configuration files necessary for
 Triton Inference Server. It needs to be run only once for a given rig.
 
-In the `Run` step the script runs a Triton's `perf_analyzer` to benchmark the use-case.
-There are handful of parameters that can be tuned for the benchmark, you'd most probably
+In the `Run` step, the script runs a Triton's `perf_analyzer` to benchmark the use-case.
+There is a handful of parameters that can be tuned for the benchmark, you'd most probably
 like to turn these nobs in the `Tuning` step.
 
 Lastly, the `Tuning` step involves polishing the use-case parameters to find the optimal setup
@@ -27,7 +27,7 @@ in the relevant section below.
 
 ### Setup + run
 Running both `Setup` and `Run` is required the first time the benchmark is conducted on a given rig.
-Please you the following command and provide the maximum batch size you expect (please refer to
+Please use the following command and provide the maximal expected batch size (please refer to
 the section below for more information on the max batch size):
 ```bash
 $ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
@@ -78,7 +78,7 @@ is that the batch size should be as big as possible for your hardware setup.
 provides information about the Model Configuration typical for DALI. Particularly, the nob to tune
 in the `config.pbtxt` file is the `num_threads` parameter, which denotes number of CPU threads used
 by DALI. Also, regular Triton's tuning may be leveraged here, such as configuring model
-instances per device (CPU/GPU).
+instances per device (CPU/GPU), or tuning the [Dynamic Batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#dynamic-batcher) parameters.
 
 ## Benchmark result
 The result of the benchmark will be captured as a `csv` file. This file will be saved in the
