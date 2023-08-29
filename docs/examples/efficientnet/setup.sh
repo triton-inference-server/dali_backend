@@ -21,7 +21,7 @@
 
 set -e
 
-mkdir -p efficientnet_ensemble/1
+mkdir -p model_repository/efficientnet_ensemble/1
 
 if [[ ! -d DeepLearningExamples ]]; then  # assume that DLE has been properly cloned and patched before
   git clone https://github.com/NVIDIA/DeepLearningExamples.git

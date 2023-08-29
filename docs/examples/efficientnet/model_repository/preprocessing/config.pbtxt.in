@@ -41,6 +41,6 @@ output [
 parameters: [
   {
     key: "num_threads"
-    value: { string_value: "12" }
+    value: { string_value: "32" }
   }
 ]

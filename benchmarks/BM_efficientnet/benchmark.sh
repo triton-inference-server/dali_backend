@@ -39,7 +39,7 @@ if [[ "$1" == "do_setup" ]]; then
 fi
 
 if [[ -z "$3" ]]; then
-    DOCKER_RUN_ARGS="--gpus all --net host -p8000:8000 -p8001:8001 -p8002:8002 --privileged"
+    DOCKER_RUN_ARGS="--gpus all -p8000:8000 -p8001:8001 -p8002:8002 --privileged"
   else
     DOCKER_RUN_ARGS=$3
 fi
@@ -58,8 +58,6 @@ sleep 10
 echo "... should be enough."
 
 popd || exit 1
-
-ls -lah
 
 docker run --net host -t -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh
 
