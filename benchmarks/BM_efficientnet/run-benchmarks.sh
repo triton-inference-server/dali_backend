@@ -19,7 +19,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-: ${GRPC_ADDR:=${1:-"localhost:8001"}}
+: ${MAX_BATCH_SIZE:=${1:-64}}
 
 load_models() {
   echo "Loading models..."
@@ -39,9 +39,20 @@ unload_models() {
   echo "...models unloaded"
 }
 
-TIME_WINDOW=10000
-BATCH_SIZES="1 2 4 8 16 32 64"
+# The BATCH_SIZES are assigned with powers of 2 lower or equal to MAX_BATCH_SIZE
+BATCH_SIZES=()
+POWER=0
+while ((2**POWER <= MAX_BATCH_SIZE)); do
+    BATCH_SIZES+=("$((2**POWER))")
+    ((POWER++))
+done
+
+# Feel free to assign BATCH_SIZES manually...
+# BATCH_SIZES="1 2 4 8 16 32 64"
+
 CONCURRENCY_RANGE="16:512:16"
+GRPC_ADDR="localhost:8001"
+TIME_WINDOW=10000
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
