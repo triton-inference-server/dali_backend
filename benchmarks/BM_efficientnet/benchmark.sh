@@ -59,6 +59,6 @@ echo "... should be enough."
 
 popd || exit 1
 
-docker run --net host -t -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh
+docker run --net host -t -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh $2
 
 docker kill effnet_bench_cnt
