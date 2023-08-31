@@ -19,6 +19,10 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# Usage:
+# bash benchmark.sh                             -> Run the benchmark, assuming that it is properly initialized.
+# bash benchmark.sh do_setup [MAX_BATCH_SIZE]   -> Run the benchmark, initializing it beforehand.
+
 # IMPORTANT: $3 argument is used for the CI
 
 source setup.sh

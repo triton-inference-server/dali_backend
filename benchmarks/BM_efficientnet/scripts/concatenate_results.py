@@ -21,7 +21,7 @@
 
 import argparse
 import os
-
+import re
 import pandas as pd
 
 
@@ -35,9 +35,26 @@ def list_reports(reports_path):
     return os.listdir(reports_path)
 
 
+def parse_batch_size(report_file_name):
+    return int(re.search(r'\d+', report_file_name).group())
+
+
+def validate_report_file_name(report_file_name):
+    return re.match(r'report-\d+\.csv', report_file_name) is not None
+
+
+def insert_batch_size_column(report_csv, batch_size):
+    report_csv.insert(0, 'Batch size', batch_size)
+
+
 def main(reports_path, result_path):
     reports_list = list_reports(reports_path)
-    reports = [pd.read_csv(os.path.join(reports_path, rep)) for rep in reports_list]
+    assert all(validate_report_file_name(rfn) for rfn in reports_list)
+    reports = []
+    for rep in reports_list:
+        report = pd.read_csv(os.path.join(reports_path, rep))
+        insert_batch_size_column(report, parse_batch_size(rep))
+        reports.append(report)
     result = pd.concat(reports)
     result.to_csv(result_path, sep=',')
 

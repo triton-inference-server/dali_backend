@@ -13,8 +13,9 @@ Running the benchmark requires three steps:
 2. Run
 3. (optional) Tuning
 
-In the `Setup` step, the script downloads the EfficientNet model, converts it to TensorRT format
-and puts together a model repository and all the configuration files necessary for
+In the `Setup` step, the script downloads the EfficientNet model (using [TorchHub](https://pytorch.org/hub/) in [DeepLearningExamples repository](https://github.com/NVIDIA/DeepLearningExamples/tree/master)),
+converts it to [TensorRT](https://developer.nvidia.com/tensorrt-getting-started)
+format and puts together a model repository and all the configuration files necessary for
 Triton Inference Server. It needs to be run only once for a given rig.
 
 In the `Run` step, the script runs a Triton's `perf_analyzer` to benchmark the use-case.
@@ -32,16 +33,17 @@ the section below for more information on the max batch size):
 ```bash
 $ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
 $ bash benchmark.sh do_setup MAX_BATCH_SIZE
-
-e.g.
+```
+For example:
+```bash
 $ cd /home/myuser/Triton/dali_backend/benchmarks/BM_efficientnet
 $ bash benchmark.sh do_setup 32
 ```
 
 ### Run
-Running the benchmark without the `Setup` step is possible with the command below. Please note
-that the script will assume that the benchmark is properly initialized. If not, unpredictable
-things may happen. You've been warned.
+If you performed the `Setup` step before, it is possible to save some time and run only
+the `Run` step. You can do it with the command below. Please note, that if the benchmark has
+not been initialized properly, unpredictable things may happen. You've been warned.
 ```bash
 $ cd <dali_backend-repo-path>/benchmarks/BM_efficientnet
 $ bash benchmark.sh
@@ -56,9 +58,6 @@ $ bash reset_benchmark.sh
 ```
 
 ## Tuning the inference
-Since this benchmark is targeted into DALI's usage in inference, we'll be focusing on tuning DALI
-rather than the EfficientNet model. For the information about the latter, please consult [Model Navigator documentation](https://triton-inference-server.github.io/model_navigator/0.7.1/).
-
 To obtain optimal performance numbers for your given hardware configuration, the scenario has
 to be tuned. DALI provides handful of parameters to manipulate. Here we are presenting details
 about where these parameters can be found. More information about the parameters themselves
@@ -79,6 +78,10 @@ provides information about the Model Configuration typical for DALI. Particularl
 in the `config.pbtxt` file is the `num_threads` parameter, which denotes number of CPU threads used
 by DALI. Also, regular Triton's tuning may be leveraged here, such as configuring model
 instances per device (CPU/GPU), or tuning the [Dynamic Batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#dynamic-batcher) parameters.
+
+Lastly, this solution is an ensemble of models. Therefore, tuning the E2E use-case shall be
+from the perspective of both - DALI model and the EfficientNet model. For the information, how to
+tune the latter, please consult [Model Navigator documentation](https://triton-inference-server.github.io/model_navigator/0.7.1/).
 
 ## Benchmark result
 The result of the benchmark will be captured as a `csv` file. This file will be saved in the
