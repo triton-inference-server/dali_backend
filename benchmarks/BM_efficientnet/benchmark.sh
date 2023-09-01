@@ -27,9 +27,15 @@
 
 source setup.sh
 
+ls -lah
+
 pushd ../.. || exit 1  # Repo's root directory
 
+ls -lah
+
 pushd docs/examples/efficientnet || exit 1
+
+ls -lah
 
 is_number_re='^[0-9]+$'
 
@@ -48,21 +54,37 @@ if [[ -z "$3" ]]; then
     DOCKER_RUN_ARGS=$3
 fi
 
+ls -lah
+
 echo "Assuming that model is configured. Check the model_repository: "
 ls -R model_repository
 
 popd || exit 1
 
+ls -lah
+
 MODEL_REPO="$(pwd)/docs/examples/efficientnet/model_repository"
 
+ls -lah
+
 docker run -t -d --rm $DOCKER_RUN_ARGS --name effnet_bench_cnt --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 -v $MODEL_REPO:/models nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /models --log-verbose 1 --model-control-mode explicit
+
+ls -lah
 
 echo "Waiting for tritonserver to wake up..."
 sleep 20
 echo "... should be enough."
 
+ls -lah
+
 popd || exit 1
+
+ls -lah
 
 docker run --net host -t -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh $2
 
+ls -lah
+
 docker kill effnet_bench_cnt
+
+ls -lah
