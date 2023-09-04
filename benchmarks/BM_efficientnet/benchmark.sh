@@ -23,11 +23,9 @@
 # bash benchmark.sh                             -> Run the benchmark, assuming that it is properly initialized.
 # bash benchmark.sh do_setup [MAX_BATCH_SIZE]   -> Run the benchmark, initializing it beforehand.
 
-# IMPORTANT: $3 argument is used for the CI
-
 source setup.sh
 
-pushd ../.. || exit 1  # Repo's root directory
+pushd ../.. || exit 1 # Repo's root directory
 
 pushd docs/examples/efficientnet || exit 1
 
@@ -42,12 +40,6 @@ if [[ "$1" == "do_setup" ]]; then
   source setup.sh "$2"
 fi
 
-if [[ -z "$3" ]]; then
-    DOCKER_RUN_ARGS="--gpus all -p8000:8000 -p8001:8001 -p8002:8002 --privileged"
-  else
-    DOCKER_RUN_ARGS=$3
-fi
-
 echo "Assuming that model is configured. Check the model_repository: "
 ls -R model_repository
 
@@ -57,10 +49,7 @@ MODEL_REPO="$(pwd)/docs/examples/efficientnet/model_repository"
 SERVER_CONTAINER_NAME="efficientnet.server"
 CLIENT_CONTAINER_NAME="efficientnet.client"
 
-docker run -dt --rm $DOCKER_RUN_ARGS --name ${SERVER_CONTAINER_NAME} --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/tritonserver:23.07-py3 sleep infinity
-docker cp -L $MODEL_REPO ${SERVER_CONTAINER_NAME}:/
-docker exec -i ${SERVER_CONTAINER_NAME} /bin/bash -c 'ls -lahR /model_repository'
-docker exec -d ${SERVER_CONTAINER_NAME} tritonserver --model-repository /model_repository --log-verbose 1 --model-control-mode explicit
+docker run -dt --rm $DOCKER_RUN_ARGS --name ${SERVER_CONTAINER_NAME} --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 --gpus all -p8000:8000 -p8001:8001 -p8002:8002 --privileged -v $MODEL_REPO:/model_repository nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /model_repository --log-verbose 1 --model-control-mode explicit
 
 echo "Waiting for tritonserver to wake up..."
 sleep 3
@@ -68,10 +57,6 @@ echo "... should be enough."
 
 popd || exit 1
 
-docker run -dt --name ${CLIENT_CONTAINER_NAME} --net host -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk sleep infinity
-docker cp -L . ${CLIENT_CONTAINER_NAME}:/bench/
-docker exec -i ${CLIENT_CONTAINER_NAME} /bin/bash -c 'ls -lahR /bench'
-docker exec ${CLIENT_CONTAINER_NAME} bash run-benchmarks.sh $2
+docker run -t --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh $2
 
-docker kill ${CLIENT_CONTAINER_NAME}
 docker kill ${SERVER_CONTAINER_NAME}
