@@ -27,15 +27,9 @@
 
 source setup.sh
 
-ls -lah
-
 pushd ../.. || exit 1  # Repo's root directory
 
-ls -lah
-
 pushd docs/examples/efficientnet || exit 1
-
-ls -lah
 
 is_number_re='^[0-9]+$'
 
@@ -54,37 +48,30 @@ if [[ -z "$3" ]]; then
     DOCKER_RUN_ARGS=$3
 fi
 
-ls -lah
-
 echo "Assuming that model is configured. Check the model_repository: "
 ls -R model_repository
 
 popd || exit 1
 
-ls -lah
-
 MODEL_REPO="$(pwd)/docs/examples/efficientnet/model_repository"
+SERVER_CONTAINER_NAME="efficientnet.server"
+CLIENT_CONTAINER_NAME="efficientnet.client"
 
-ls -lah
-
-docker run -t -d --rm $DOCKER_RUN_ARGS --name effnet_bench_cnt --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 -v $MODEL_REPO:/models nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /models --log-verbose 1 --model-control-mode explicit
-
-ls -lah
+docker run -dt --rm $DOCKER_RUN_ARGS --name ${SERVER_CONTAINER_NAME} --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/tritonserver:23.07-py3 sleep infinity
+docker cp -L $MODEL_REPO ${SERVER_CONTAINER_NAME}:/
+docker exec -i ${SERVER_CONTAINER_NAME} /bin/bash -c 'ls -lahR /model_repository'
+docker exec -d ${SERVER_CONTAINER_NAME} tritonserver --model-repository /model_repository --log-verbose 1 --model-control-mode explicit
 
 echo "Waiting for tritonserver to wake up..."
-sleep 20
+sleep 3
 echo "... should be enough."
-
-ls -lah
 
 popd || exit 1
 
-ls -lah
+docker run -dt --name ${CLIENT_CONTAINER_NAME} --net host -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk sleep infinity
+docker cp -L . ${CLIENT_CONTAINER_NAME}:/bench/
+docker exec -i ${CLIENT_CONTAINER_NAME} /bin/bash -c 'ls -lahR /bench'
+docker exec ${CLIENT_CONTAINER_NAME} bash run-benchmarks.sh $2
 
-docker run --net host -t -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh $2
-
-ls -lah
-
-docker kill effnet_bench_cnt
-
-ls -lah
+docker kill ${CLIENT_CONTAINER_NAME}
+docker kill ${SERVER_CONTAINER_NAME}
