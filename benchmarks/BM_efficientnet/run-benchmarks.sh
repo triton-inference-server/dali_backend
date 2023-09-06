@@ -40,15 +40,15 @@ unload_models() {
 }
 
 # The BATCH_SIZES are assigned with powers of 2 lower or equal to MAX_BATCH_SIZE
-BATCH_SIZES=()
-POWER=0
-while ((2**POWER <= MAX_BATCH_SIZE)); do
-    BATCH_SIZES+=("$((2**POWER))")
-    ((POWER++))
-done
+#BATCH_SIZES=()
+#POWER=0
+#while ((2**POWER <= MAX_BATCH_SIZE)); do
+#    BATCH_SIZES+=("$((2**POWER))")
+#    ((POWER++))
+#done
 
 # Feel free to assign BATCH_SIZES manually...
-# BATCH_SIZES="1 2 4 8 16 32 64"
+BATCH_SIZES=(1 2 4 8 16 32 64)
 
 CONCURRENCY_RANGE="16:512:16"
 GRPC_ADDR="localhost:8001"
@@ -59,7 +59,7 @@ BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
 mkdir -p "$BENCH_DIR"
 
-for BS in $BATCH_SIZES; do
+for BS in "${BATCH_SIZES[@]}"; do
   echo "Efficientnet Benchmark. Batch size: $BS"
   load_models
   perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-$BS.csv"
