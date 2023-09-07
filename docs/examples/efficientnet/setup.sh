@@ -42,7 +42,7 @@ echo "Random container name: $RANDOM_STRING"
 
 docker build -t convnets -f Dockerfile.bench .
 docker run -di --shm-size 8g --gpus all --name $RANDOM_STRING convnets
-docker exec $RANDOM_STRING python deploy_on_triton.py --model-name efficientnet-b0 --model-repository /model_repository --batch-size "$1"
+docker exec -i $RANDOM_STRING python deploy_on_triton.py --model-name efficientnet-b0 --model-repository /model_repository --batch-size "$1"
 
 popd || exit 1
 
