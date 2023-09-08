@@ -61,6 +61,9 @@ BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BENCH_DIR"
 
 echo "Batch size set: $BATCH_SIZES"
+for BS in "${BATCH_SIZES[@]}"; do
+  echo "Batch size: $BS"
+done
 
 for BS in "${BATCH_SIZES[@]}"; do
   echo "Efficientnet Benchmark. Batch size: $BS"
