@@ -7,4 +7,8 @@ while [ $POWER_OF_2 -le $MAX_BATCH_SIZE ]; do
   POWER_OF_2=$((POWER_OF_2 * 2))
 done
 
-echo "-b '$BS' -f '$BENCH_DIR/report-$BS.csv'"
+echo "$BATCH_SIZES"
+
+for BS in "${BATCH_SIZES[@]}"; do
+  echo "-b '$BS' -f '$BENCH_DIR/report-$BS.csv'"
+done
