@@ -40,17 +40,18 @@ unload_models() {
 }
 
 # The BATCH_SIZES are assigned with powers of 2 lower or equal to MAX_BATCH_SIZE
-#BATCH_SIZES=()
-#POWER=0
-#while ((2**POWER <= MAX_BATCH_SIZE)); do
-#    BATCH_SIZES+=("$((2**POWER))")
-#    ((POWER++))
-#done
+echo "MAX BATCH SIZE: $MAX_BATCH_SIZE"
+BATCH_SIZES=()
+POWER_OF_2=1
+while [ $POWER_OF_2 -le $MAX_BATCH_SIZE ]; do
+  BATCH_SIZES+=(POWER_OF_2)
+  POWER_OF_2=$((POWER_OF_2 * 2))
+done
 
 # Feel free to assign BATCH_SIZES manually...
-BATCH_SIZES=(1 2 4 8 16 32 64)
+#BATCH_SIZES=(1 2 4 8 16 32 64)
 
-CONCURRENCY_RANGE="16:512:16"
+CONCURRENCY_RANGE=${CONCURRENCY_RANGE:-"16:512:16"}
 GRPC_ADDRESS=${GRPC_ADDR:-"localhost:8001"}
 TIME_WINDOW=10000
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDRESS -p$TIME_WINDOW --verbose-csv --collect-metrics"
@@ -58,6 +59,8 @@ INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
 mkdir -p "$BENCH_DIR"
+
+echo "Batch size set: $BATCH_SIZES"
 
 for BS in "${BATCH_SIZES[@]}"; do
   echo "Efficientnet Benchmark. Batch size: $BS"
