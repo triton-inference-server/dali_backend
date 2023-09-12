@@ -41,13 +41,12 @@ RANDOM_STRING=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
 echo "Random container name: $RANDOM_STRING"
 
 docker build -t convnets -f Dockerfile.bench .
-docker run -di --shm-size 8g --gpus all --name $RANDOM_STRING convnets
-docker exec -i $RANDOM_STRING python deploy_on_triton.py --model-name efficientnet-b0 --model-repository /model_repository --batch-size "$1"
+docker run --shm-size 8g --gpus all --name $RANDOM_STRING convnets python deploy_on_triton.py --model-name efficientnet-b0 --model-repository /model_repository --batch-size "$1"
 
 popd || exit 1
 
 docker cp $RANDOM_STRING:/model_repository ./
-docker kill $RANDOM_STRING
+docker rm $RANDOM_STRING
 
 # Set max_batch_size in the remaining models
 insert_batch_size () {
