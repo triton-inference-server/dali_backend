@@ -52,9 +52,9 @@ done
 #BATCH_SIZES=(1 2 4 8 16 32 64)
 
 CONCURRENCY_RANGE=${CONCURRENCY_RANGE:-"16:512:16"}
-GRPC_ADDRESS=${GRPC_ADDR:-"localhost:8001"}
+GRPC_ADDR=${GRPC_ADDR:-"localhost:8001"}
 TIME_WINDOW=10000
-PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDRESS -p$TIME_WINDOW --verbose-csv --collect-metrics"
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
