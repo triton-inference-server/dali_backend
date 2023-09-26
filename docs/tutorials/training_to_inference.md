@@ -3,7 +3,7 @@
 This tutorial presents the simple way of going from training to inference. We are focusing on a particular scenario: 
 how to deploy a model, when it has been trained using DALI as a preprocessing tool. An example that constitutes this 
 tutorial is the [EfficientNet](https://github.com/NVIDIA/DALI/tree/main/docs/examples/use_cases/pytorch/efficientnet) 
-from DALI repository. This tutorial is split in two parts - Theory and Practice. Lastly, while we cover only the 
+from DALI repository. This tutorial is split in two parts - [Theory](#Theory) and [Practice](#Practice). Lastly, while we cover only the 
 deployment of DALI preprocessing graph, we are using handful of other NVIDIA tools useful for setting up the inference. 
 Documentation and links to those tools will be provided, but the specifics of these tools won't be explained - should 
 you like to know more details about them, please refer to the documentation.
