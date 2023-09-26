@@ -23,13 +23,13 @@ DALI pipeline implemented using other approach - please convert to `@pipeline_de
 ## Theory
 
 Unfortunately, it is not possible to introduce complete and precise algorithm for setting up the inference 
-(if it would, we'd just put together a script for it). However, the following is a highly useful guide TODO
+(if it would, we'd just put together a script for it). However, the following is a highly useful "How-To" guide:
 1. Adjust a DALI Pipeline for the inference:
     1. Make sure that the DALI pipeline you’ll be working on is the pipeline that contains the operations for the inference. Usually the **training** preprocessing and **inference** preprocessing differs - the former one contains some random operations that are used to augment the dataset. Most often the inference pipeline will match the **validation** pipeline (and not the training one).
     1.  Change all the input operators (except the Video operators) inside the DALI pipeline to the `fn.external_source` operator.
         1.  In the case of Video operators, use either `fn.inputs.video` or `fn.external_source + fn.decoders.video`, [depending on the input data properties](https://docs.nvidia.com/deeplearning/dali/main-user-guide/docs/operations/nvidia.dali.fn.experimental.inputs.video.html).
     1.  Add the `name` parameter to every input operator.
-    1.  If you’d like to use the [Autoconfiguration](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#auto-generated-model-configuration) of DALI model:
+    1.  If you’d like to use the [Model Autoconfiguration](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#auto-generated-model-configuration) of DALI model:
         1. Add `ndim` parameter to every input operator,
         1. Add `dtype` parameter to every input operator,
         1. Add `output_ndim` parameter to the `@pipeline_def`,
@@ -125,12 +125,13 @@ model_repository
 ```
 
 ### ➔ 3 : Run Triton server and send requests
-TODO
+Please refer to [Triton documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html)
+for any details about running the server and leveraging Triton Client module to send requests to the server.
 
-### Triton client hints
+### Triton Client hints
 As mentioned earlier, you can find the examples of Triton client implementation inside [DALI Backend repository](https://github.com/triton-inference-server/dali_backend/tree/main/qa). 
-The purpose of this tutorial is not to fully explain how to create a Triton client module. However, here are a couple of
-suggestions when creating a Triton client specifically for DALI model.
+The purpose of this tutorial is not to fully explain how to create a Triton client module. However, the following are 
+a couple of suggestions for creating a Triton client specifically for DALI model.
 
 #### Loading data as binary buffer
 NVIDIA hardware offers image and video decoding acceleration using [Hardware JPEG Decoder](https://developer.nvidia.com/blog/leveraging-hardware-jpeg-decoder-and-nvjpeg-on-a100/) and [NVDEC cores](https://developer.nvidia.com/video-codec-sdk). 
