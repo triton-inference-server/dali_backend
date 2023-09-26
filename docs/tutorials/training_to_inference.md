@@ -38,7 +38,7 @@ Unfortunately, it is not possible to introduce complete and precise algorithm fo
     1. Set up your Deep Learning model. Description of this step is outside of the scope of this tutorial.
     1. Create a directory for the DALI model.
     1. Insert the DALI pipeline definition (prepared in the **Step 1**) into the `dali.py` file in the version directory.
-    1. Create a configuration file (unnecessary, if you are using Model Autoconfiguration for DALI Backend). Make sure that the names of the inputs in the model configuration match the names of the input operators assigned in **Step 1**.
+    1. Create a [configuration file](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html) (unnecessary, if you are using Model Autoconfiguration for DALI Backend). Make sure that the names of the inputs in the model configuration match the names of the input operators assigned in **Step 1**.
     1. Combine the Deep Learning and DALI models using [model ensemble](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html#ensemble-models) or [BLS script](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html?highlight=business%20logic%20scripting).
 1. Run the Triton server and send some requests to it.
 
