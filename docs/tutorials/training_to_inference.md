@@ -50,6 +50,7 @@ Enough with the theory. Let's go to practice.
 
 As mentioned earlier, the validation pipeline usually reflects the inference preprocessing better. Here's one used in 
 our EfficientNet example:
+
 ```python
 @pipeline_def
 def validation_pipe(data_dir, interpolation, image_size, image_crop, output_layout, rank=0,
@@ -68,10 +69,12 @@ def validation_pipe(data_dir, interpolation, image_size, image_crop, output_layo
                                       std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
     return output, label
 ```
+
 We're adjusting it by swapping the Reader with ExternalSource and adding a `name` parameter to it. Since in our example 
 we will explicitly create a `config.pbtxt` file for DALI model, we're not adding `ndim` and `dtype` arguments to 
 `fn.external_source`. We are, however, using [Autoserialization](https://github.com/triton-inference-server/dali_backend#autoserialization), 
 hence the `@autoserialize` decorator on top.
+
 ```python
 @autoserialize
 @pipeline_def
@@ -89,8 +92,11 @@ def inference_pipe(interpolation, image_size, image_crop, output_layout):
                                       std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
     return output
 ```
+
 The snippet above shall be saved as `dali.py` file inside your model repository.
+
 ### ➔ 2 : Create a model repository
+
 Putting together [model repository](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_repository.html) 
 from the perspective of DALI is really simple. All you need to do is to save the DALI Pipeline inside `dali.py` file 
 and put it inside corresponding model version directory.
@@ -109,6 +115,7 @@ Going back to our example, we are using the `efficientnet-b0` and the `preproces
 Below is the outline of the model repository in our example. You can find the [model configuration](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html) 
 files in the [Efficientnet example](https://github.com/triton-inference-server/dali_backend/tree/main/docs/examples/efficientnet/model_repository) 
 in DALI Backend repository.
+
 ```
 model_repository
 ├── efficientnet-b0
@@ -125,10 +132,12 @@ model_repository
 ```
 
 ### ➔ 3 : Run Triton server and send requests
+
 Please refer to [Triton documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html)
 for any details about running the server and leveraging Triton Client module to send requests to the server.
 
 ### Triton Client hints
+
 As mentioned earlier, you can find the examples of Triton client implementation inside [DALI Backend repository](https://github.com/triton-inference-server/dali_backend/tree/main/qa). 
 The purpose of this tutorial is not to fully explain how to create a Triton client module. However, the following are 
 a couple of suggestions for creating a Triton client specifically for DALI model.
@@ -138,17 +147,20 @@ NVIDIA hardware offers image and video decoding acceleration using [Hardware JPE
 Since DALI provides easy-access Python interface for both, you'd typically like to perform data decoding on the server side. 
 Therefore, the Triton client will typically send encoded data to the server. We suggest using `np.fromfile` or similar 
 approach to read the binary data from disk (this one prooved to be the fastest):
+
 ```python
 def load_image(image_path):
     return np.fromfile(image_path, dtype=np.uint8)
 ```
 
 #### Batching data in the request
+
 With Triton and DALI Backend you can leverage batching in two ways. Firstly, you can turn on [Dynamic Batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#dynamic-batcher). 
 With this feature, you send the samples one-by-one to the server and the server automatically puts together a batch of data for you. 
 On the other hand, you may want to create a batch of data on the client side. Which brings us to the next suggestion...
 
 #### Triton accepts batches with uniform shapes
+
 When implementing the inference scenario that operates on batches of data, you shall remember that Triton accepts data 
 with uniform shape. While this approach is something common in Deep Learning, when introducing data preprocessing the 
 situation changes. Since image/video decoding would very likely be one of the operations in your preprocessing pipeline,
