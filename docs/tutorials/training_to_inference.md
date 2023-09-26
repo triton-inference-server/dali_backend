@@ -38,7 +38,7 @@ Unfortunately, it is not possible to introduce complete and precise algorithm fo
     1. Set up your Deep Learning model. Description of this step is outside of the scope of this tutorial.
     1. Create a directory for the DALI model.
     1. Insert the DALI pipeline definition (prepared in the **Step 1**) into the `dali.py` file in the version directory.
-    1. Create a configuration file (unnecessary, if you are using Model Autoconfiguration for DALI Backend).
+    1. Create a configuration file (unnecessary, if you are using Model Autoconfiguration for DALI Backend). Make sure that the names of the inputs in the model configuration match the names of the input operators assigned in **Step 1**.
     1. Combine the Deep Learning and DALI models using [model ensemble](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html#ensemble-models) or [BLS script](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html?highlight=business%20logic%20scripting).
 1. Run the Triton server and send some requests to it.
 
@@ -73,12 +73,13 @@ def validation_pipe(data_dir, interpolation, image_size, image_crop, output_layo
 We're adjusting it by swapping the Reader with ExternalSource and adding a `name` parameter to it. Since in our example 
 we will explicitly create a `config.pbtxt` file for DALI model, we're not adding `ndim` and `dtype` arguments to 
 `fn.external_source`. We are, however, using [Autoserialization](https://github.com/triton-inference-server/dali_backend#autoserialization), 
-hence the `@autoserialize` decorator on top.
+hence the `@autoserialize` decorator on top. Lastly, we are providing default values for arguments of the `inference_pipe`
+function.
 
 ```python
 @autoserialize
-@pipeline_def
-def inference_pipe(interpolation, image_size, image_crop, output_layout):
+@pipeline_def(batch_size=32, num_threads=12, device_id=0)
+def inference_pipe(interpolation=DALIInterpType.INTERP_LINEAR, image_size=224, image_crop=224, output_layout='CHW'):
     jpeg = fn.external_source(name="DALI_INPUT")
 
     images = fn.decoders.image(jpegs, device="mixed", output_type=types.RGB)
@@ -130,6 +131,34 @@ model_repository
     │   └── dali.py
     └── config.pbtxt
 ```
+
+Last step is the configuration of DALI model in the model repository. As mentioned earlier, you can use Triton's
+Model Autoconfiguration or provide explicit `config.pbtxt` file. According to the outline above, below is the example of
+simple configuration file for DALI model (`model_repository/preprocessing/config.pbtxt`). Please note that the name of
+the `input` matches the name of the `fn.external_source` operator provided in the `inference_pipe`.
+
+```
+name: "preprocessing"
+backend: "dali"
+max_batch_size: 32
+input [
+  {
+    name: "DALI_INPUT"
+    data_type: TYPE_UINT8
+    dims: [ -1 ]
+  }
+]
+
+output [
+  {
+    name: "DALI_OUTPUT"
+    data_type: TYPE_FP32
+    dims: [ 3, 224, 224 ]
+  }
+]
+```
+
+For the details about the model configuration files please refer to [Triton documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html).
 
 ### ➔ 3 : Run Triton server and send requests
 
