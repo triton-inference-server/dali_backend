@@ -41,10 +41,8 @@ class TritonPythonModel:
         self.output_dtype = pb_utils.triton_string_to_numpy(output0_config['data_type'])
 
         with torch.no_grad():
-            mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-            std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-            self.mean = mean.cuda()
-            self.std = std.cuda()
+            self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+            self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
     def execute(self, requests):
         responses = []
@@ -56,7 +54,7 @@ class TritonPythonModel:
             for inp in in0_t:
                 out0.append(self.decode_resize(inp.to(torch.uint8)))
             out0_t = torch.stack(out0)
-            out0_t = self.normalize(out0_t)
+            out0_t = self.normalize(out0_t).cuda()
             out0_tensor = pb_utils.Tensor.from_dlpack("PREPROCESSING_OUTPUT_0",
                                                       torch.utils.dlpack.to_dlpack(out0_t))
 
@@ -73,7 +71,6 @@ class TritonPythonModel:
 
     def normalize(self, batch):
         with torch.no_grad():
-            batch = batch.cuda()
             batch = batch.float()
             processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(self.std)[0]
         return processed_batch
