@@ -54,7 +54,7 @@ PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
-mkdir -p "$BENCH_DIR"
+mkdir -p "$BENCH_DIR/gpu"
 
 echo "Batch size set: $BATCH_SIZES"
 for BS in "${BATCH_SIZES[@]}"; do
