@@ -78,16 +78,17 @@ done
 for BS in "${BATCH_SIZES[@]}"; do
   echo "Benchmarking GPU preprocessing. Batch size: $BS"
   load_models_gpu
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-gpu-$BS.csv"
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/gpu/report-$BS.csv"
   unload_models_gpu
 done
 
 for BS in "${BATCH_SIZES[@]}"; do
   echo "Benchmarking CPU preprocessing. Batch size: $BS"
   load_models_cpu
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-cpu-$BS.csv"
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/cpu/report-$BS.csv"
   unload_models_cpu
 done
 
 pip install -U pandas
-python scripts/concatenate_results.py -p "$BENCH_DIR"
+python scripts/concatenate_results.py -p "$BENCH_DIR/gpu"
+python scripts/concatenate_results.py -p "$BENCH_DIR/cpu"
