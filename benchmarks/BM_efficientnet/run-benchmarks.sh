@@ -21,20 +21,30 @@
 
 : ${MAX_BATCH_SIZE:=${1:-64}}
 
-load_models() {
+load_models_gpu() {
   echo "Loading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m preprocessing
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet-b0
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble_gpu
   sleep 5
   echo "...models loaded"
 }
 
-unload_models() {
+unload_models_gpu() {
   echo "Unloading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m preprocessing
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet-b0
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble_gpu
+  sleep 5
+  echo "...models unloaded"
+}
+
+load_models_cpu() {
+  echo "Loading models..."
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble_cpu
+  sleep 5
+  echo "...models loaded"
+}
+
+unload_models_cpu() {
+  echo "Unloading models..."
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble_cpu
   sleep 5
   echo "...models unloaded"
 }
@@ -66,10 +76,17 @@ for BS in "${BATCH_SIZES[@]}"; do
 done
 
 for BS in "${BATCH_SIZES[@]}"; do
-  echo "Efficientnet Benchmark. Batch size: $BS"
-  load_models
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-$BS.csv"
-  unload_models
+  echo "Benchmarking GPU preprocessing. Batch size: $BS"
+  load_models_gpu
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-gpu-$BS.csv"
+  unload_models_gpu
+done
+
+for BS in "${BATCH_SIZES[@]}"; do
+  echo "Benchmarking CPU preprocessing. Batch size: $BS"
+  load_models_cpu
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/report-cpu-$BS.csv"
+  unload_models_cpu
 done
 
 pip install -U pandas

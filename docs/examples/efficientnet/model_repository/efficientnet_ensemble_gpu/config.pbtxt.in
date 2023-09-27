@@ -19,7 +19,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "efficientnet_ensemble"
+name: "efficientnet_ensemble_gpu"
 platform: "ensemble"
 max_batch_size: INSERT_BATCH_SIZE
 input [
@@ -39,14 +39,14 @@ output [
 ensemble_scheduling {
   step [
     {
-      model_name: "preprocessing"
+      model_name: "preprocessing_gpu"
       model_version: -1
       input_map {
-        key: "DALI_INPUT_0"
+        key: "PREPROCESSING_INPUT_0"
         value: "INPUT"
       }
       output_map {
-        key: "DALI_OUTPUT_0"
+        key: "PREPROCESSING_OUTPUT_0"
         value: "preprocessed_image"
       }
     },

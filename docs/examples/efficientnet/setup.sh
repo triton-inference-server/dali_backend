@@ -21,7 +21,8 @@
 
 set -e
 
-mkdir -p model_repository/efficientnet_ensemble/1
+mkdir -p model_repository/efficientnet_ensemble_gpu/1
+mkdir -p model_repository/efficientnet_ensemble_cpu/1
 
 if [[ ! -d DeepLearningExamples ]]; then  # assume that DLE has been properly cloned and patched before
   git clone https://github.com/NVIDIA/DeepLearningExamples.git
@@ -53,5 +54,7 @@ insert_batch_size () {
   cp "$1"/config.pbtxt.in "$1"/config.pbtxt
   sed -i s/INSERT_BATCH_SIZE/"$2"/g "$1"/config.pbtxt
 }
-insert_batch_size model_repository/efficientnet_ensemble "$1"
-insert_batch_size model_repository/preprocessing "$1"
+insert_batch_size model_repository/efficientnet_ensemble_gpu "$1"
+insert_batch_size model_repository/efficientnet_ensemble_cpu "$1"
+insert_batch_size model_repository/preprocessing_gpu "$1"
+insert_batch_size model_repository/preprocessing_cpu "$1"
