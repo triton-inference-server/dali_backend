@@ -24,7 +24,7 @@ DALI pipeline implemented using other approach - please convert to `@pipeline_de
 
 Unfortunately, it is not possible to introduce complete and precise algorithm for setting up the inference 
 (if it would, we'd just put together a script for it). However, the following is a highly useful "How-To" guide:
-1. [Adjust a DALI Pipeline for the inference](#Adjusting DALI Pipeline):
+1. [Adjust a DALI Pipeline for the inference](#Adjusting-DALI-Pipeline):
     1. Make sure that the DALI pipeline you’ll be working on is the pipeline that contains the operations for the inference. Usually the **training** preprocessing and **inference** preprocessing differs - the former one contains some random operations that are used to augment the dataset. Most often the inference pipeline will match the **validation** pipeline (and not the training one).
     1.  Change all the input operators (except the Video operators) inside the DALI pipeline to the `fn.external_source` operator.
         1.  In the case of Video operators, use either `fn.inputs.video` or `fn.external_source + fn.decoders.video`, [depending on the input data properties](https://docs.nvidia.com/deeplearning/dali/main-user-guide/docs/operations/nvidia.dali.fn.experimental.inputs.video.html).
@@ -34,13 +34,13 @@ Unfortunately, it is not possible to introduce complete and precise algorithm fo
         1. Add `dtype` parameter to every input operator,
         1. Add `output_ndim` parameter to the `@pipeline_def`,
         1. Add `output_dtype` parameter to the `@pipeline_def`.
-1. [Create a Model Repository](#Create a model repository).
+1. [Create a Model Repository](#Create-a-model-repository).
     1. Set up your Deep Learning model. Description of this step is outside of the scope of this tutorial.
     1. Create a directory for the DALI model.
     1. Insert the DALI pipeline definition (prepared in the **Step 1**) into the `dali.py` file in the version directory.
     1. Create a [configuration file](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html) (unnecessary, if you are using Model Autoconfiguration for DALI Backend). Make sure that the names of the inputs in the model configuration match the names of the input operators assigned in **Step 1**.
     1. Combine the Deep Learning and DALI models using [model ensemble](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html#ensemble-models) or [BLS script](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html?highlight=business%20logic%20scripting).
-1. [Run the Triton server and send some requests to it](#Run Triton server and send requests).
+1. [Run the Triton server and send some requests to it](#Run-Triton-server-and-send-requests).
 
 Enough with the theory. Let's go to practice.
 
