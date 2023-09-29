@@ -14,17 +14,17 @@ Since we are tackling a specific use-case in this tutorial, we will set up sever
 1. We are deploying an EfficientNet model, trained with PyTorch. The checkpoint is saved using `torch.save` and DALI 
 has been used as a preprocessing tool.
 2. The input data to this model reflects the input data used during training. To be specific - we will infer on encoded 
-JPEG files.
+images.
 3. The training script contains DALI model, implemented using DALI's `@pipeline_def` decorator. Should you have the 
 DALI pipeline implemented using other approach - please convert to `@pipeline_def` first.
 4. Triton Inference Server will be used to orchestrate the inference.
-5. The entire preprocessing part of the inference will happen on the server side, using the GPU.
+5. The entire preprocessing part of the inference will happen on the server side (using the GPU to speed things up).
 
 ## Theory
 
 Unfortunately, it is not possible to introduce complete and precise algorithm for setting up the inference 
 (if it would, we'd just put together a script for it). However, the following is a highly useful "How-To" guide:
-1. Adjust a DALI Pipeline for the inference:
+1. [Adjust a DALI Pipeline for the inference](#Adjusting DALI Pipeline):
     1. Make sure that the DALI pipeline you’ll be working on is the pipeline that contains the operations for the inference. Usually the **training** preprocessing and **inference** preprocessing differs - the former one contains some random operations that are used to augment the dataset. Most often the inference pipeline will match the **validation** pipeline (and not the training one).
     1.  Change all the input operators (except the Video operators) inside the DALI pipeline to the `fn.external_source` operator.
         1.  In the case of Video operators, use either `fn.inputs.video` or `fn.external_source + fn.decoders.video`, [depending on the input data properties](https://docs.nvidia.com/deeplearning/dali/main-user-guide/docs/operations/nvidia.dali.fn.experimental.inputs.video.html).
@@ -34,19 +34,19 @@ Unfortunately, it is not possible to introduce complete and precise algorithm fo
         1. Add `dtype` parameter to every input operator,
         1. Add `output_ndim` parameter to the `@pipeline_def`,
         1. Add `output_dtype` parameter to the `@pipeline_def`.
-1. Create a [Model Repository](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_repository.html).
+1. [Create a Model Repository](#Create a model repository).
     1. Set up your Deep Learning model. Description of this step is outside of the scope of this tutorial.
     1. Create a directory for the DALI model.
     1. Insert the DALI pipeline definition (prepared in the **Step 1**) into the `dali.py` file in the version directory.
     1. Create a [configuration file](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html) (unnecessary, if you are using Model Autoconfiguration for DALI Backend). Make sure that the names of the inputs in the model configuration match the names of the input operators assigned in **Step 1**.
     1. Combine the Deep Learning and DALI models using [model ensemble](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html#ensemble-models) or [BLS script](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html?highlight=business%20logic%20scripting).
-1. Run the Triton server and send some requests to it.
+1. [Run the Triton server and send some requests to it](#Run Triton server and send requests).
 
 Enough with the theory. Let's go to practice.
 
 ## Practice
 
-### ➔ 1: Adjusting DALI Pipeline
+### Adjusting DALI Pipeline
 
 As mentioned earlier, the validation pipeline usually reflects the inference preprocessing better. Here's one used in 
 our EfficientNet example:
@@ -70,11 +70,15 @@ def validation_pipe(data_dir, interpolation, image_size, image_crop, output_layo
     return output, label
 ```
 
-We're adjusting it by swapping the Reader with ExternalSource and adding a `name` parameter to it. Since in our example 
-we will explicitly create a `config.pbtxt` file for DALI model, we're not adding `ndim` and `dtype` arguments to 
-`fn.external_source`. We are, however, using [Autoserialization](https://github.com/triton-inference-server/dali_backend#autoserialization), 
-hence the `@autoserialize` decorator on top. Lastly, we are providing default values for arguments of the `inference_pipe`
-function.
+We're making the following adjustments to the DALI pipeline:
+1. Swapping the reader with the external source and adding a `name` parameter to it,
+2. Removing labels from the pipeline, as we don't need them in the inference,
+3. We are using [Autoserialization](https://github.com/triton-inference-server/dali_backend#autoserialization), therefore we are adding the `@autoserialize` decorator on top,
+4. We provide the default values for arguments of the `inference_pipe` function.
+
+Since in our example we will explicitly create a `config.pbtxt` file for DALI model,
+we're not adding `ndim` and `dtype` arguments to `fn.external_source`. The following is the adjusted DALI pipeline
+for inference:
 
 ```python
 @autoserialize
@@ -96,7 +100,7 @@ def inference_pipe(interpolation=DALIInterpType.INTERP_LINEAR, image_size=224, i
 
 The snippet above shall be saved as `dali.py` file inside your model repository.
 
-### ➔ 2 : Create a model repository
+### Create a model repository
 
 Putting together [model repository](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_repository.html) 
 from the perspective of DALI is really simple. All you need to do is to save the DALI Pipeline inside `dali.py` file 
@@ -160,7 +164,7 @@ output [
 
 For the details about the model configuration files please refer to [Triton documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html).
 
-### ➔ 3 : Run Triton server and send requests
+### Run Triton server and send requests
 
 Please refer to [Triton documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html)
 for any details about running the server and leveraging Triton Client module to send requests to the server.
@@ -172,10 +176,12 @@ The purpose of this tutorial is not to fully explain how to create a Triton clie
 a couple of suggestions for creating a Triton client specifically for DALI model.
 
 #### Loading data as binary buffer
-NVIDIA hardware offers image and video decoding acceleration using [Hardware JPEG Decoder](https://developer.nvidia.com/blog/leveraging-hardware-jpeg-decoder-and-nvjpeg-on-a100/) and [NVDEC cores](https://developer.nvidia.com/video-codec-sdk). 
-Since DALI provides easy-access Python interface for both, you'd typically like to perform data decoding on the server side. 
-Therefore, the Triton client will typically send encoded data to the server. We suggest using `np.fromfile` or similar 
-approach to read the binary data from disk (this one prooved to be the fastest):
+NVIDIA offers GPU accelerated image and video decoding using various software
+(e.g. [nvJPEG2k](https://docs.nvidia.com/cuda/nvjpeg2000/userguide.html) or [nvTIFF](https://docs.nvidia.com/cuda/nvtiff/))
+and hardware (like [JPEG](https://developer.nvidia.com/blog/leveraging-hardware-jpeg-decoder-and-nvjpeg-on-a100/) and [NVDEC](https://developer.nvidia.com/video-codec-sdk)).
+DALI provides easy-access Python interface for the mentioned libraries, which makes it possible to leverage GPU-accelerated data decoding on the server side.
+Therefore, the Triton client will typically send encoded data to the server. We suggest using `np.fromfile` or similar
+approach to read the binary data from disk (this one proved to be the fastest):
 
 ```python
 def load_image(image_path):
@@ -185,8 +191,9 @@ def load_image(image_path):
 #### Batching data in the request
 
 With Triton and DALI Backend you can leverage batching in two ways. Firstly, you can turn on [Dynamic Batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#dynamic-batcher). 
-With this feature, you send the samples one-by-one to the server and the server automatically puts together a batch of data for you. 
-On the other hand, you may want to create a batch of data on the client side. Which brings us to the next suggestion...
+With this feature, you send the samples to the server and the server automatically puts together a batch of data for you. 
+On the other hand, you may want not to use Dynamic Batching, but to create a batch of data manually on the client side.
+Which brings us to the next suggestion...
 
 #### Triton accepts batches with uniform shapes
 
