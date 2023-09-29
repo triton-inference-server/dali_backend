@@ -23,14 +23,14 @@
 
 load_models() {
   echo "Loading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble_gpu
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m efficientnet_ensemble_cpu
   sleep 5
   echo "...models loaded"
 }
 
 unload_models() {
   echo "Unloading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble_gpu
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m efficientnet_ensemble_cpu
   sleep 5
   echo "...models unloaded"
 }
@@ -54,7 +54,7 @@ PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
-mkdir -p "$BENCH_DIR/gpu"
+mkdir -p "$BENCH_DIR/cpu"
 
 echo "Batch size set: $BATCH_SIZES"
 for BS in "${BATCH_SIZES[@]}"; do
@@ -62,11 +62,11 @@ for BS in "${BATCH_SIZES[@]}"; do
 done
 
 for BS in "${BATCH_SIZES[@]}"; do
-  echo "Benchmarking GPU preprocessing. Batch size: $BS"
+  echo "Benchmarking CPU preprocessing. Batch size: $BS"
   load_models
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/gpu/report-$BS.csv"
+  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/cpu/report-$BS.csv"
   unload_models
 done
 
 pip install -U pandas
-python scripts/concatenate_results.py -p "$BENCH_DIR/gpu"
+python scripts/concatenate_results.py -p "$BENCH_DIR/cpu"
