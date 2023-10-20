@@ -101,10 +101,13 @@ void DaliModelInstance::ExecuteBatched(const std::vector<TritonRequest>& request
     SendResponse(std::move(response), true, TritonError::Copy(error));
   }
   end_timer_ns(exec_interval);
+
+  TimeRange tr_rep("[DALI BE] Report statistics", TimeRange::kTeal);
   for (auto& request : requests) {
     ReportStats(request, exec_interval, proc_meta.compute_interval, !error);
   }
   ReportBatchStats(proc_meta.total_batch_size, exec_interval, proc_meta.compute_interval);
+  tr_rep.stop();
 }
 
 void DaliModelInstance::ExecuteUnbatched(const std::vector<TritonRequest>& requests) {
@@ -123,7 +126,10 @@ void DaliModelInstance::ExecuteUnbatched(const std::vector<TritonRequest>& reque
     }
 
     end_timer_ns(exec_interval);
+
+    TimeRange tr_rep("[DALI BE] Report statistics", TimeRange::kTeal);
     ReportStats(request, exec_interval, compute_interval, !error);
+    tr_rep.stop();
   }
 }
 
