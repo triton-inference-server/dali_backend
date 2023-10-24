@@ -25,6 +25,7 @@
 namespace triton { namespace backend { namespace dali {
 
 void SendResponse(TritonResponse response, bool final_response, TritonError error) {
+  TimeRange tr("[DALI BE] SendResponse", TimeRange::kTeal);
   TRITON_CALL(TRITONBACKEND_ResponseSend(
       response.release(),
       final_response ? TRITONSERVER_ResponseCompleteFlag::TRITONSERVER_RESPONSE_COMPLETE_FINAL : 0,
