@@ -24,11 +24,14 @@ import nvidia.dali.fn as fn
 import multiprocessing as mp
 import argparse
 
-@dali.pipeline_def(batch_size=1, num_threads=min(mp.cpu_count(), 4), device_id=0)
+
+@dali.pipeline_def(batch_size=1,
+                   num_threads=min(mp.cpu_count(), 4),
+                   device_id=0)
 def pipeline():
-  inp1 = fn.external_source(device='cpu', name='DALI_INPUT_0')
-  inp2 = fn.external_source(device='gpu', name='DALI_INPUT_1')
-  return inp1.gpu() / 3, fn.cast(inp2, dtype=dali.types.FLOAT) / 2
+    inp1 = fn.external_source(device='cpu', name='DALI_INPUT_0')
+    inp2 = fn.external_source(device='gpu', name='DALI_INPUT_1')
+    return inp1.gpu() / 3, fn.cast(inp2, dtype=dali.types.FLOAT) / 2
 
 
 def main(filename):
@@ -37,7 +40,10 @@ def main(filename):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Serialize pipeline and save it to file")
-    parser.add_argument('file_path', type=str, help='Path, where to save serialized pipeline')
+    parser = argparse.ArgumentParser(
+        description="Serialize pipeline and save it to file")
+    parser.add_argument('file_path',
+                        type=str,
+                        help='Path, where to save serialized pipeline')
     args = parser.parse_args()
     main(args.file_path)

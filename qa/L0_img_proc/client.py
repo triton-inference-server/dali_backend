@@ -24,34 +24,61 @@ from dali_backend.test_utils.client import TestClient
 from numpy.random import randint, random
 import argparse
 
+
 def ref_func(imgs):
-  output = [np.fliplr(imgs[i]) for i in range(imgs.shape[0])]
-  return np.stack(output),
+    output = [np.fliplr(imgs[i]) for i in range(imgs.shape[0])]
+    return np.stack(output),
+
 
 def random_gen(max_batch_size):
-  while True:
-    bs = randint(1, max_batch_size + 1)
-    width = randint(100, 200)
-    height = randint(100, 200)
-    yield [(random((bs, height, width, 3)) * 255).astype(np.uint8)]
+    while True:
+        bs = randint(1, max_batch_size + 1)
+        width = randint(100, 200)
+        height = randint(100, 200)
+        yield [(random((bs, height, width, 3)) * 255).astype(np.uint8)]
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server GRPC URL. Default is localhost:8001.')
-    parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
-    parser.add_argument('-c', '--concurrency', type=int, required=False, default=1,
+    parser.add_argument(
+        '-u',
+        '--url',
+        type=str,
+        required=False,
+        default='localhost:8001',
+        help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument('-n',
+                        '--n_iters',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help='Number of iterations')
+    parser.add_argument('-c',
+                        '--concurrency',
+                        type=int,
+                        required=False,
+                        default=1,
                         help='Request concurrency level')
-    parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=256)
+    parser.add_argument('-b',
+                        '--max_batch_size',
+                        type=int,
+                        required=False,
+                        default=256)
     return parser.parse_args()
 
+
 def main():
-  args = parse_args()
-  client = TestClient('img_proc.dali', ['DALI_INPUT_0'], ['DALI_OUTPUT_0',], args.url,
-                      concurrency=args.concurrency)
-  client.run_tests(random_gen(args.max_batch_size), ref_func,
-                   n_infers=args.n_iters, eps=1e-4)
+    args = parse_args()
+    client = TestClient('img_proc.dali', ['DALI_INPUT_0'], [
+        'DALI_OUTPUT_0',
+    ],
+                        args.url,
+                        concurrency=args.concurrency)
+    client.run_tests(random_gen(args.max_batch_size),
+                     ref_func,
+                     n_infers=args.n_iters,
+                     eps=1e-4)
+
 
 if __name__ == '__main__':
-  main()
+    main()

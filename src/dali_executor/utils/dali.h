@@ -42,6 +42,7 @@ using ::dali::copyD2D;
 using ::dali::copyD2H;
 using ::dali::copyH2D;
 using ::dali::copyH2H;
+using ::dali::CPU_ONLY_DEVICE_ID;
 using ::dali::CUDAStream;
 using ::dali::DALIException;
 using ::dali::DeviceBuffer;
@@ -55,7 +56,6 @@ using ::dali::TensorShape;
 using ::dali::ThreadPool;
 using ::dali::UniqueHandle;
 using ::dali::volume;
-using ::dali::CPU_ONLY_DEVICE_ID;
 
 
 inline int64_t dali_type_size(dali_data_type_t type) {

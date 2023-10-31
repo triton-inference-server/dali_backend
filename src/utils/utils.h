@@ -23,10 +23,10 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
-#include <string>
-#include <sstream>
-#include <vector>
 #include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <unistd.h>
 
@@ -73,9 +73,9 @@ inline std::string from_string<std::string>(const std::string& str) {
   return str;
 }
 
-template <typename T>
-std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket = "{",
-                          const std::string &rbracket = "}", const std::string &delim = ", ") {
+template<typename T>
+std::string vec_to_string(const std::vector<T>& vec, const std::string& lbracket = "{",
+                          const std::string& rbracket = "}", const std::string& delim = ", ") {
   std::stringstream ss;
   ss << lbracket;
   auto it = vec.begin();

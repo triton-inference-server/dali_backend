@@ -24,24 +24,34 @@ import nvidia.dali.types as types
 
 def parse_args():
     import argparse
-    parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
-    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
+    parser = argparse.ArgumentParser(
+        description="Serialize the pipeline and save it to a file")
+    parser.add_argument('file_path',
+                        type=str,
+                        help='The path where to save the serialized pipeline')
     return parser.parse_args()
 
 
 def preprocessing(images, device='gpu'):
-  images = dali.fn.decoders.image(images, device="mixed" if device == 'gpu' else 'cpu', output_type=types.RGB)
-  images = dali.fn.resize(images, resize_x=224, resize_y=224)
-  return dali.fn.crop_mirror_normalize(images,
-                                       dtype=types.FLOAT,
-                                       output_layout="HWC",
-                                       crop=(224, 224),
-                                       mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                       std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+    images = dali.fn.decoders.image(
+        images,
+        device="mixed" if device == 'gpu' else 'cpu',
+        output_type=types.RGB)
+    images = dali.fn.resize(images, resize_x=224, resize_y=224)
+    return dali.fn.crop_mirror_normalize(
+        images,
+        dtype=types.FLOAT,
+        output_layout="HWC",
+        crop=(224, 224),
+        mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+        std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+
 
 @dali.pipeline_def(batch_size=1, num_threads=1, device_id=0)
 def pipe():
-    images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0", no_copy=True)
+    images = dali.fn.external_source(device="cpu",
+                                     name="DALI_INPUT_0",
+                                     no_copy=True)
     return preprocessing(images)
 
 

@@ -40,7 +40,7 @@ struct BufferDescr {
   BufferDescr(BufferDescr<S> other) :
       device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
 
-  BufferDescr() {};
+  BufferDescr(){};
 };
 
 using IBufferDescr = BufferDescr<const void>;
@@ -51,7 +51,7 @@ struct IOMeta {
   dali_data_type_t type{};
   TensorListShape<> shape{};
 
-  IOMeta(const IOMeta &other): name(other.name), type(other.type), shape(other.shape) {}
+  IOMeta(const IOMeta &other) : name(other.name), type(other.type), shape(other.shape) {}
 
   IOMeta &operator=(IOMeta &&rhs) {
     if (this != &rhs) {
@@ -77,27 +77,28 @@ struct IODescr {
   /**
    * @brief Moves and appends buffers from the second descriptor and adjusts
    * the shape of this descriptor.
-  */
+   */
   void append(IODescr &&other) {
     if (meta.shape.num_samples() == 0) {
       meta = std::move(other.meta);
     } else {
       ENFORCE(meta.name == other.meta.name,
-              make_string("Cannot append IOs with different names. Expected name: ",
-                          meta.name, ", got: ", other.meta.name));
+              make_string("Cannot append IOs with different names. Expected name: ", meta.name,
+                          ", got: ", other.meta.name));
       ENFORCE(meta.type == other.meta.type,
-              make_string("Cannot append IOs with different types. For IO ",
-                          meta.name, " the expected type is ", meta.type, ", got ", other.meta.type));
+              make_string("Cannot append IOs with different types. For IO ", meta.name,
+                          " the expected type is ", meta.type, ", got ", other.meta.type));
       meta.shape.append(other.meta.shape);
     }
-    for (auto &buffer: other.buffers) {
+    for (auto &buffer : other.buffers) {
       buffers.push_back(std::move(buffer));
     }
   }
 
-  IODescr(const IOMeta &meta, const std::vector<BufferDescr<T>> &buffers): meta(meta), buffers(buffers) {}
+  IODescr(const IOMeta &meta, const std::vector<BufferDescr<T>> &buffers) :
+      meta(meta), buffers(buffers) {}
 
-  IODescr(const IODescr &other): meta(other.meta), buffers(other.buffers) {}
+  IODescr(const IODescr &other) : meta(other.meta), buffers(other.buffers) {}
 
   IODescr &operator=(IODescr &&rhs) {
     if (this != &rhs) {

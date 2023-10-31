@@ -33,18 +33,34 @@ def decode_audio(audio_bytes):
 
 
 class TritonPythonModel:
+
     def __init__(self):
         pass
 
     def initialize(self, args):
         self.model_config = model_config = json.loads(args['model_config'])
-        output0_config = pb_utils.get_output_config_by_name(model_config, "PYTHON_OUTPUT_0")
-        self.output_dtype = pb_utils.triton_string_to_numpy(output0_config['data_type'])
-        self.feat_proc = features.FilterbankFeatures(
-            spec_augment=None, cutout_augment=None, sample_rate=16000, window_size=0.02,
-            window_stride=0.01, window="hann", normalize="per_feature", n_fft=512, preemph=0.97,
-            n_filt=64, lowfreq=0, highfreq=None, log=True, dither=1e-5, pad_align=16,
-            pad_to_max_duration=False, max_duration=float('inf'), frame_splicing=1)
+        output0_config = pb_utils.get_output_config_by_name(
+            model_config, "PYTHON_OUTPUT_0")
+        self.output_dtype = pb_utils.triton_string_to_numpy(
+            output0_config['data_type'])
+        self.feat_proc = features.FilterbankFeatures(spec_augment=None,
+                                                     cutout_augment=None,
+                                                     sample_rate=16000,
+                                                     window_size=0.02,
+                                                     window_stride=0.01,
+                                                     window="hann",
+                                                     normalize="per_feature",
+                                                     n_fft=512,
+                                                     preemph=0.97,
+                                                     n_filt=64,
+                                                     lowfreq=0,
+                                                     highfreq=None,
+                                                     log=True,
+                                                     dither=1e-5,
+                                                     pad_align=16,
+                                                     pad_to_max_duration=False,
+                                                     max_duration=float('inf'),
+                                                     frame_splicing=1)
 
     def execute(self, requests):
         responses = []
@@ -72,8 +88,8 @@ class TritonPythonModel:
             dec_t = dec_t.cuda()
             len_t = len_t.cuda()
             out_audio, out_len = self.feat_proc(dec_t, len_t)
-            out0_tensor = pb_utils.Tensor.from_dlpack("PYTHON_OUTPUT_0",
-                                                      torch.utils.dlpack.to_dlpack(out_audio))
+            out0_tensor = pb_utils.Tensor.from_dlpack(
+                "PYTHON_OUTPUT_0", torch.utils.dlpack.to_dlpack(out_audio))
 
         response = pb_utils.InferenceResponse(output_tensors=[out0_tensor])
         responses.append(response)

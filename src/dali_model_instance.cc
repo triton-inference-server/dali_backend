@@ -96,7 +96,9 @@ void DaliModelInstance::ExecuteBatched(const std::vector<TritonRequest>& request
   TritonError error{};
   try {
     proc_meta = ProcessRequests(requests, responses);
-  } catch (...) { error = ErrorHandler(); }
+  } catch (...) {
+    error = ErrorHandler();
+  }
   for (auto& response : responses) {
     SendResponse(std::move(response), true, TritonError::Copy(error));
   }
@@ -112,7 +114,7 @@ void DaliModelInstance::ExecuteBatched(const std::vector<TritonRequest>& request
 
 void DaliModelInstance::ExecuteUnbatched(const std::vector<TritonRequest>& requests) {
   DeviceGuard dg(GetDaliDeviceId());
-  for (auto &request : requests) {
+  for (auto& request : requests) {
     TimeInterval exec_interval{};
     start_timer_ns(exec_interval);
     TritonError error{};
@@ -173,7 +175,7 @@ ProcessingMeta DaliModelInstance::ProcessRequests(const std::vector<TritonReques
   return ret;
 }
 
-TimeInterval DaliModelInstance::ProcessRequest(const TritonRequest &request) {
+TimeInterval DaliModelInstance::ProcessRequest(const TritonRequest& request) {
   TimeRange tr_gi("[DALI BE] GenerateInputs", TimeRange::kTeal);
   auto inputs = GenerateInputs(request);
   tr_gi.stop();
@@ -214,11 +216,11 @@ InputsInfo DaliModelInstance::GenerateInputs(const std::vector<TritonRequest>& r
     auto idescrs = GenerateInputs(request);
     reqs_batch_sizes[ri] = idescrs[0].meta.shape.num_samples();
     if (ri == 0) {
-      for (auto &input: idescrs) {
+      for (auto& input : idescrs) {
         input_map[input.meta.name] = std::move(input);
       }
     } else {
-      for (auto &input: idescrs) {
+      for (auto& input : idescrs) {
         auto idescr = input_map.find(input.meta.name);
         ENFORCE(idescr != input_map.end(), "Got unexpected input with name " + input.meta.name);
         idescr->second.append(std::move(input));
@@ -231,7 +233,7 @@ InputsInfo DaliModelInstance::GenerateInputs(const std::vector<TritonRequest>& r
   return {inputs, reqs_batch_sizes};
 }
 
-std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest &request) {
+std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest& request) {
   std::vector<IDescr> inputs(request.InputCount());
   int num_samples = 0;
   for (uint32_t input_idx = 0; input_idx < request.InputCount(); ++input_idx) {
@@ -239,7 +241,7 @@ std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest &reque
     auto input_byte_size = input.ByteSize();
     auto input_buffer_count = input.BufferCount();
     auto meta = input.Meta();
-    auto &idescr = inputs[input_idx];
+    auto& idescr = inputs[input_idx];
     for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
       auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
       idescr.buffers.push_back(std::move(buffer));
@@ -258,7 +260,7 @@ std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest &reque
 
 void ValidateRequestedOutputs(const TritonRequest& request,
                               const std::vector<OutputInfo>& outputs_info,
-                              const std::unordered_map<std::string, int> &output_order) {
+                              const std::unordered_map<std::string, int>& output_order) {
   uint32_t output_cnt = request.OutputCount();
   ENFORCE(outputs_info.size() == output_cnt,
           make_string("Number of outputs expected by the requests (", output_cnt,
@@ -266,8 +268,8 @@ void ValidateRequestedOutputs(const TritonRequest& request,
                       outputs_info.size(), ")."));
   ENFORCE(output_cnt == output_order.size(),
           make_string("Number of outputs exptected by the requests (", output_cnt,
-                      ") does not match the number of outputs in the config (",
-                      output_order.size(), ")."));
+                      ") does not match the number of outputs in the config (", output_order.size(),
+                      ")."));
 }
 
 
@@ -291,7 +293,7 @@ std::vector<ODescr> DaliModelInstance::AllocateOutputs(
     int output_idx = out_index.second;
     auto shapes = split_list_shape(outputs_info[output_idx].shape, batch_sizes);
     if (dali_model_->IsOutputSplit(name)) {
-      for (auto &shape: shapes) {
+      for (auto& shape : shapes) {
         shape = split_outer_dim(shape);
       }
     }
@@ -310,8 +312,9 @@ std::vector<ODescr> DaliModelInstance::AllocateOutputs(
   return outputs;
 }
 
-std::vector<ODescr> DaliModelInstance::AllocateOutputs(const TritonRequest &request, const TritonResponse &response,
-                                                       const std::vector<OutputInfo>& outputs_info) {
+std::vector<ODescr> DaliModelInstance::AllocateOutputs(
+    const TritonRequest& request, const TritonResponse& response,
+    const std::vector<OutputInfo>& outputs_info) {
   auto output_indices = dali_model_->GetOutputOrder();
   ValidateRequestedOutputs(request, outputs_info, output_indices);
   std::vector<ODescr> outputs(request.OutputCount());

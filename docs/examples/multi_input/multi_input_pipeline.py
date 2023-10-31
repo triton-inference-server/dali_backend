@@ -24,8 +24,11 @@ import nvidia.dali as dali
 
 def parse_args():
     import argparse
-    parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
-    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
+    parser = argparse.ArgumentParser(
+        description="Serialize the pipeline and save it to a file")
+    parser.add_argument('file_path',
+                        type=str,
+                        help='The path where to save the serialized pipeline')
     return parser.parse_args()
 
 

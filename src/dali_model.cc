@@ -32,7 +32,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
     return e.release();
   } catch (DALIException& e) {
     return TritonError::Unknown(make_string("Error while instantiating DALI pipeline: ", e.what()))
-             .release();
+        .release();
   } catch (const std::exception& e) {
     return TritonError::Unknown(make_string("DALI Backend error: ", e.what())).release();
   }

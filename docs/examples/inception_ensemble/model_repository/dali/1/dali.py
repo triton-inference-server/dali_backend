@@ -28,12 +28,15 @@ from nvidia.dali.plugin.triton import autoserialize
 @dali.pipeline_def(batch_size=3, num_threads=1, device_id=0)
 def pipe():
     images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
-    images = dali.fn.decoders.image(images, device="mixed", output_type=types.RGB)
+    images = dali.fn.decoders.image(images,
+                                    device="mixed",
+                                    output_type=types.RGB)
     images = dali.fn.resize(images, resize_x=299, resize_y=299)
-    images = dali.fn.crop_mirror_normalize(images,
-                                           dtype=types.FLOAT,
-                                           output_layout="HWC",
-                                           crop=(299, 299),
-                                           mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                                           std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+    images = dali.fn.crop_mirror_normalize(
+        images,
+        dtype=types.FLOAT,
+        output_layout="HWC",
+        crop=(299, 299),
+        mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
+        std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
     return images

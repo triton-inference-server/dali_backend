@@ -24,9 +24,16 @@ import nvidia.dali.fn as fn
 import multiprocessing as mp
 from nvidia.dali.plugin.triton import autoserialize
 
+
 @autoserialize
-@dali.pipeline_def(batch_size=256, num_threads=min(mp.cpu_count(), 4), device_id=0, 
-                   output_dtype=[dali.types.UINT8], output_ndim=[3])
+@dali.pipeline_def(batch_size=256,
+                   num_threads=min(mp.cpu_count(), 4),
+                   device_id=0,
+                   output_dtype=[dali.types.UINT8],
+                   output_ndim=[3])
 def pipeline():
-  img = fn.external_source(device='cpu', name='DALI_INPUT_0', layout='HWC', dtype=dali.types.UINT8)
-  return fn.flip(img, name='DALI_OUTPUT_0')
+    img = fn.external_source(device='cpu',
+                             name='DALI_INPUT_0',
+                             layout='HWC',
+                             dtype=dali.types.UINT8)
+    return fn.flip(img, name='DALI_OUTPUT_0')

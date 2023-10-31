@@ -26,19 +26,25 @@ import torchvision
 import torchvision.transforms as transforms
 import triton_python_backend_utils as pb_utils
 
-img_transforms = transforms.Compose(
-    [transforms.Resize((224, 224)), transforms.CenterCrop(224), transforms.ToTensor()])
+img_transforms = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.CenterCrop(224),
+    transforms.ToTensor()
+])
 
 
 class TritonPythonModel:
+
     def __init__(self):
         self.std = None
         self.mean = None
 
     def initialize(self, args):
         self.model_config = model_config = json.loads(args['model_config'])
-        output0_config = pb_utils.get_output_config_by_name(model_config, "PYTHON_OUTPUT_0")
-        self.output_dtype = pb_utils.triton_string_to_numpy(output0_config['data_type'])
+        output0_config = pb_utils.get_output_config_by_name(
+            model_config, "PYTHON_OUTPUT_0")
+        self.output_dtype = pb_utils.triton_string_to_numpy(
+            output0_config['data_type'])
 
         with torch.no_grad():
             mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
@@ -57,8 +63,8 @@ class TritonPythonModel:
                 out0.append(self.decode_resize(inp.to(torch.uint8)))
             out0_t = torch.stack(out0)
             out0_t = self.normalize(out0_t)
-            out0_tensor = pb_utils.Tensor.from_dlpack("PYTHON_OUTPUT_0",
-                                                      torch.utils.dlpack.to_dlpack(out0_t))
+            out0_tensor = pb_utils.Tensor.from_dlpack(
+                "PYTHON_OUTPUT_0", torch.utils.dlpack.to_dlpack(out0_t))
 
         response = pb_utils.InferenceResponse(output_tensors=[out0_tensor])
         responses.append(response)
@@ -75,5 +81,6 @@ class TritonPythonModel:
         with torch.no_grad():
             batch = batch.cuda()
             batch = batch.float()
-            processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(self.std)[0]
+            processed_batch = batch.unsqueeze(0).sub_(self.mean).div_(
+                self.std)[0]
         return processed_batch

@@ -30,72 +30,106 @@ from glob import glob
 from os import environ
 from itertools import cycle
 
+
 def get_dali_extra_path():
-  return environ['DALI_EXTRA_PATH']
+    return environ['DALI_EXTRA_PATH']
+
 
 def input_gen(batch_size):
-  filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
-  filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
-  filenames = filter(lambda filename: 'hevc' not in filename, filenames)
-  filenames = cycle(filenames)
-  while True:
-    batch = []
-    for _ in range(batch_size):
-      batch.append(np.fromfile(next(filenames), dtype=np.uint8))
-    yield [eager.pad(batch).as_array()]
+    filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
+    filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
+    filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+    filenames = cycle(filenames)
+    while True:
+        batch = []
+        for _ in range(batch_size):
+            batch.append(np.fromfile(next(filenames), dtype=np.uint8))
+        yield [eager.pad(batch).as_array()]
 
 
 FRAMES_PER_SEQUENCE = 5
 OUT_WIDTH = 300
 OUT_HEIGHT = 300
 
-@dali.pipeline_def(num_threads=min(mp.cpu_count(), 4), device_id=0,
-                   output_dtype=dali.types.UINT8, output_ndim=[5, 4, 1],
+
+@dali.pipeline_def(num_threads=min(mp.cpu_count(), 4),
+                   device_id=0,
+                   output_dtype=dali.types.UINT8,
+                   output_ndim=[5, 4, 1],
                    prefetch_queue_depth=1)
 def pipeline():
-  vid = fn.external_source(device='cpu', name='INPUT', ndim=1, dtype=dali.types.UINT8)
-  seq = fn.experimental.decoders.video(vid, device='mixed')
-  seq = fn.resize(seq, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
-  original_sequence = seq
-  seq = fn.pad(seq, axis_names='F', align=FRAMES_PER_SEQUENCE)
+    vid = fn.external_source(device='cpu',
+                             name='INPUT',
+                             ndim=1,
+                             dtype=dali.types.UINT8)
+    seq = fn.experimental.decoders.video(vid, device='mixed')
+    seq = fn.resize(seq, resize_x=OUT_WIDTH, resize_y=OUT_HEIGHT)
+    original_sequence = seq
+    seq = fn.pad(seq, axis_names='F', align=FRAMES_PER_SEQUENCE)
 
-  return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), \
-         original_sequence,                                                                         \
-         vid
+    return fn.reshape(seq, shape=[-1, FRAMES_PER_SEQUENCE, OUT_HEIGHT, OUT_WIDTH, 3], name='OUTPUT'), \
+           original_sequence,                                                                         \
+           vid
 
 
 def _split_outer_dim(output):
     arrays = [output.at(i) for i in range(len(output.shape()))]
     return np.concatenate(arrays)
 
+
 class RefFunc:
-  def __init__(self, max_batch_size):
-    self._pipeline = pipeline(batch_size=max_batch_size)
-    self._pipeline.build()
 
+    def __init__(self, max_batch_size):
+        self._pipeline = pipeline(batch_size=max_batch_size)
+        self._pipeline.build()
 
-  def __call__(self, vids):
-    self._pipeline.feed_input("INPUT", vids)
-    out1, out2, out3 = self._pipeline.run()
-    return _split_outer_dim(out1.as_cpu()), _split_outer_dim(out2.as_cpu()), out3.as_array()
+    def __call__(self, vids):
+        self._pipeline.feed_input("INPUT", vids)
+        out1, out2, out3 = self._pipeline.run()
+        return _split_outer_dim(out1.as_cpu()), _split_outer_dim(
+            out2.as_cpu()), out3.as_array()
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server GRPC URL. Default is localhost:8001.')
-    parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
-    parser.add_argument('-c', '--concurrency', type=int, required=False, default=1,
+    parser.add_argument(
+        '-u',
+        '--url',
+        type=str,
+        required=False,
+        default='localhost:8001',
+        help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument('-n',
+                        '--n_iters',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help='Number of iterations')
+    parser.add_argument('-c',
+                        '--concurrency',
+                        type=int,
+                        required=False,
+                        default=1,
                         help='Request concurrency level')
-    parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=2)
+    parser.add_argument('-b',
+                        '--max_batch_size',
+                        type=int,
+                        required=False,
+                        default=2)
     return parser.parse_args()
 
+
 def main():
-  args = parse_args()
-  client = TestClient('model.dali', ['INPUT'], ['OUTPUT', 'OUTPUT_images', 'INPUT'], args.url,
-                      concurrency=args.concurrency)
-  client.run_tests(input_gen(args.max_batch_size), RefFunc(args.max_batch_size),
-                   n_infers=args.n_iters, eps=1e-4)
+    args = parse_args()
+    client = TestClient('model.dali', ['INPUT'],
+                        ['OUTPUT', 'OUTPUT_images', 'INPUT'],
+                        args.url,
+                        concurrency=args.concurrency)
+    client.run_tests(input_gen(args.max_batch_size),
+                     RefFunc(args.max_batch_size),
+                     n_infers=args.n_iters,
+                     eps=1e-4)
+
 
 if __name__ == '__main__':
-  main()
+    main()

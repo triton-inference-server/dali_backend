@@ -19,7 +19,6 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 from functools import partial
 from itertools import cycle
 import numpy as np
@@ -33,6 +32,7 @@ import tritonclient.grpc as t_client
 
 import nvidia.dali.fn as fn
 from nvidia.dali import pipeline_def
+
 
 class UserData:
 
@@ -48,16 +48,15 @@ def callback(user_data, result, error):
 
 
 def get_dali_extra_path():
-  return environ['DALI_EXTRA_PATH']
+    return environ['DALI_EXTRA_PATH']
 
 
 def input_gen():
-  filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
-  filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
-  filenames = filter(lambda filename: 'hevc' not in filename, filenames)
-  for filename in filenames:
-    yield np.fromfile(filename, dtype=np.uint8)
-
+    filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
+    filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
+    filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+    for filename in filenames:
+        yield np.fromfile(filename, dtype=np.uint8)
 
 
 FRAMES_PER_SEQUENCE = 5
@@ -66,20 +65,38 @@ FRAMES_PER_BATCH = FRAMES_PER_SEQUENCE * BATCH_SIZE
 
 user_data = UserData()
 
+
 @pipeline_def(batch_size=1, num_threads=1, device_id=0, prefetch_queue_depth=1)
 def ref_pipeline(device):
     inp = fn.external_source(name='data')
-    decoded = fn.experimental.decoders.video(inp, device='mixed' if device == 'gpu' else 'cpu')
+    decoded = fn.experimental.decoders.video(
+        inp, device='mixed' if device == 'gpu' else 'cpu')
     return fn.pad(decoded, axes=0, align=FRAMES_PER_SEQUENCE)
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server GRPC URL. Default is localhost:8001.')
-    parser.add_argument('-d', '--device', type=str, required=False, default='cpu', help='cpu or gpu')
-    parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
+    parser.add_argument(
+        '-u',
+        '--url',
+        type=str,
+        required=False,
+        default='localhost:8001',
+        help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument('-d',
+                        '--device',
+                        type=str,
+                        required=False,
+                        default='cpu',
+                        help='cpu or gpu')
+    parser.add_argument('-n',
+                        '--n_iters',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help='Number of iterations')
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -88,7 +105,8 @@ if __name__ == '__main__':
         triton_client.start_stream(callback=partial(callback, user_data))
 
         for req_id, input_data in zip(range(args.n_iters), cycle(input_gen())):
-            inp = t_client.InferInput('INPUT', [1, input_data.shape[0]], 'UINT8')
+            inp = t_client.InferInput('INPUT', [1, input_data.shape[0]],
+                                      'UINT8')
             inp.set_data_from_numpy(input_data.reshape((1, -1)))
 
             outp = t_client.InferRequestedOutput('OUTPUT')
@@ -110,7 +128,8 @@ if __name__ == '__main__':
 
             n_frames = expected_result.shape[0]
             recv_count = 0
-            expected_count = (n_frames + FRAMES_PER_BATCH - 1) // FRAMES_PER_BATCH
+            expected_count = (n_frames + FRAMES_PER_BATCH -
+                              1) // FRAMES_PER_BATCH
             result_dict = {}
             while recv_count < expected_count:
                 data_item = user_data._completed_requests.get()
@@ -124,9 +143,11 @@ if __name__ == '__main__':
                 recv_count += 1
 
             result_list = result_dict[request_id]
-            expected_result = np.split(expected_result, n_frames / FRAMES_PER_SEQUENCE)
+            expected_result = np.split(expected_result,
+                                       n_frames / FRAMES_PER_SEQUENCE)
             for i, result in enumerate(result_list):
-                expected_batch = expected_result[i * BATCH_SIZE : min((i+1) * BATCH_SIZE, len(expected_result))]
+                expected_batch = expected_result[i * BATCH_SIZE:min(
+                    (i + 1) * BATCH_SIZE, len(expected_result))]
                 expected_batch = np.asarray(expected_batch)
                 result_data = result.as_numpy('OUTPUT')
                 assert np.allclose(expected_batch, result_data)

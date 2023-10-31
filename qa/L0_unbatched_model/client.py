@@ -30,36 +30,61 @@ from glob import glob
 from os import environ
 from itertools import cycle
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server GRPC URL. Default is localhost:8001.')
-    parser.add_argument('-n', '--n_iters', type=int, required=False, default=1, help='Number of iterations')
-    parser.add_argument('-c', '--concurrency', type=int, required=False, default=1,
+    parser.add_argument(
+        '-u',
+        '--url',
+        type=str,
+        required=False,
+        default='localhost:8001',
+        help='Inference server GRPC URL. Default is localhost:8001.')
+    parser.add_argument('-n',
+                        '--n_iters',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help='Number of iterations')
+    parser.add_argument('-c',
+                        '--concurrency',
+                        type=int,
+                        required=False,
+                        default=1,
                         help='Request concurrency level')
-    parser.add_argument('-b', '--max_batch_size', type=int, required=False, default=2)
+    parser.add_argument('-b',
+                        '--max_batch_size',
+                        type=int,
+                        required=False,
+                        default=2)
     return parser.parse_args()
 
+
 def input_gen(max_bs):
-  while True:
-    size1 = np.random.randint(300, 1000)
-    size2 = np.random.randint(300, 1000)
-    bs = np.random.randint(1, max_bs)
-    yield np.random.random((bs, size1)).astype(np.float32), \
-      np.random.randint(0, 256, size=(bs, size2), dtype=np.int32)
+    while True:
+        size1 = np.random.randint(300, 1000)
+        size2 = np.random.randint(300, 1000)
+        bs = np.random.randint(1, max_bs)
+        yield np.random.random((bs, size1)).astype(np.float32), \
+          np.random.randint(0, 256, size=(bs, size2), dtype=np.int32)
 
 
 def ref_func(inp1, inp2):
-  return inp1 * 2, \
-    (inp2 * 3).astype(np.float32)
+    return inp1 * 2, \
+      (inp2 * 3).astype(np.float32)
 
 
 def main():
-  args = parse_args()
-  client = TestClient('model.dali', ['DALI_INPUT_0', 'DALI_INPUT_1'], ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'], args.url,
-                      concurrency=args.concurrency)
-  client.run_tests(input_gen(args.max_batch_size), ref_func,
-                   n_infers=args.n_iters, eps=1e-4)
+    args = parse_args()
+    client = TestClient('model.dali', ['DALI_INPUT_0', 'DALI_INPUT_1'],
+                        ['DALI_OUTPUT_0', 'DALI_OUTPUT_1'],
+                        args.url,
+                        concurrency=args.concurrency)
+    client.run_tests(input_gen(args.max_batch_size),
+                     ref_func,
+                     n_infers=args.n_iters,
+                     eps=1e-4)
+
 
 if __name__ == '__main__':
-  main()
+    main()

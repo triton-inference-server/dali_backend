@@ -10,21 +10,27 @@ class BaseFeatures(nn.Module):
     """Base class for GPU accelerated audio preprocessing."""
     __constants__ = ["pad_align", "pad_to_max_duration", "max_len"]
 
-    def __init__(self, pad_align, pad_to_max_duration, max_duration,
-                 sample_rate, window_size, window_stride, spec_augment=None,
+    def __init__(self,
+                 pad_align,
+                 pad_to_max_duration,
+                 max_duration,
+                 sample_rate,
+                 window_size,
+                 window_stride,
+                 spec_augment=None,
                  cutout_augment=None):
         super(BaseFeatures, self).__init__()
 
         self.pad_align = pad_align
         self.pad_to_max_duration = pad_to_max_duration
-        self.win_length = int(sample_rate * window_size) # frame size
+        self.win_length = int(sample_rate * window_size)  # frame size
         self.hop_length = int(sample_rate * window_stride)
 
         # Calculate maximum sequence length (# frames)
         if pad_to_max_duration:
             self.max_len = 1 + math.ceil(
-                (max_duration * sample_rate - self.win_length) / self.hop_length
-            )
+                (max_duration * sample_rate - self.win_length) /
+                self.hop_length)
 
         if spec_augment is not None:
             self.spec_augment = SpecAugment(**spec_augment)
@@ -73,12 +79,14 @@ class BaseFeatures(nn.Module):
 
 @torch.jit.script
 def normalize_batch(x, seq_len, normalize_type: str):
-#    print ("normalize_batch: x, seq_len, shapes: ", x.shape, seq_len, seq_len.shape)
+    #    print ("normalize_batch: x, seq_len, shapes: ", x.shape, seq_len, seq_len.shape)
     if normalize_type == "per_feature":
-        x_mean = torch.zeros((seq_len.shape[0], x.shape[1]), dtype=x.dtype,
-                                                 device=x.device)
-        x_std = torch.zeros((seq_len.shape[0], x.shape[1]), dtype=x.dtype,
-                                                device=x.device)
+        x_mean = torch.zeros((seq_len.shape[0], x.shape[1]),
+                             dtype=x.dtype,
+                             device=x.device)
+        x_std = torch.zeros((seq_len.shape[0], x.shape[1]),
+                            dtype=x.dtype,
+                            device=x.device)
         for i in range(x.shape[0]):
             x_mean[i, :] = x[i, :, :seq_len[i]].mean(dim=1)
             x_std[i, :] = x[i, :, :seq_len[i]].std(dim=1)
@@ -119,28 +127,49 @@ def stack_subsample_frames(x, x_lens, stacking: int = 1, subsampling: int = 1):
 
         if x.size(2) > x_lens.max().item():
             assert abs(x.size(2) - x_lens.max().item()) <= 1
-            x = x[:,:,:x_lens.max().item()]
+            x = x[:, :, :x_lens.max().item()]
 
     return x, x_lens
 
 
 class FilterbankFeatures(BaseFeatures):
     # For JIT, https://pytorch.org/docs/stable/jit.html#python-defined-constants
-    __constants__ = ["dither", "preemph", "n_fft", "hop_length", "win_length",
-                     "log", "frame_splicing", "normalize"]
+    __constants__ = [
+        "dither", "preemph", "n_fft", "hop_length", "win_length", "log",
+        "frame_splicing", "normalize"
+    ]
+
     # torchscript: "center" removed due to a bug
 
-    def __init__(self, spec_augment=None, cutout_augment=None,
-                 sample_rate=8000, window_size=0.02, window_stride=0.01,
-                 window="hamming", normalize="per_feature", n_fft=None,
-                 preemph=0.97, n_filt=64, lowfreq=0, highfreq=None, log=True,
-                 dither=1e-5, pad_align=8, pad_to_max_duration=False,
-                 max_duration=float('inf'), frame_splicing=1, device=None):
-        super(FilterbankFeatures, self).__init__(
-            pad_align=pad_align, pad_to_max_duration=pad_to_max_duration,
-            max_duration=max_duration, sample_rate=sample_rate,
-            window_size=window_size, window_stride=window_stride,
-            spec_augment=spec_augment, cutout_augment=cutout_augment)
+    def __init__(self,
+                 spec_augment=None,
+                 cutout_augment=None,
+                 sample_rate=8000,
+                 window_size=0.02,
+                 window_stride=0.01,
+                 window="hamming",
+                 normalize="per_feature",
+                 n_fft=None,
+                 preemph=0.97,
+                 n_filt=64,
+                 lowfreq=0,
+                 highfreq=None,
+                 log=True,
+                 dither=1e-5,
+                 pad_align=8,
+                 pad_to_max_duration=False,
+                 max_duration=float('inf'),
+                 frame_splicing=1,
+                 device=None):
+        super(FilterbankFeatures,
+              self).__init__(pad_align=pad_align,
+                             pad_to_max_duration=pad_to_max_duration,
+                             max_duration=max_duration,
+                             sample_rate=sample_rate,
+                             window_size=window_size,
+                             window_stride=window_stride,
+                             spec_augment=spec_augment,
+                             cutout_augment=cutout_augment)
 
         torch_windows = {
             'hann': torch.hann_window,
@@ -150,7 +179,7 @@ class FilterbankFeatures(BaseFeatures):
             'none': None,
         }
 
-        self.n_fft = n_fft or 2 ** math.ceil(math.log2(self.win_length))
+        self.n_fft = n_fft or 2**math.ceil(math.log2(self.win_length))
 
         self.normalize = normalize
         self.log = log
@@ -163,24 +192,27 @@ class FilterbankFeatures(BaseFeatures):
         window_fn = torch_windows.get(window, None)
         window_tensor = window_fn(self.win_length,
                                   periodic=False) if window_fn else None
-        filterbanks = torch.tensor(
-            librosa.filters.mel(sample_rate, self.n_fft, n_mels=n_filt,
-                                fmin=lowfreq, fmax=highfreq),
-            dtype=torch.float).unsqueeze(0)
+        filterbanks = torch.tensor(librosa.filters.mel(sample_rate,
+                                                       self.n_fft,
+                                                       n_mels=n_filt,
+                                                       fmin=lowfreq,
+                                                       fmax=highfreq),
+                                   dtype=torch.float).unsqueeze(0)
         # torchscript
         self.register_buffer("fb", filterbanks)
         self.register_buffer("window", window_tensor)
         self.used_window = self.window.to(dtype=torch.float).cuda()
 
-
     def get_seq_len(self, seq_len):
-        return torch.ceil(seq_len.to(dtype=torch.float) / self.hop_length).to(
-            dtype=torch.int)
+        return torch.ceil(seq_len.to(dtype=torch.float) /
+                          self.hop_length).to(dtype=torch.int)
 
     # do stft
     # TORCHSCRIPT: center removed due to bug
     def stft(self, x):
-        return torch.stft(x, n_fft=self.n_fft, hop_length=self.hop_length,
+        return torch.stft(x,
+                          n_fft=self.n_fft,
+                          hop_length=self.hop_length,
                           win_length=self.win_length,
                           window=self.used_window)
 
@@ -197,10 +229,11 @@ class FilterbankFeatures(BaseFeatures):
         # do preemphasis
         if self.preemph is not None:
             x = torch.cat(
-                (x[:, 0].unsqueeze(1), x[:, 1:] - self.preemph * x[:, :-1]), dim=1)
-        x  = self.stft(x)
+                (x[:, 0].unsqueeze(1), x[:, 1:] - self.preemph * x[:, :-1]),
+                dim=1)
+        x = self.stft(x)
 
-            # get power spectrum
+        # get power spectrum
         x = x.pow(2).sum(-1)
 
         # dot with filterbank energies
@@ -228,4 +261,3 @@ class FilterbankFeatures(BaseFeatures):
         # del mask
 
         return x.to(dtype), seq_len
-
