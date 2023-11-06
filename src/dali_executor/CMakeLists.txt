@@ -51,7 +51,11 @@ add_custom_command(
 )
 
 if(${TRITON_DALI_SKIP_DOWNLOAD})
-    get_dali_paths(${CONDA_ENV_PATH} DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
+    if(${TRITON_DALI_BUILD_IN_TRITON})
+        get_dali_paths("${CONDA_ENV_PATH}/bin/python3" DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
+    else()
+        get_dali_paths("python3" DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
+    endif()
 else()
     set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali/include)
     set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali)
