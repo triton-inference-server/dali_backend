@@ -39,6 +39,9 @@ endif()
 
 configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
 
+set(CONDA_ENV_PREFIX ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs)
+set(CONDA_ENV_PATH ${CONDA_ENV_PREFIX}/dalienv)
+
 add_custom_command(
     OUTPUT dali_env
     COMMAND
@@ -48,7 +51,7 @@ add_custom_command(
 )
 
 if(${TRITON_DALI_SKIP_DOWNLOAD})
-    get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
+    get_dali_paths(${CONDA_ENV_PATH} DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
 else()
     set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali/include)
     set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali)
@@ -84,7 +87,7 @@ target_link_libraries(dali_executor PUBLIC
 
 target_compile_definitions(dali_executor PUBLIC)
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs
+    install(DIRECTORY ${CONDA_ENV_PATH}
+            DESTINATION ${CONDA_ENV_PREFIX}
             USE_SOURCE_PERMISSIONS)
 endif ()
