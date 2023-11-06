@@ -101,6 +101,7 @@ RUN mkdir build_in_ci && cd build_in_ci && \
       -D CMAKE_BUILD_TYPE=Debug                                   \
       -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION} \
       -D TRITON_DALI_SKIP_DOWNLOAD=ON                             \
+      -D TRITON_DALI_BUILD_IN_TRITON=ON                           \
       .. &&                                                       \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
