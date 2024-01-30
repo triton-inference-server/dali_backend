@@ -68,14 +68,18 @@ class DaliPipeline {
   ~DaliPipeline() {
     ReleasePipeline();
     ReleaseStream();
+    if (release_buffers_on_delete_) {
+      ReleaseBuffers();
+    }
   }
 
   DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
-               int device_id) :
+               int device_id, bool release_buffers_on_delete) :
       serialized_pipeline_(serialized_pipeline),
       max_batch_size_(max_batch_size),
       num_threads_(num_threads),
-      device_id_(device_id) {
+      device_id_(device_id),
+      release_buffers_on_delete_(release_buffers_on_delete) {
     DeviceGuard dg(device_id_);
     InitDali();
     InitStream();
@@ -245,6 +249,10 @@ class DaliPipeline {
     }
   }
 
+  void ReleaseBuffers() {
+    daliReleaseUnusedMemory();
+  }
+
   static void InitDali() {
     std::call_once(dali_initialized_, []() {
       daliInitialize();
@@ -262,6 +270,7 @@ class DaliPipeline {
   int max_batch_size_ = 0;
   int num_threads_ = 0;
   int device_id_ = 0;
+  bool release_buffers_on_delete_ = false;
 
   daliPipelineHandle handle_ = nullptr;
   ::cudaStream_t output_stream_ = nullptr;

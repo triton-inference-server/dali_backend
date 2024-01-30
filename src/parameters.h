@@ -80,12 +80,19 @@ class ModelParameters {
 
 class BackendParameters {
  public:
-  explicit BackendParameters(const std::string& backend_config_json) {
-    TRITON_CALL_GUARD(config_.Parse(backend_config_json));
-    if (config_.Find("cmdline")) {
-      TRITON_CALL_GUARD(config_.MemberAsObject("cmdline", &params_));
-    }
-  }
+   explicit BackendParameters(const std::string& backend_config_json) {
+     FromConfigJson(backend_config_json);
+   }
+
+   explicit BackendParameters(TRITONBACKEND_Backend* backend) {
+     FromBackend(backend);
+   }
+
+   explicit BackendParameters(TRITONBACKEND_Model* model) {
+     TRITONBACKEND_Backend* backend;
+     TRITON_CALL_GUARD(TRITONBACKEND_ModelBackend(model, &backend));
+     FromBackend(backend);
+   }
 
   /**
    * Return a value of a parameter with a given `key`
@@ -103,6 +110,10 @@ class BackendParameters {
     return split(plugin_list, separator);
   }
 
+  bool ShouldReleaseBuffersAfterUnload() const {
+    return GetParam<bool>("release_after_unload");
+  }
+
  private:
   template<typename T>
   void GetMember(const std::string& key, T& value) const {
@@ -111,6 +122,24 @@ class BackendParameters {
       std::string string_value{};
       TRITON_CALL_GUARD(params_.MemberAsString(key_c, &string_value));
       value = from_string<T>(string_value);
+    }
+  }
+
+  void FromBackend(TRITONBACKEND_Backend* backend) {
+    TRITONSERVER_Message* backend_config_message;
+    TRITON_CALL_GUARD(TRITONBACKEND_BackendConfig(backend, &backend_config_message));
+    const char* buffer;
+    size_t byte_size;
+    TRITON_CALL_GUARD(TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
+    LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
+    auto backend_config_json = make_string(buffer);
+    FromConfigJson(backend_config_json);
+  }
+
+  void FromConfigJson(const std::string& backend_config_json) {
+    TRITON_CALL_GUARD(config_.Parse(backend_config_json));
+    if (config_.Find("cmdline")) {
+      TRITON_CALL_GUARD(config_.MemberAsObject("cmdline", &params_));
     }
   }
 

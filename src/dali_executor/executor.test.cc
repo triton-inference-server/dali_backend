@@ -61,7 +61,7 @@ void coalesced_compare(const std::vector<OBufferDescr> &obuffers,
 TEST_CASE("Scaling Pipeline") {
   std::string pipeline_s((const char *)pipelines::scale_pipeline_str,
                          pipelines::scale_pipeline_len);
-  DaliPipeline pipeline(pipeline_s, 256, 4, 0);
+  DaliPipeline pipeline(pipeline_s, 256, 4, 0, true);
   DaliExecutor executor(std::move(pipeline));
   std::mt19937 rand(1217);
   std::uniform_real_distribution<float> dist(-1.f, 1.f);
@@ -125,7 +125,7 @@ TEST_CASE("Scaling Pipeline") {
 
 TEST_CASE("RN50 pipeline") {
   std::string pipeline_s((const char *)pipelines::rn50_gpu_dali_chr, pipelines::rn50_gpu_dali_len);
-  DaliPipeline pipeline(pipeline_s, 1, 3, 0);
+  DaliPipeline pipeline(pipeline_s, 1, 3, 0, false);
   DaliExecutor executor(std::move(pipeline));
   IDescr input;
   input.meta.name = "DALI_INPUT_0";
