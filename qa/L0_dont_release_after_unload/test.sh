@@ -1,3 +1,5 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES
@@ -19,6 +21,31 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-mkdir -p test_sample
-cp images/monkey-653705_1920.jpg test_sample/PREPROCESSING_INPUT_0
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/efficientnet/model_repository model_repository/
+load_models() {
+  echo "Loading models..."
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m preprocessing_gpu
+  sleep 5
+  echo "...models loaded"
+}
+
+unload_models() {
+  echo "Unloading models..."
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m preprocessing_gpu
+  sleep 5
+  echo "...models unloaded"
+}
+
+GRPC_ADDR=${GRPC_ADDR:-"localhost:8001"}
+TIME_WINDOW=10000
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
+INPUT_NAME="PREPROCESSING_INPUT_0"
+
+nvidia-smi -q -i 0 -x > /tmp/mu_pre.xml
+
+load_models
+perf_analyzer $PERF_ANALYZER_ARGS -m preprocessing_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b 64
+unload_models
+
+nvidia-smi -q -i 0 -x > /tmp/mu_post.xml
+
+python scripts/compare_memory_usage.py

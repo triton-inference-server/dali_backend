@@ -19,6 +19,29 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-mkdir -p test_sample
-cp images/monkey-653705_1920.jpg test_sample/PREPROCESSING_INPUT_0
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/efficientnet/model_repository model_repository/
+import tritonclient.grpc as t_client
+import argparse
+import sys
+
+def get_args():
+  parser = argparse.ArgumentParser(description='Load or unload a model in Triton server.')
+  parser.add_argument('action', action='store', choices=['load', 'unload', 'reload'])
+  parser.add_argument('-u', '--url', required=False, action='store', default='localhost:8001', help='Server url.')
+  parser.add_argument('-m', '--model', required=True, action='store', help='Model name.')
+  return parser.parse_args()
+
+
+def main(args):
+  client = t_client.InferenceServerClient(url=args.url)
+  if args.action in ['reload', 'unload']:
+    client.unload_model(args.model)
+    print('Successfully unloaded model', args.model)
+
+  if args.action in ['reload', 'load']:
+    client.load_model(args.model)
+    print('Successfully loaded model', args.model)
+
+
+if __name__ == '__main__':
+  args = get_args()
+  main(args)
