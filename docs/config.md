@@ -40,7 +40,7 @@ after the DALI Pipeline object gets deleted. The release of the memory happens a
 
 This property entails that when using Triton, the GPU memory allocated by DALI is not freed, even
 after unloading the DALI model. However, should you like to free the GPU memory when DALI model is
-unloaded, please pass `release_after_unload` option to `tritonserver` invokation:
+unloaded, please pass `release_after_unload` option to `tritonserver` invocation:
 
 ```bash
 tritonserver --model-repository /models --log-verbose 1 --backend-config=dali,release_after_unload=true
