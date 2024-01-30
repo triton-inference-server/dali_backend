@@ -330,7 +330,6 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::optional<int> config_max_batch_size_ = {};
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
-  bool should_release_memory_on_destroy_ = false;
 };
 
 }}}  // namespace triton::backend::dali

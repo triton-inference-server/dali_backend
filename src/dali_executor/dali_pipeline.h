@@ -56,6 +56,7 @@ class DaliPipeline {
       max_batch_size_ = dp.max_batch_size_;
       num_threads_ = dp.num_threads_;
       device_id_ = dp.device_id_;
+      release_buffers_on_delete_ = dp.release_buffers_on_delete_;
       handle_ = dp.handle_;
       output_stream_ = dp.output_stream_;
 
