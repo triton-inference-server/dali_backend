@@ -69,9 +69,11 @@ class DaliPipeline {
   ~DaliPipeline() {
     ReleasePipeline();
     ReleaseStream();
-    if (release_buffers_on_delete_) {
+    instance_counter_--;
+    if (release_buffers_on_delete_ && instance_counter_ == 0) {
       ReleaseBuffers();
     }
+    assert(instance_counter_ >= 0);
   }
 
   DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
@@ -85,6 +87,7 @@ class DaliPipeline {
     InitDali();
     InitStream();
     CreatePipeline();
+    instance_counter_++;
   }
 
   void Run() {
@@ -276,6 +279,7 @@ class DaliPipeline {
   daliPipelineHandle handle_ = nullptr;
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
+  static int instance_counter_;
 };
 
 
