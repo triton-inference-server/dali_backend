@@ -71,7 +71,8 @@ class DaliPipeline {
     ReleasePipeline();
     ReleaseStream();
     instance_counter_--;
-    if (release_buffers_on_delete_ && instance_counter_ == 0) {
+    bool is_last_instance = instance_counter_ == 0;
+    if (is_last_instance && release_buffers_on_delete_) {
       ReleaseBuffers();
     }
     assert(instance_counter_ >= 0);
