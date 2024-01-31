@@ -23,6 +23,7 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -279,7 +280,7 @@ class DaliPipeline {
   daliPipelineHandle handle_ = nullptr;
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
-  static int instance_counter_;
+  static std::atomic_int instance_counter_;
 };
 
 

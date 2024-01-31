@@ -27,7 +27,7 @@
 namespace triton { namespace backend { namespace dali {
 
 std::once_flag DaliPipeline::dali_initialized_{};
-int DaliPipeline::instance_counter_ = 0;
+std::atomic_int DaliPipeline::instance_counter_ = 0;
 
 
 TensorListShape<> DaliPipeline::GetOutputShapeAt(int output_idx) {
