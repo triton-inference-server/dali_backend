@@ -23,14 +23,14 @@
 
 load_models() {
   echo "Loading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m preprocessing_gpu
+  python scripts/model-loader.py -u "${GRPC_ADDR}" load -m dali
   sleep 5
   echo "...models loaded"
 }
 
 unload_models() {
   echo "Unloading models..."
-  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m preprocessing_gpu
+  python scripts/model-loader.py -u "${GRPC_ADDR}" unload -m dali
   sleep 5
   echo "...models unloaded"
 }
@@ -43,7 +43,7 @@ INPUT_NAME="DALI_INPUT_0"
 nvidia-smi -q -i 0 -x > /tmp/mu_pre.xml
 
 load_models
-perf_analyzer $PERF_ANALYZER_ARGS -m preprocessing_gpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b 64
+perf_analyzer $PERF_ANALYZER_ARGS -m dali --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b 64
 unload_models
 
 nvidia-smi -q -i 0 -x > /tmp/mu_post.xml
