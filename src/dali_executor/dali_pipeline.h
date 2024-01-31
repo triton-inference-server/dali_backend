@@ -70,8 +70,7 @@ class DaliPipeline {
   ~DaliPipeline() {
     ReleasePipeline();
     ReleaseStream();
-    instance_counter_--;
-    bool is_last_instance = instance_counter_ == 0;
+    bool is_last_instance = --instance_counter_ == 0;
     if (is_last_instance && release_buffers_on_delete_) {
       ReleaseBuffers();
     }
