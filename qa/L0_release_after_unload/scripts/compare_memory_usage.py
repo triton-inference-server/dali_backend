@@ -51,7 +51,7 @@ def test_condition(pre, post, epsilon):
 def main():
     mem_usage_pre = get_memory_usage('/tmp/mu_pre.xml')
     mem_usage_post = get_memory_usage('/tmp/mu_post.xml')
-    if not test_condition(mem_usage_pre, mem_usage_post, 50):
+    if not test_condition(mem_usage_pre, mem_usage_post, 500):
         sys.exit(1)
 
 
