@@ -40,12 +40,14 @@ TIME_WINDOW=10000
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
 INPUT_NAME="DALI_INPUT_0"
 
+nvidia-smi -i 0
 nvidia-smi -q -i 0 -x > /tmp/mu_pre.xml
 
 load_models
 perf_analyzer $PERF_ANALYZER_ARGS -m dali --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) -b 64
 unload_models
 
+nvidia-smi -i 0
 nvidia-smi -q -i 0 -x > /tmp/mu_post.xml
 
 python scripts/compare_memory_usage.py
