@@ -38,7 +38,7 @@ unload_models() {
 GRPC_ADDR=${GRPC_ADDR:-"localhost:8001"}
 TIME_WINDOW=10000
 PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
-INPUT_NAME="PREPROCESSING_INPUT_0"
+INPUT_NAME="DALI_INPUT_0"
 
 nvidia-smi -q -i 0 -x > /tmp/mu_pre.xml
 

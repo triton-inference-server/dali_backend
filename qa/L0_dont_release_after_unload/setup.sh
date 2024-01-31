@@ -1,3 +1,5 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES
@@ -19,6 +21,11 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+# Prepare image for test
 mkdir -p test_sample
-cp images/monkey-653705_1920.jpg test_sample/PREPROCESSING_INPUT_0
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/efficientnet/model_repository model_repository/
+cp images/monkey-653705_1920.jpg test_sample/DALI_INPUT_0
+
+# Setup model repository
+cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/perf_analyzer/model_repository model_repository/
+cp ${DALI_BACKEND_REPO_ROOT}/docs/examples/perf_analyzer/decoding_pipeline.py decoding_pipeline.py
+bash ${DALI_BACKEND_REPO_ROOT}/docs/examples/perf_analyzer/setup_perf_analyzer_example.sh
