@@ -23,6 +23,7 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -56,6 +57,7 @@ class DaliPipeline {
       max_batch_size_ = dp.max_batch_size_;
       num_threads_ = dp.num_threads_;
       device_id_ = dp.device_id_;
+      release_buffers_on_delete_ = dp.release_buffers_on_delete_;
       handle_ = dp.handle_;
       output_stream_ = dp.output_stream_;
 
@@ -68,18 +70,25 @@ class DaliPipeline {
   ~DaliPipeline() {
     ReleasePipeline();
     ReleaseStream();
+    bool is_last_instance = --instance_counter_ == 0;
+    if (is_last_instance && release_buffers_on_delete_) {
+      ReleaseBuffers();
+    }
+    assert(instance_counter_ >= 0);
   }
 
   DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
-               int device_id) :
+               int device_id, bool release_buffers_on_delete) :
       serialized_pipeline_(serialized_pipeline),
       max_batch_size_(max_batch_size),
       num_threads_(num_threads),
-      device_id_(device_id) {
+      device_id_(device_id),
+      release_buffers_on_delete_(release_buffers_on_delete) {
     DeviceGuard dg(device_id_);
     InitDali();
     InitStream();
     CreatePipeline();
+    instance_counter_++;
   }
 
   void Run() {
@@ -245,6 +254,10 @@ class DaliPipeline {
     }
   }
 
+  void ReleaseBuffers() {
+    daliReleaseUnusedMemory();
+  }
+
   static void InitDali() {
     std::call_once(dali_initialized_, []() {
       daliInitialize();
@@ -262,10 +275,12 @@ class DaliPipeline {
   int max_batch_size_ = 0;
   int num_threads_ = 0;
   int device_id_ = 0;
+  bool release_buffers_on_delete_ = false;
 
   daliPipelineHandle handle_ = nullptr;
   ::cudaStream_t output_stream_ = nullptr;
   static std::once_flag dali_initialized_;
+  static std::atomic_int instance_counter_;
 };
 
 

@@ -23,6 +23,7 @@
 #ifndef DALI_BACKEND_DALI_MODEL_H_
 #define DALI_BACKEND_DALI_MODEL_H_
 
+#include "parameters.h"
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/model_provider/model_provider.h"
@@ -91,6 +92,10 @@ class DaliModel : public ::triton::backend::BackendModel {
     return should_auto_complete_config_;
   }
 
+  bool ShouldReleaseBuffersAfterUnload() const {
+    return backend_params_.ShouldReleaseBuffersAfterUnload();
+  }
+
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
       AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
@@ -108,7 +113,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
  private:
   explicit DaliModel(TRITONBACKEND_Model* triton_model) :
-      BackendModel(triton_model), params_(model_config_) {
+      BackendModel(triton_model), params_(model_config_), backend_params_(triton_model) {
     const char sep = '/';
 
     const char* model_repo_path;
@@ -308,13 +313,14 @@ class DaliModel : public ::triton::backend::BackendModel {
     int device_id = FindDevice();
     const std::string &serialized_pipeline = GetModelProvider().GetModel();
     try {
-      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id, true);
     } catch (const DALIException &) {
-      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID, true);
     }
   }
 
   ModelParameters params_;
+  BackendParameters backend_params_;
   std::vector<std::string> outputs_to_split_;
   std::unique_ptr<ModelProvider> dali_model_provider_;
   std::unordered_map<std::string, int> output_order_;

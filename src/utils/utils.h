@@ -73,6 +73,15 @@ inline std::string from_string<std::string>(const std::string& str) {
   return str;
 }
 
+template<>
+inline bool from_string<bool>(const std::string& str) {
+  std::string t = str;
+  // Convert to lower case.
+  std::transform(t.begin(), t.end(), t.begin(), [](auto c){ return std::tolower(c); });
+
+  return str == "true";
+}
+
 template <typename T>
 std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket = "{",
                           const std::string &rbracket = "}", const std::string &delim = ", ") {

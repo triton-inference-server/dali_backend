@@ -63,13 +63,7 @@ TRITONSERVER_Error* TRITONBACKEND_Initialize(TRITONBACKEND_Backend* backend) {
   }
 
 
-  TRITONSERVER_Message* backend_config_message;
-  RETURN_IF_ERROR(TRITONBACKEND_BackendConfig(backend, &backend_config_message));
-  const char* buffer;
-  size_t byte_size;
-  RETURN_IF_ERROR(TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
-  LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
-  BackendParameters backend_params(make_string(buffer));
+  BackendParameters backend_params{backend};
 
   try {
     DaliPipeline::LoadPluginLibs(backend_params.GetPluginNames());
