@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -62,8 +62,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
     auto max_batch_size = dali_model_->MaxBatchSize();
     if (max_batch_size < 1) max_batch_size = -1;
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
-    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId(),
-                          ShouldReleaseBuffersAfterUnload());
+    DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
   }
 
@@ -109,10 +108,6 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
 
   int32_t GetDaliDeviceId() {
     return !CudaStream() ? CPU_ONLY_DEVICE_ID : device_id_;
-  }
-
-  bool ShouldReleaseBuffersAfterUnload() const {
-    return dali_model_->ShouldReleaseBuffersAfterUnload();
   }
 
   /**

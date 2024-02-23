@@ -69,6 +69,10 @@ inline int64_t dali_type_size(dali_data_type_t type) {
     return 8;
 }
 
+inline void ReleaseUnusedMemory() {
+  daliReleaseUnusedMemory();
+}
+
 }}}  // namespace triton::backend::dali
 
 
