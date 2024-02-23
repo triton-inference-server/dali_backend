@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,8 @@
 #ifndef DALI_BACKEND_DALI_MODEL_H_
 #define DALI_BACKEND_DALI_MODEL_H_
 
+#include <atomic>
+
 #include "parameters.h"
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/utils/dali.h"
@@ -40,7 +42,15 @@ class DaliModel : public ::triton::backend::BackendModel {
  public:
   static TRITONSERVER_Error* Create(TRITONBACKEND_Model* triton_model, DaliModel** state);
 
-  virtual ~DaliModel() = default;
+  DaliModel(DaliModel &&) = delete;
+
+  virtual ~DaliModel() {
+    bool last_loaded_model = --loaded_models_count_ == 0;
+    if (last_loaded_model && ShouldReleaseBuffersAfterUnload()) {
+      ReleaseUnusedMemory();
+    }
+    assert(loaded_models_count_ >= 0);
+  };
 
   TRITONSERVER_Error* ValidateModelConfig() {
     // We have the json DOM for the model configuration...
@@ -144,6 +154,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     TRITON_CALL(
       TRITONBACKEND_ModelAutoCompleteConfig(triton_model_,
                                             &should_auto_complete_config_));
+    ++loaded_models_count_;
   }
 
   void ReadParams() {
@@ -313,9 +324,9 @@ class DaliModel : public ::triton::backend::BackendModel {
     int device_id = FindDevice();
     const std::string &serialized_pipeline = GetModelProvider().GetModel();
     try {
-      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id, true);
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
     } catch (const DALIException &) {
-      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID, true);
+      return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
     }
   }
 
@@ -330,6 +341,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   std::optional<int> config_max_batch_size_ = {};
   const std::string fallback_model_filename_ = "dali.py";
   bool should_auto_complete_config_ = false;
+  static std::atomic_int loaded_models_count_;
 };
 
 }}}  // namespace triton::backend::dali

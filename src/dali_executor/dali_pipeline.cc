@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2024 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@
 namespace triton { namespace backend { namespace dali {
 
 std::once_flag DaliPipeline::dali_initialized_{};
-std::atomic_int DaliPipeline::instance_counter_ = 0;
 
 
 TensorListShape<> DaliPipeline::GetOutputShapeAt(int output_idx) {
