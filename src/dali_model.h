@@ -252,49 +252,58 @@ class DaliModel : public ::triton::backend::BackendModel {
   int FindDevice() {
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
+    int config_dev = -1;
     if (found_inst_groups) {
-      int result = ReadDeviceFromInstanceGroups(instance_groups);
+      config_dev = ReadDeviceFromInstanceGroups(instance_groups);
+    }
+    if (config_dev != -1) {
+      return config_dev;
+    }
+    // config doesn't specify any GPU so we can choose any available
+    int dev_count = 0;
+    CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
+    if (dev_count > 0) {
       LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                  make_string("DALI autoconfig -- found device defined in the config file: ",
-                              result).c_str());
-      return result;
+                  make_string("DALI autoconfig -- found ", dev_count, " available devices")
+                  .c_str());
+      return 0;
     } else {
-      // config doesn't specify any GPU so we can choose any available
-      int dev_count = 0;
-      CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
-      if (dev_count > 0) {
-        LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                    make_string("DALI autoconfig -- found ", dev_count, " available devices")
-                    .c_str());
-        return 0;
-      } else {
-        LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- no devices found");
-        return CPU_ONLY_DEVICE_ID;
-      }
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- no devices found");
+      return CPU_ONLY_DEVICE_ID;
     }
   }
 
-  // This method tries to find any GPU instance group and select any device id from it
-  // If there are no GPU inst. groups, it returns CPU_ONLY_DEVICE_ID
+  // This method tries to find any instance group and select any device id from it.
+  // If there is any cpu inst. group, CPU_ONLY_DEVICE_ID is selected. If not,
+  // any gpu from any gpu inst. group is selected.
+  // If there are no instance groups defined, -1 is returned.
   int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value& inst_groups) {
     TRITON_CALL(inst_groups.AssertType(triton::common::TritonJson::ValueType::ARRAY));
     auto count = inst_groups.ArraySize();
+    int64_t found_gpu = -1;
     for (size_t i = 0; i < count; ++i) {
       triton::common::TritonJson::Value inst_group;
       inst_groups.IndexAsObject(i, &inst_group);
       std::string kind_str;
       if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
-        if (kind_str == "KIND_GPU") {
+        if (kind_str == "KIND_CPU") {
+          LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- found cpu only instance");
+          return CPU_ONLY_DEVICE_ID;
+        } else if (kind_str == "KIND_GPU" && found_gpu < 0) {
           triton::common::TritonJson::Value dev_array;
           if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {
-            int64_t dev_id = CPU_ONLY_DEVICE_ID;
-            dev_array.IndexAsInt(0, &dev_id);
-            return dev_id;
+            dev_array.IndexAsInt(0, &found_gpu);
+            LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                  make_string("DALI autoconfig -- found device defined in the config file: ",
+                              found_gpu).c_str());
           }
         }
       }
     }
-    return CPU_ONLY_DEVICE_ID;
+    if (found_gpu >= 0 && found_gpu <= std::numeric_limits<int>::max()) {
+      return static_cast<int>(found_gpu);
+    }
+    return -1;
   }
 
   void ReadPipelineProperties() {
