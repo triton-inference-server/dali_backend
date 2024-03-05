@@ -26,13 +26,13 @@
 #include <atomic>
 
 #include "parameters.h"
+#include "src/config_tools/config_tools.h"
 #include "src/dali_executor/dali_pipeline.h"
 #include "src/dali_executor/utils/dali.h"
 #include "src/model_provider/model_provider.h"
 #include "src/parameters.h"
 #include "src/utils/triton.h"
 #include "src/utils/utils.h"
-#include "src/config_tools/config_tools.h"
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 
@@ -42,7 +42,7 @@ class DaliModel : public ::triton::backend::BackendModel {
  public:
   static TRITONSERVER_Error* Create(TRITONBACKEND_Model* triton_model, DaliModel** state);
 
-  DaliModel(DaliModel &&) = delete;
+  DaliModel(DaliModel&&) = delete;
 
   virtual ~DaliModel() {
     bool last_loaded_model = --loaded_models_count_ == 0;
@@ -60,7 +60,7 @@ class DaliModel : public ::triton::backend::BackendModel {
                 (std::string("model configuration:\n") + buffer.Contents()).c_str());
     try {
       ValidateConfig(model_config_, pipeline_inputs_, pipeline_outputs_, Batched());
-    } catch (TritonError &err) {
+    } catch (TritonError& err) {
       return err.release();
     }
 
@@ -75,7 +75,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     return params_;
   }
 
-  bool IsOutputSplit(const std::string &name) {
+  bool IsOutputSplit(const std::string& name) {
     auto it = std::find(outputs_to_split_.begin(), outputs_to_split_.end(), name);
     return it != outputs_to_split_.end();
   }
@@ -108,17 +108,17 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   TRITONSERVER_Error* AutoCompleteConfig() {
     try {
-      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_,
-                     pipeline_max_batch_size_, Batched());
+      AutofillConfig(model_config_, pipeline_inputs_, pipeline_outputs_, pipeline_max_batch_size_,
+                     Batched());
       TRITON_CALL(SetModelConfig());
-    } catch (TritonError &err) {
+    } catch (TritonError& err) {
       return err.release();
     }
     return nullptr;
   }
 
   bool Batched() const {
-    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0) ;
+    return !(config_max_batch_size_.has_value() && config_max_batch_size_ == 0);
   }
 
  private:
@@ -128,8 +128,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
     const char* model_repo_path;
     TRITONBACKEND_ArtifactType artifact_type;
-    TRITON_CALL(
-        TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
+    TRITON_CALL(TRITONBACKEND_ModelRepository(triton_model_, &artifact_type, &model_repo_path));
 
     std::string config_path = make_string(model_repo_path, sep, "config.pbtxt");
     std::ifstream config_file(config_path);
@@ -152,8 +151,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     ReadPipelineProperties();
 
     TRITON_CALL(
-      TRITONBACKEND_ModelAutoCompleteConfig(triton_model_,
-                                            &should_auto_complete_config_));
+        TRITONBACKEND_ModelAutoCompleteConfig(triton_model_, &should_auto_complete_config_));
     ++loaded_models_count_;
   }
 
@@ -255,14 +253,22 @@ class DaliModel : public ::triton::backend::BackendModel {
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
     if (found_inst_groups) {
-      return ReadDeviceFromInstanceGroups(instance_groups);
+      int result = ReadDeviceFromInstanceGroups(instance_groups);
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                  make_string("DALI autoconfig -- found device defined in the config file: ",
+                              result).c_str());
+      return result;
     } else {
       // config doesn't specify any GPU so we can choose any available
       int dev_count = 0;
       CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
       if (dev_count > 0) {
+        LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                    make_string("DALI autoconfig -- found ", dev_count, " available devices")
+                    .c_str());
         return 0;
       } else {
+        LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- no devices found");
         return CPU_ONLY_DEVICE_ID;
       }
     }
@@ -270,7 +276,7 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   // This method tries to find any GPU instance group and select any device id from it
   // If there are no GPU inst. groups, it returns CPU_ONLY_DEVICE_ID
-  int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value &inst_groups) {
+  int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value& inst_groups) {
     TRITON_CALL(inst_groups.AssertType(triton::common::TritonJson::ValueType::ARRAY));
     auto count = inst_groups.ArraySize();
     for (size_t i = 0; i < count; ++i) {
@@ -303,7 +309,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       auto name = input_names[i];
       pipeline_inputs_[i].name = name;
       pipeline_inputs_[i].dtype = pipeline.GetInputType(name);
-      pipeline_inputs_[i].shape  = pipeline.GetInputShape(name);
+      pipeline_inputs_[i].shape = pipeline.GetInputShape(name);
     }
 
     int num_outputs = pipeline.GetNumOutput();
@@ -322,10 +328,13 @@ class DaliModel : public ::triton::backend::BackendModel {
 
   DaliPipeline InstantiateDaliPipeline(int config_max_batch_size) {
     int device_id = FindDevice();
-    const std::string &serialized_pipeline = GetModelProvider().GetModel();
+    const std::string& serialized_pipeline = GetModelProvider().GetModel();
     try {
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
-    } catch (const DALIException &) {
+    } catch (const DALIException& e) {
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+                  make_string("DALI autoconfig -- failed to instantiate pipeline on device ",
+                  device_id, ": ", e.what()).c_str());
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
     }
   }
