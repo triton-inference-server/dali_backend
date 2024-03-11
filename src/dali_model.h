@@ -251,9 +251,16 @@ class DaliModel : public ::triton::backend::BackendModel {
    */
   int FindDevice() {
     int dev_count = 0;
-    CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
-    LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                make_string("DALI autoconfig -- found ", dev_count, " available devices").c_str());
+    if (cudaGetDeviceCount(&dev_count) == cudaSuccess && dev_count > 0) {
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_VERBOSE,
+          make_string("DALI autoconfig -- found ", dev_count, " available devices").c_str());
+    } else {
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, make_string("DALI autoconfig -- no available devices. "
+                                                        "Using CPU_ONLY_DEVICE")
+                                                .c_str());
+      return CPU_ONLY_DEVICE_ID;
+    }
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
     int config_dev = -1;
@@ -264,12 +271,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       return config_dev;
     }
     // config doesn't specify any GPU so we can choose any available
-    if (dev_count > 0) {
-      return 0;
-    } else {
-      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- no devices found");
-      return CPU_ONLY_DEVICE_ID;
-    }
+    return 0;
   }
 
   // This method tries to find any instance group and select any device id from it.
