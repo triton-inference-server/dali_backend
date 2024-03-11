@@ -28,10 +28,10 @@ python scripts/model-loader.py -u ${GRPC_ADDR} load -m dali
 python scripts/model-loader.py -u ${GRPC_ADDR} load -m resnet50_trt
 python scripts/model-loader.py -u ${GRPC_ADDR} load -m dali_trt_resnet50
 
-TIME_WINDOW=10000
+STABILITY_PERCENTAGE=50
 BATCH_SIZES="2 8 16 32 64 128"
 
-PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW"
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -s $STABILITY_PERCENTAGE"
 
 echo "WARM-UP"
 perf_analyzer $PERF_ANALYZER_ARGS -m dali_trt_resnet50 --input-data dataset.json --concurrency-range=128
