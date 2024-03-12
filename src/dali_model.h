@@ -250,6 +250,17 @@ class DaliModel : public ::triton::backend::BackendModel {
    *   or CPU_ONLY_DEVICE_ID if only cpu is available
    */
   int FindDevice() {
+    int dev_count = 0;
+    if (cudaGetDeviceCount(&dev_count) == cudaSuccess && dev_count > 0) {
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_VERBOSE,
+          make_string("DALI autoconfig -- found ", dev_count, " available devices").c_str());
+    } else {
+      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, make_string("DALI autoconfig -- no available devices. "
+                                                        "Using CPU_ONLY_DEVICE")
+                                                .c_str());
+      return CPU_ONLY_DEVICE_ID;
+    }
     triton::common::TritonJson::Value instance_groups;
     bool found_inst_groups = model_config_.Find("instance_group", &instance_groups);
     int config_dev = -1;
@@ -260,17 +271,7 @@ class DaliModel : public ::triton::backend::BackendModel {
       return config_dev;
     }
     // config doesn't specify any GPU so we can choose any available
-    int dev_count = 0;
-    CUDA_CALL_GUARD(cudaGetDeviceCount(&dev_count));
-    if (dev_count > 0) {
-      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
-                  make_string("DALI autoconfig -- found ", dev_count, " available devices")
-                  .c_str());
-      return 0;
-    } else {
-      LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- no devices found");
-      return CPU_ONLY_DEVICE_ID;
-    }
+    return 0;
   }
 
   // This method tries to find any instance group and select any device id from it.
@@ -284,6 +285,11 @@ class DaliModel : public ::triton::backend::BackendModel {
     for (size_t i = 0; i < count; ++i) {
       triton::common::TritonJson::Value inst_group;
       inst_groups.IndexAsObject(i, &inst_group);
+      int64_t instance_count = 0;
+      inst_group.MemberAsInt("count", &instance_count);
+      if (instance_count == 0) {
+        continue;  // instance group is empty
+      }
       std::string kind_str;
       if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
         if (kind_str == "KIND_CPU") {
