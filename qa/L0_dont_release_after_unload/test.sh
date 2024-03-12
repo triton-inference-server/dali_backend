@@ -36,8 +36,8 @@ unload_models() {
 }
 
 GRPC_ADDR=${GRPC_ADDR:-"localhost:8001"}
-TIME_WINDOW=10000
-PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -p$TIME_WINDOW --verbose-csv --collect-metrics"
+STABILITY_PERCENTAGE=50
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -s $STABILITY_PERCENTAGE --verbose-csv --collect-metrics"
 INPUT_NAME="DALI_INPUT_0"
 
 nvidia-smi -i 0
