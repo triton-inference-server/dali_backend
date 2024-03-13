@@ -281,7 +281,6 @@ class DaliModel : public ::triton::backend::BackendModel {
   int ReadDeviceFromInstanceGroups(triton::common::TritonJson::Value& inst_groups) {
     TRITON_CALL(inst_groups.AssertType(triton::common::TritonJson::ValueType::ARRAY));
     auto count = inst_groups.ArraySize();
-    int64_t found_gpu = -1;
     for (size_t i = 0; i < count; ++i) {
       triton::common::TritonJson::Value inst_group;
       inst_groups.IndexAsObject(i, &inst_group);
@@ -292,22 +291,22 @@ class DaliModel : public ::triton::backend::BackendModel {
       }
       std::string kind_str;
       if (inst_group.MemberAsString("kind", &kind_str) == TRITONJSON_STATUSSUCCESS) {
-        if (kind_str == "KIND_CPU") {
-          LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE, "DALI autoconfig -- found cpu only instance");
-          return CPU_ONLY_DEVICE_ID;
-        } else if (kind_str == "KIND_GPU" && found_gpu < 0) {
+        if (kind_str == "KIND_GPU") {
           triton::common::TritonJson::Value dev_array;
           if (inst_group.Find("gpus", &dev_array) && dev_array.ArraySize() > 0) {
+            int64_t found_gpu = -1;
             dev_array.IndexAsInt(0, &found_gpu);
-            LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
+            if (found_gpu >= 0 && found_gpu <= std::numeric_limits<int>::max()) {
+              LOG_MESSAGE(
+                  TRITONSERVER_LOG_VERBOSE,
                   make_string("DALI autoconfig -- found device defined in the config file: ",
-                              found_gpu).c_str());
+                              found_gpu)
+                      .c_str());
+              return static_cast<int>(found_gpu);
+            }
           }
         }
       }
-    }
-    if (found_gpu >= 0 && found_gpu <= std::numeric_limits<int>::max()) {
-      return static_cast<int>(found_gpu);
     }
     return -1;
   }
