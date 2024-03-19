@@ -65,8 +65,8 @@ RUN CMAKE_VERSION=3.18 && \
 
 # Miniconda
 ENV PATH="/opt/conda/bin:${PATH}"
-RUN MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh"; \
-    SHA256SUM="3190da6626f86eee8abf1b2fd7a5af492994eb2667357ee4243975cdbb175d7a"; \
+RUN MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh"; \
+    SHA256SUM="8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78"; \
     wget "${MINICONDA_URL}" -O miniconda.sh -q && \
     echo "${SHA256SUM} miniconda.sh" > shasum && \
     sha256sum -c ./shasum && \
