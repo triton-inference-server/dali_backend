@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 NVIDIA CORPORATION
+# Copyright (c) 2020-2024 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -50,16 +50,16 @@ set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for 
 set(PYTHON_VERSION "3.10" CACHE STRING
     "Python version, which will be used to create conda environment for DALI.")
 
-set(DALI_VERSION "" CACHE STRING
+set(DALI_VERSION "1.20" CACHE STRING
     "DALI version that should be downloaded by the build system.
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
+set(DALI_EXTRA_INDEX_URL "http://sqrl/nvdl/datasets/dali/pip-dali" CACHE STRING
     "URL of the Index, from which DALI will be downloaded by the build system.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
+set(DALI_DOWNLOAD_EXTRA_OPTIONS "--trusted-host sqrl" CACHE STRING
     "Extra options for `pip install` call, that downloads DALI wheel.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 

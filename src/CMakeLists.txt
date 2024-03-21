@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020-2022 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2020-2024 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -82,12 +82,11 @@ target_link_libraries(
 
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
         # path to the DALI backend
-        string(REGEX MATCH "dalienv/.*" DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
-        set(DALI_NV_INSTALL_PATH "$\{ORIGIN\}/conda/envs/${DALI_NV_INSTALL_PATH}")
-else(NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+        set(DALI_NV_INSTALL_PATH "$\{ORIGIN\}/dali")
+else()
         # path to the predownloaded DALI instance
         set(DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
-endif(NOT ${TRITON_DALI_SKIP_DOWNLOAD})
+endif()
 
 set_target_properties(
         triton-dali-backend
