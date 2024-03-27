@@ -19,7 +19,7 @@ index 00000000..4c180272
 --- /dev/null
 +++ b/Dockerfile.bench
 @@ -0,0 +1,6 @@
-+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:24.02-py3
++ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:24.03-py3
 +FROM ${FROM_IMAGE_NAME}
 +
 +ADD . /DeepLearningExamples
