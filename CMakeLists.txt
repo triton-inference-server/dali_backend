@@ -55,11 +55,11 @@ set(DALI_VERSION "" CACHE STRING
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_EXTRA_INDEX_URL "http://sqrl/nvdl/datasets/dali/pip-dali" CACHE STRING
+set(DALI_EXTRA_INDEX_URL "https://developer.download.nvidia.com/compute/redist" CACHE STRING
     "URL of the Index, from which DALI will be downloaded by the build system.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
-set(DALI_DOWNLOAD_EXTRA_OPTIONS "--trusted-host sqrl" CACHE STRING
+set(DALI_DOWNLOAD_EXTRA_OPTIONS "" CACHE STRING
     "Extra options for `pip install` call, that downloads DALI wheel.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
 
