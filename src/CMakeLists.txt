@@ -86,7 +86,7 @@ if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
 else()
         # path to the predownloaded DALI instance
         set(DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
-endif()
+endif(NOT ${TRITON_DALI_SKIP_DOWNLOAD})
 
 set_target_properties(
         triton-dali-backend
