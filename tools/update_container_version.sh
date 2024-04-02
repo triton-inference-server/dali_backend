@@ -39,12 +39,14 @@ fi
 
 echo "Updating the version to $1"
 
+version_pattern="[0-9][0-9].[0-9][0-9]"
+
 # Dockerfile.release
-sed -i "s/ARG TRITON_VERSION=24.02/ARG TRITON_VERSION=$1/g" docker/Dockerfile.release
+sed -i "s|ARG TRITON_VERSION=${version_pattern}|ARG TRITON_VERSION=$1|g" docker/Dockerfile.release
 
 # Dockerfile.devel
-sed -i "s/ARG TRITON_VERSION=24.02/ARG TRITON_VERSION=$1/g" docker/Dockerfile.devel
+sed -i "s|ARG TRITON_VERSION=${version_pattern}|ARG TRITON_VERSION=$1|g" docker/Dockerfile.devel
 
 # Efficientnet example
-sed -i "s|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:24.02-py3|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:$1-py3|g" docs/examples/efficientnet/0001-Update-requirements-and-add-Dockerfile.bench.patch
-sed -i "s|FROM nvcr.io/nvidia/tritonserver:24.02-py3|FROM nvcr.io/nvidia/tritonserver:$1-py3|g" benchmarks/BM_efficientnet/Dockerfile.torch
+sed -i "s|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:${version_pattern}-py3|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:$1-py3|g" docs/examples/efficientnet/0001-Update-requirements-and-add-Dockerfile.bench.patch
+sed -i "s|FROM nvcr.io/nvidia/tritonserver:${version_pattern}-py3|FROM nvcr.io/nvidia/tritonserver:$1-py3|g" benchmarks/BM_efficientnet/Dockerfile.torch
