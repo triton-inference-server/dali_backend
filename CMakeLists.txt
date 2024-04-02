@@ -50,7 +50,7 @@ set(TRITON_BACKEND_REPO_TAG ${TRITON_BACKEND_API_VERSION} CACHE STRING "Tag for 
 set(PYTHON_VERSION "3.10" CACHE STRING
     "Python version, which will be used to create conda environment for DALI.")
 
-set(DALI_VERSION "1.20" CACHE STRING
+set(DALI_VERSION "" CACHE STRING
     "DALI version that should be downloaded by the build system.
     By default the latest available DALI version will be downloaded.
     Ignored, when TRITON_DALI_SKIP_DOWNLOAD is ON.")
