@@ -100,6 +100,8 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
         -D DALI_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}}                     \
       -D DALI_VERSION=${DALI_DOWNLOAD_VERSION}                                        \
       -D DALI_DOWNLOAD_EXTRA_OPTIONS="${DALI_DOWNLOAD_EXTRA_OPTIONS}"                 \
+      -D TRITON_DALI_SKIP_DOWNLOAD=OFF                                                \
+      -D TRITON_DALI_BUILD_IN_TRITON=ON                                               \
       .. &&                                                                           \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 

@@ -20,27 +20,29 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Using DALI's installed whl, find the location of DALI libs and DALI include dirs
-function(get_dali_paths DALI_INCLUDE_DIR_VAR DALI_LIB_DIR_VAR DALI_LIBRARIES_VAR)
+function(get_dali_paths PYTHON_BINARY DALI_INCLUDE_DIR_VAR DALI_LIB_DIR_VAR DALI_LIBRARIES_VAR)
 
     execute_process(
-            COMMAND python3 -c "import nvidia.dali as dali; print(dali.sysconfig.get_include_dir())"
+            COMMAND ${PYTHON_BINARY} -c "import nvidia.dali as dali; print(dali.sysconfig.get_include_dir())"
             OUTPUT_VARIABLE DALI_INCLUDE_DIR
             RESULT_VARIABLE INCLUDE_DIR_RESULT)
-    string(STRIP ${DALI_INCLUDE_DIR} DALI_INCLUDE_DIR)
 
     if (${INCLUDE_DIR_RESULT} EQUAL "1")
         message(FATAL_ERROR "Failed to get include paths for DALI. Make sure that DALI is installed.")
     endif ()
 
+    string(STRIP ${DALI_INCLUDE_DIR} DALI_INCLUDE_DIR)
+
     execute_process(
-            COMMAND python3 -c "import nvidia.dali as dali; print(dali.sysconfig.get_lib_dir())"
+            COMMAND ${PYTHON_BINARY} -c "import nvidia.dali as dali; print(dali.sysconfig.get_lib_dir())"
             OUTPUT_VARIABLE DALI_LIB_DIR
             RESULT_VARIABLE LIB_DIR_RESULT)
-    string(STRIP ${DALI_LIB_DIR} DALI_LIB_DIR)
 
     if (${LIB_DIR_RESULT} EQUAL "1")
         message(FATAL_ERROR "Failed to get library paths for DALI. Make sure that DALI is installed.")
     endif ()
+
+    string(STRIP ${DALI_LIB_DIR} DALI_LIB_DIR)
 
     set(${DALI_INCLUDE_DIR_VAR} ${DALI_INCLUDE_DIR} PARENT_SCOPE)
     set(${DALI_LIB_DIR_VAR} ${DALI_LIB_DIR} PARENT_SCOPE)

@@ -35,6 +35,7 @@ message(STATUS "Build configuration: " ${CMAKE_BUILD_TYPE})
 # projects included in this one by FetchContent.
 #
 option(TRITON_DALI_SKIP_DOWNLOAD "Don't download DALI. Use the version provided in the system" OFF)
+option(TRITON_DALI_BUILD_IN_TRITON "Turn this option on, if the DALI Backend is built inside Triton docker container." OFF)
 option(TRITON_ENABLE_GPU "Enable GPU support in backend" ON)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend" ON)
 option(WERROR "Trigger error on warnings" OFF)
