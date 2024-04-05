@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2020-2022 NVIDIA CORPORATION
+# Copyright (c) 2020-2024 NVIDIA CORPORATION
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -37,23 +37,28 @@ if(DALI_VERSION)
     string(APPEND CONF_DOWNLOAD_PKG "==${DALI_VERSION}")
 endif()
 
-configure_file(${tritondalibackend_SOURCE_DIR}/cmake/dalienv.yml.in dalienv.yml @ONLY)
-
-add_custom_command(
-    OUTPUT dali_env
+add_custom_command(  # Download and unpack DALI wheel
+    OUTPUT dali_whl
     COMMAND
-        conda env create -f dalienv.yml -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --force -q && conda update -p ${CMAKE_CURRENT_BINARY_DIR}/dalienv --all -c conda-forge -y -q && curl https://patch-diff.githubusercontent.com/raw/python/cpython/pull/99421.patch | patch -d ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python3.10/ -p2 -s -t || true
-    COMMAND touch dali_env  # So that this command won't be re-run every time
-    COMMENT "Building DALI conda environment."
+        pip download ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
+          -d ${CMAKE_CURRENT_BINARY_DIR}
+          ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
+    COMMAND
+        unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
+    COMMAND
+        pip install ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
+          ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
+    COMMAND touch dali_whl  # So that this command won't be re-run every time
+    COMMENT "Acquiring DALI release"
 )
 
-if(${TRITON_DALI_SKIP_DOWNLOAD})
+if (${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
-else()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dalienv/lib/python${PYTHON_VERSION}/site-packages/nvidia/dali)
+else ()
+    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali/include)
+    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
-endif()  # TRITON_DALI_SKIP_DOWNLOAD
+endif ()  # TRITON_DALI_SKIP_DOWNLOAD
 
 set(DALI_INCLUDE_DIR ${DALI_INCLUDE_DIR} PARENT_SCOPE)
 set(DALI_LIB_DIR ${DALI_LIB_DIR} PARENT_SCOPE)
@@ -67,7 +72,7 @@ add_library(
         dali_executor
         STATIC
         ${DALI_BACKEND_SRCS}
-        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_env>
+        $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_whl>
 )
 
 set_property(TARGET dali_executor PROPERTY CXX_STANDARD 17)
@@ -84,7 +89,7 @@ target_link_libraries(dali_executor PUBLIC
 
 target_compile_definitions(dali_executor PUBLIC)
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dalienv
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali/conda/envs
+    install(DIRECTORY ${DALI_LIB_DIR}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
             USE_SOURCE_PERMISSIONS)
 endif ()
