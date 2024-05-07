@@ -87,9 +87,6 @@ namespace detail {
 inline std::string GenerateAutoserializeCmd(const std::string& module_path,
                                             const std::string& target_file_path) {
   std::stringstream cmd;
-  if (!SKIP_DALI_DOWNLOAD) {
-    cmd << "/usr/bin/";
-  }
   cmd << R"py(python3 -c "
 import importlib, sys
 from nvidia.dali._utils.autoserialize import invoke_autoserialize
