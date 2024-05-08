@@ -2,6 +2,19 @@
 
 ## Model parameters
 
+### `num_threads`
+This parameter is used to control the number of CPU threads used by the DALI pipeline. It's equivalent to setting the `num_threads` parameter in the pipeline definition.
+
+Example use:
+```pbtxt
+parameters: [
+  {
+    key: "num_threads"
+    value: { string_value: "4" }
+  }
+]
+```
+
 ### `split_along_outer_axis`
 This parameters is used to split samples produced by a DALI pipeline removing their outer dimension.
 Example use:
