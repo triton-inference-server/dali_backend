@@ -44,19 +44,21 @@ add_custom_command(  # Download and unpack DALI wheel
           -d ${CMAKE_CURRENT_BINARY_DIR}
           ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
     COMMAND
-        unzip -q -o ${CMAKE_CURRENT_BINARY_DIR}/nvidia_dali*.whl -d ${CMAKE_CURRENT_BINARY_DIR}/dali
+        /bin/bash -c "ls ${CMAKE_CURRENT_BINARY_DIR}/*.whl"  # Debug line to make sure the files are there.
     COMMAND
-        pip install ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
-          ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
+        # I've spent a whole day writing the magical line below.
+        /bin/bash -c "for file in $(ls ${CMAKE_CURRENT_BINARY_DIR}/*.whl); do unzip -q -o $file -d ${CMAKE_CURRENT_BINARY_DIR}/dali; done"
     COMMAND touch dali_whl  # So that this command won't be re-run every time
     COMMENT "Acquiring DALI release"
+    VERBATIM
 )
 
 if (${TRITON_DALI_SKIP_DOWNLOAD})
     get_dali_paths(DALI_INCLUDE_DIR DALI_LIB_DIR DALI_LIBRARIES)
 else ()
-    set(DALI_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali/include)
-    set(DALI_LIB_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali/nvidia/dali)
+    set(DALI_WHL_DIR ${CMAKE_CURRENT_BINARY_DIR}/dali)
+    set(DALI_INCLUDE_DIR ${DALI_WHL_DIR}/nvidia/dali/include)
+    set(DALI_LIB_DIR ${DALI_WHL_DIR}/nvidia/dali)
     set(DALI_LIBRARIES dali dali_core dali_kernels dali_operators)
 endif ()  # TRITON_DALI_SKIP_DOWNLOAD
 
@@ -89,7 +91,7 @@ target_link_libraries(dali_executor PUBLIC
 
 target_compile_definitions(dali_executor PUBLIC)
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
-    install(DIRECTORY ${DALI_LIB_DIR}
-            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali
+    install(DIRECTORY ${DALI_WHL_DIR}
+            DESTINATION ${CMAKE_INSTALL_PREFIX}/backends/dali/wheel
             USE_SOURCE_PERMISSIONS)
 endif ()
