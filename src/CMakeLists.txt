@@ -79,8 +79,8 @@ target_link_libraries(
 )
 
 if (NOT ${TRITON_DALI_SKIP_DOWNLOAD})
-        # path to the DALI backend
-        set(DALI_NV_INSTALL_PATH "$\{ORIGIN\}/dali")
+        # path to the DALI shared libraries
+        set(DALI_NV_INSTALL_PATH "$\{ORIGIN\}/wheel/dali/nvidia/dali")
 else()
         # path to the predownloaded DALI instance
         set(DALI_NV_INSTALL_PATH ${DALI_LIB_DIR})
