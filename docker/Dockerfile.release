@@ -63,23 +63,9 @@ RUN CMAKE_VERSION=3.18 && \
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
     rm -rf /cmake-${CMAKE_BUILD}
 
-# Miniconda
-ENV PATH="/opt/conda/bin:${PATH}"
-RUN MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py310_24.1.2-0-Linux-x86_64.sh"; \
-    SHA256SUM="8eb5999c2f7ac6189690d95ae5ec911032fa6697ae4b34eb3235802086566d78"; \
-    wget "${MINICONDA_URL}" -O miniconda.sh -q && \
-    echo "${SHA256SUM} miniconda.sh" > shasum && \
-    sha256sum -c ./shasum && \
-    sh miniconda.sh -b -p /opt/conda && \
-    rm miniconda.sh shasum && \
-    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc && \
-    find /opt/conda/ -follow -type f -name '*.a' -delete && \
-    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
-    /opt/conda/bin/conda clean -afy
-
 WORKDIR /dali
+
+RUN rm -rf /opt/tritonserver/backends/dali
 
 ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
 ARG DALI_DOWNLOAD_PKG_NAME
@@ -104,5 +90,6 @@ RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                           
     make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
 
 ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:${LD_LIBRARY_PATH}
+ENV PYTHONPATH=/opt/tritonserver/backends/dali/wheel/dali
 
 WORKDIR /opt/tritonserver
