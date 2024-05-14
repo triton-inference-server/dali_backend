@@ -93,3 +93,5 @@ ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=/opt/tritonserver/backends/dali/wheel/dali
 
 WORKDIR /opt/tritonserver
+
+RUN rm -rf /dali
