@@ -40,14 +40,9 @@ endif()
 add_custom_command(  # Download and unpack DALI wheel
     OUTPUT dali_whl
     COMMAND
-        pip download ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
-          -d ${CMAKE_CURRENT_BINARY_DIR}
+        pip install ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
+          --target ${CMAKE_CURRENT_BINARY_DIR}/dali
           ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
-    COMMAND
-        /bin/bash -c "ls ${CMAKE_CURRENT_BINARY_DIR}/*.whl"  # Debug line to make sure the files are there.
-    COMMAND
-        # I've spent a whole day writing the magical line below.
-        /bin/bash -c "for file in $(ls ${CMAKE_CURRENT_BINARY_DIR}/*.whl); do unzip -q -o $file -d ${CMAKE_CURRENT_BINARY_DIR}/dali; done"
     COMMAND touch dali_whl  # So that this command won't be re-run every time
     COMMENT "Acquiring DALI release"
     VERBATIM
