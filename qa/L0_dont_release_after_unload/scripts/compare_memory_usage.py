@@ -51,7 +51,9 @@ def test_condition(pre, post, epsilon):
 def main():
     mem_usage_pre = get_memory_usage('/tmp/mu_pre.xml')
     mem_usage_post = get_memory_usage('/tmp/mu_post.xml')
-    if not test_condition(mem_usage_pre, mem_usage_post, 1000):
+    # The test threshold is 500 which matches the memory consumption of
+    # the input data size - 1920x1280 image, batch size 64
+    if not test_condition(mem_usage_pre, mem_usage_post, 500):
         sys.exit(1)
 
 
