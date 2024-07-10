@@ -49,7 +49,7 @@ MODEL_REPO="$(pwd)/docs/examples/efficientnet/model_repository"
 SERVER_CONTAINER_NAME="efficientnet.server"
 CLIENT_CONTAINER_NAME="efficientnet.client"
 
-docker run -dt --rm $DOCKER_RUN_ARGS --name ${SERVER_CONTAINER_NAME} --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 --gpus all -p8000:8000 -p8001:8001 -p8002:8002 --privileged -v $MODEL_REPO:/model_repository nvcr.io/nvidia/tritonserver:23.07-py3 tritonserver --model-repository /model_repository --log-verbose 1 --model-control-mode explicit
+docker run -dt --rm $DOCKER_RUN_ARGS --name ${SERVER_CONTAINER_NAME} --shm-size=50g --ulimit memlock=-1 --ulimit stack=67108864 --gpus all -p8000:8000 -p8001:8001 -p8002:8002 --privileged -v $MODEL_REPO:/model_repository nvcr.io/nvidia/tritonserver:24.05-py3 tritonserver --model-repository /model_repository --log-verbose 1 --model-control-mode explicit
 
 echo "Waiting for tritonserver to wake up..."
 sleep 30
@@ -57,6 +57,6 @@ echo "... should be enough."
 
 popd || exit 1
 
-docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:23.07-py3-sdk bash run-benchmarks.sh $2
+docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:24.05-py3-sdk bash run-benchmarks.sh $2
 
 docker kill ${SERVER_CONTAINER_NAME}
