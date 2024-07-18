@@ -30,4 +30,5 @@ from nvidia.dali.plugin.triton import autoserialize
 def pipeline():
   inp1 = fn.external_source(device='cpu', name='DALI_INPUT_0', dtype=dali.types.FLOAT16, ndim=1)
   inp2 = fn.external_source(device='gpu', name='DALI_INPUT_1', dtype=dali.types.FLOAT16, ndim=1)
-  return inp1.gpu() / 3, fn.cast(inp2, dtype=dali.types.FLOAT) / 2
+  return fn.reshape(inp1.gpu() / 3, layout='', name='DALI_OUTPUT_0'), \
+         fn.cast(inp2 / 2, dtype=dali.types.FLOAT, name='DALI_OUTPUT_1')
