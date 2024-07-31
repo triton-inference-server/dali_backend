@@ -50,3 +50,5 @@ sed -i "s|ARG TRITON_VERSION=${version_pattern}|ARG TRITON_VERSION=$1|g" docker/
 # Efficientnet example
 sed -i "s|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:${version_pattern}-py3|+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:$1-py3|g" docs/examples/efficientnet/0001-Update-requirements-and-add-Dockerfile.bench.patch
 sed -i "s|FROM nvcr.io/nvidia/tritonserver:${version_pattern}-py3|FROM nvcr.io/nvidia/tritonserver:$1-py3|g" benchmarks/BM_efficientnet/Dockerfile.torch
+sed -i "s|nvcr.io/nvidia/tritonserver:${version_pattern}-py3|nvcr.io/nvidia/tritonserver:$1-py3|g" benchmarks/BM_efficientnet/benchmark-cpu.sh
+sed -i "s|nvcr.io/nvidia/tritonserver:${version_pattern}-py3|nvcr.io/nvidia/tritonserver:$1-py3|g" benchmarks/BM_efficientnet/benchmark.sh
