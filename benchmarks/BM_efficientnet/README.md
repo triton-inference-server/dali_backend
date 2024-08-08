@@ -91,4 +91,4 @@ size will be dumped into a separate file, with the pattern: `report-<batch_size>
 all the reports will be combined into one output file per benchmark run in the `combined.csv` file.
 
 Since `perf_analyzer` is used for the benchmark, the meaning of all the values in the report
-may be found in the [`perf_analyzer` documentation](https://github.com/triton-inference-server/client/blob/main/src/c++/perf_analyzer/README.md).
+may be found in the [`perf_analyzer` documentation](https://github.com/triton-inference-server/perf_analyzer/blob/main/README.md).
