@@ -1,6 +1,5 @@
 # DALI TRITON Backend
 
-##### **NOTE:** `dali_backend` is available in `tritonserver-20.11` and later
 <!---->
 `dali_backend` is new and rapidly growing. Official `tritonserver` releases might be behind
 on some features and bug fixes. We encourage you to use the latest version of `dali_backend`.
