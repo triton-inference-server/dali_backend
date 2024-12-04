@@ -44,13 +44,13 @@ RUN apt-key adv --fetch-keys \
               autogen          \
               unzip            \
               python3.8        \
-              python3-pip      \
               libboost-all-dev \
               rapidjson-dev    \
-              gdb
+              gdb && \
+    (apt-get remove -y python3-pip || echo "pip not installed from apt")
 
 # pip version in apt packages is ancient - we need to update it
-RUN pip3 install -U pip
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
 WORKDIR /opt
 
