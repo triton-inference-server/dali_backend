@@ -26,7 +26,7 @@
 # the whole tritonserver, start from here.
 # -------------------------------------------------- #
 
-ARG TRITON_VERSION=24.09
+ARG TRITON_VERSION=24.11
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
@@ -46,10 +46,11 @@ RUN apt-key adv --fetch-keys \
               unzip            \
               libboost-all-dev \
               rapidjson-dev && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    (apt-get remove -y python3-pip || echo "pip not installed from apt")
 
 # pip version in apt packages is ancient - we need to update it
-RUN pip3 install -U pip
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
 WORKDIR /opt
 
