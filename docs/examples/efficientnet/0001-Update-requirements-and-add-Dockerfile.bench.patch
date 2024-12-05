@@ -26,7 +26,7 @@ index 00000000..4c180272
 +WORKDIR /DeepLearningExamples/PyTorch/Classification/ConvNets
 +RUN pip install --no-cache-dir -r requirements.txt
 diff --git a/PyTorch/Classification/ConvNets/requirements.txt b/PyTorch/Classification/ConvNets/requirements.txt
-index 12c2c63b..f9c2922e 100644
+index 12c2c63b..c703bd36 100644
 --- a/PyTorch/Classification/ConvNets/requirements.txt
 +++ b/PyTorch/Classification/ConvNets/requirements.txt
 @@ -1,2 +1,4 @@
@@ -34,6 +34,5 @@ index 12c2c63b..f9c2922e 100644
  pynvml==11.0.0
 +grpcio>=1.67.0,<1.68  # the generated code in tritonclient.grpc grpc_service_pb2_grpc.py depends on grpcio>=1.67.0
 +triton-model-navigator
--- 
 2.34.1
 
