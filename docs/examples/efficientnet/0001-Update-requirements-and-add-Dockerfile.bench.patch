@@ -29,9 +29,10 @@ diff --git a/PyTorch/Classification/ConvNets/requirements.txt b/PyTorch/Classifi
 index 12c2c63b..f9c2922e 100644
 --- a/PyTorch/Classification/ConvNets/requirements.txt
 +++ b/PyTorch/Classification/ConvNets/requirements.txt
-@@ -1,2 +1,3 @@
+@@ -1,2 +1,4 @@
  git+https://github.com/NVIDIA/dllogger@v1.0.0#egg=dllogger
  pynvml==11.0.0
++grpcio>=1.67.0,<1.68  # the generated code in tritonclient.grpc grpc_service_pb2_grpc.py depends on grpcio>=1.67.0
 +triton-model-navigator
 -- 
 2.34.1
