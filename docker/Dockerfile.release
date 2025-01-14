@@ -26,7 +26,7 @@
 # the whole tritonserver, start from here.
 # -------------------------------------------------- #
 
-ARG TRITON_VERSION=24.11
+ARG TRITON_VERSION=24.12
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
