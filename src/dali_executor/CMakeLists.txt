@@ -40,7 +40,7 @@ endif()
 add_custom_command(  # Download and unpack DALI wheel
     OUTPUT dali_whl
     COMMAND
-        pip install ${EXTRA_DOWNLOAD_ARGS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
+        pip install ${DALI_DOWNLOAD_EXTRA_OPTIONS} --extra-index-url ${DALI_EXTRA_INDEX_URL}
           --target ${CMAKE_CURRENT_BINARY_DIR}/dali
           ${DALI_DOWNLOAD_PKG_NAME}$<$<BOOL:${DALI_VERSION}>:==${DALI_VERSION}>
     COMMAND touch dali_whl  # So that this command won't be re-run every time
