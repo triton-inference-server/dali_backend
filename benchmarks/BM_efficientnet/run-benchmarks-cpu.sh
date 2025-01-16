@@ -47,10 +47,11 @@ done
 # Feel free to assign BATCH_SIZES manually...
 #BATCH_SIZES=(1 2 4 8 16 32 64)
 
-CONCURRENCY_RANGE=${CONCURRENCY_RANGE:-"16:512:16"}
+CONCURRENCY_RANGE=(1 16 32 64)
+
 GRPC_ADDR=${GRPC_ADDR:-"localhost:8001"}
 STABILITY_PERCENTAGE=50
-PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR -s $STABILITY_PERCENTAGE --verbose-csv --collect-metrics"
+PERF_ANALYZER_ARGS="-i grpc -u $GRPC_ADDR --request-count=64 --verbose-csv --collect-metrics"
 INPUT_NAME="INPUT"
 BENCH_DIR="bench-$(date +%Y%m%d_%H%M%S)"
 
@@ -62,10 +63,12 @@ for BS in "${BATCH_SIZES[@]}"; do
 done
 
 for BS in "${BATCH_SIZES[@]}"; do
-  echo "Benchmarking CPU preprocessing. Batch size: $BS"
-  load_models
-  perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY_RANGE -b "$BS" -f "$BENCH_DIR/cpu/report-$BS.csv"
-  unload_models
+  for CONCURRENCY in "${CONCURRENCY_RANGE[@]}"; do
+    echo "Benchmarking CPU preprocessing. Batch size: $BS"
+    load_models
+    perf_analyzer $PERF_ANALYZER_ARGS -m efficientnet_ensemble_cpu --input-data test_sample --shape $INPUT_NAME:$(stat --printf="%s" test_sample/$INPUT_NAME) --concurrency-range=$CONCURRENCY -b "$BS" -f "$BENCH_DIR/cpu/report-bs$BS-c$CONCURRENCY.csv"
+    unload_models
+  done
 done
 
 pip install -U pandas

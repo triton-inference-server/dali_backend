@@ -36,11 +36,11 @@ def list_reports(reports_path):
 
 
 def parse_batch_size(report_file_name):
-    return int(re.search(r'\d+', report_file_name).group())
+    return int(re.search(r'bs\d+', report_file_name).group()[2:])
 
 
 def validate_report_file_name(report_file_name):
-    return re.match(r'report-\d+\.csv', report_file_name) is not None
+    return re.match(r'report-bs\d+-c\d+\.csv', report_file_name) is not None
 
 
 def insert_batch_size_column(report_csv, batch_size):
