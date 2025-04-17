@@ -1,6 +1,8 @@
+#!/bin/bash -ex
+
 # The MIT License (MIT)
 #
-# Copyright (c) 2021-2025 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -19,22 +21,6 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: "resnet50_trt"
-platform: "tensorrt_plan"
-max_batch_size: 256
-input [
-{
-    name: "input"
-    data_type: TYPE_FP32
-    dims: [ 3, 224, 224 ]
-    
-}
-]
-output[
-{
-    name: "output"
-    data_type: TYPE_FP32
-    dims: [ 1000 ]
-    label_filename: "labels.txt"
-}
-]
+: ${GRPC_ADDR:=${1:-"localhost:8001"}}
+
+python test_client.py --batch_size 64 --n_iter 5 --model_name ensemble_dali_resnet50 --img_dir images -u $GRPC_ADDR
