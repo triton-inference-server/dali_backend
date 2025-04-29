@@ -1,5 +1,3 @@
-#!/bin/bash -ex
-
 # The MIT License (MIT)
 #
 # Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES
@@ -21,19 +19,21 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/resnet50_trt/model_repository/* model_repository/
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/resnet50_trt/onnx_exporter.py .
-cp -r ${DALI_BACKEND_REPO_ROOT}/docs/examples/resnet50_trt/serialize_dali_pipeline.py .
-
-cp model_repository/resnet50_trt/labels.txt model_repository/resnet50_onnx/
-rm -r model_repository/resnet50_trt/
-
-mkdir -p model_repository/dali/1
-mkdir -p model_repository/ensemble_dali_resnet50/1
-mkdir -p model_repository/resnet50_onnx/1
-
-
-python3 onnx_exporter.py --save ./model_repository/resnet50_onnx/1/model.onnx
-python3 serialize_dali_pipeline.py --save ./model_repository/dali/1/model.dali
-
-sed -i -e 's/resnet50_trt/resnet50_onnx/g' ./model_repository/ensemble_dali_resnet50/config.pbtxt
+name: "resnet50_onnx"
+platform: "onnxruntime_onnx"
+max_batch_size: 256
+input [
+{
+    name: "input"
+    data_type: TYPE_FP32
+    dims: [ 3, 224, 224 ]
+}
+]
+output[
+{
+    name: "output"
+    data_type: TYPE_FP32
+    dims: [ 1000 ]
+    label_filename: "labels.txt"
+}
+]

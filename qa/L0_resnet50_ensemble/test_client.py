@@ -55,9 +55,7 @@ def load_image(img_path: str):
     Loads image as an encoded array of bytes.
     This is a typical approach you want to use in DALI backend
     """
-    with open(img_path, "rb") as f:
-        img = f.read()
-        return np.array(list(img)).astype(np.uint8)
+    return np.fromfile(img_path, dtype=np.uint8)
 
 
 def load_images(dir_path: str):
@@ -110,14 +108,6 @@ def batcher(dataset, max_batch_size, n_iterations=-1):
         data_idx += batch_size
 
 
-def save_byte_image(bytes, size_wh=(299, 299), name_suffix=0):
-    """
-    Utility function, that can be used to save byte array as an image
-    """
-    im = Image.frombytes("RGB", size_wh, bytes, "raw")
-    im.save("result_img_" + str(name_suffix) + ".jpg")
-
-
 def main():
     FLAGS = parse_args()
     try:
@@ -127,7 +117,6 @@ def main():
         sys.exit(1)
 
     model_name = FLAGS.model_name
-    model_version = -1
 
     print("Loading images")
 
@@ -145,7 +134,6 @@ def main():
 
     img_idx = 0
     for batch in batcher(image_data, FLAGS.batch_size):
-        print("Input mean before backend processing:", np.mean(batch))
         input_shape[0] = np.shape(batch)[0]
         print("Batch size: ", input_shape[0])
         inputs = [tritongrpcclient.InferInput(input_name, input_shape, "UINT8")]
@@ -159,15 +147,12 @@ def main():
 
         # Get the output arrays from the results
         output0_data = results.as_numpy(output_name)
-        print("Output mean after backend processing:", np.mean(output0_data))
         print("Output shape: ", np.shape(output0_data))
         maxs = np.argmax(output0_data, axis=1)
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
-            if maxs[i] != labels[img_idx]:
-                sys.exit(1)
-            else:
-                print("pass")
+            assert(maxs[i] == labels[img_idx])
+            print("pass")
             img_idx += 1
 
     statistics = triton_client.get_inference_statistics(model_name=model_name)
