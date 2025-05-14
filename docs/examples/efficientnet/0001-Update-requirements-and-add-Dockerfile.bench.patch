@@ -1,37 +1,38 @@
-From 56b759bd1dbd1464730fcf512680be393a8674b5 Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Micha=C5=82=20Szo=C5=82ucha?= <mszolucha@nvidia.com>
-Date: Wed, 23 Aug 2023 14:10:21 +0200
+From f5313701130a1c22efb8c38ff546d640175ef2bb Mon Sep 17 00:00:00 2001
+From: Rafal Banas <rbanas@nvidia.com>
+Date: Mon, 12 May 2025 17:20:47 +0200
 Subject: [PATCH] Update requirements and add Dockerfile.bench
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
 
-Signed-off-by: Michał Szołucha <mszolucha@nvidia.com>
+Signed-off-by: Rafal Banas <rbanas@nvidia.com>
 ---
- Dockerfile.bench                                 | 6 ++++++
- PyTorch/Classification/ConvNets/requirements.txt | 1 +
- 2 files changed, 7 insertions(+)
+ Dockerfile.bench                                 | 9 +++++++++
+ PyTorch/Classification/ConvNets/requirements.txt | 4 +++-
+ 2 files changed, 12 insertions(+), 1 deletion(-)
  create mode 100644 Dockerfile.bench
 
 diff --git a/Dockerfile.bench b/Dockerfile.bench
 new file mode 100644
-index 00000000..4c180272
+index 00000000..d038afd6
 --- /dev/null
 +++ b/Dockerfile.bench
-@@ -0,0 +1,6 @@
+@@ -0,0 +1,9 @@
 +ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:25.03-py3
 +FROM ${FROM_IMAGE_NAME}
++
++RUN echo "" > /etc/pip/constraint.txt
 +
 +ADD . /DeepLearningExamples
 +WORKDIR /DeepLearningExamples/PyTorch/Classification/ConvNets
 +RUN pip install --no-cache-dir -r requirements.txt
++
 diff --git a/PyTorch/Classification/ConvNets/requirements.txt b/PyTorch/Classification/ConvNets/requirements.txt
-index 12c2c63b..f9c2922e 100644
+index 12c2c63b..27e7273c 100644
 --- a/PyTorch/Classification/ConvNets/requirements.txt
 +++ b/PyTorch/Classification/ConvNets/requirements.txt
 @@ -1,2 +1,4 @@
  git+https://github.com/NVIDIA/dllogger@v1.0.0#egg=dllogger
- pynvml==11.0.0
+-pynvml==11.0.0
++pynvml==12.0.0
 +grpcio>=1.67.0,<1.68  # the generated code in tritonclient.grpc grpc_service_pb2_grpc.py depends on grpcio>=1.67.0
 +triton-model-navigator
 -- 
