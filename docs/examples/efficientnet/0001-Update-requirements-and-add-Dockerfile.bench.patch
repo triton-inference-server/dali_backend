@@ -16,7 +16,7 @@ index 00000000..d038afd6
 --- /dev/null
 +++ b/Dockerfile.bench
 @@ -0,0 +1,9 @@
-+ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:25.03-py3
++ARG FROM_IMAGE_NAME=nvcr.io/nvidia/pytorch:25.04-py3
 +FROM ${FROM_IMAGE_NAME}
 +
 +RUN echo "" > /etc/pip/constraint.txt
