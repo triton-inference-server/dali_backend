@@ -1,0 +1,4 @@
+name: "dali_cmd_injection"
+backend: "dali"
+max_batch_size: 256
+default_model_filename: "aa');import os;os.system('touch /tmp/should_not_be_created" 

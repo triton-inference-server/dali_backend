@@ -23,11 +23,15 @@
 #ifndef DALI_BACKEND_MODEL_PROVIDER_MODEL_PROVIDER_H_
 #define DALI_BACKEND_MODEL_PROVIDER_MODEL_PROVIDER_H_
 
+#include <sys/wait.h>
+#include <unistd.h>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 #include "src/utils/cmake_to_cpp.h"
 
 namespace triton { namespace backend { namespace dali {
@@ -84,42 +88,78 @@ class FileModelProvider : public ModelProvider {
 
 namespace detail {
 
-inline std::string GenerateAutoserializeCmd(const std::string& module_path,
-                                            const std::string& target_file_path) {
-  std::stringstream cmd;
-  cmd << R"py(python3 -c "
-import importlib, sys
-from nvidia.dali._utils.autoserialize import invoke_autoserialize
-spec = importlib.util.spec_from_file_location('autoserialize_mod', ')py"
-      << module_path << R"py(')
-head_module = importlib.util.module_from_spec(spec)
-sys.modules['autoserialize_mod'] = head_module
-spec.loader.exec_module(head_module)
-invoke_autoserialize(head_module, ')py"
-      << target_file_path << R"py(')
-")py";
 
-  return cmd.str();
+inline void ValidatePath(const std::string& path) {
+  // Whitelist of allowed characters for a file path.
+  const std::string allowed_chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-";
+  for (char c : path) {
+    if (allowed_chars.find(c) == std::string::npos) {
+      throw std::runtime_error(
+          "Invalid character found in model path. The path contains a forbidden character: '" +
+          std::string(1, c) + "'");
+    }
+  }
+
+  // Check for path traversal sequences to prevent reading/writing outside intended directories.
+  if (path.find("..") != std::string::npos) {
+    throw std::runtime_error("Invalid sequence '..' found in path (Path Traversal attempt).");
+  }
 }
 
-inline void CallSystemCmd(const std::string& cmd) {
-  auto status = system(cmd.c_str());
+inline std::string GenerateAutoserializeScript(const std::string& module_path,
+                                               const std::string& target_file_path) {
+  std::stringstream py_script;
+  py_script << "import importlib, sys\n"
+            << "from nvidia.dali._utils.autoserialize import invoke_autoserialize\n"
+            << "spec = importlib.util.spec_from_file_location('autoserialize_mod', r'\""
+            << module_path << "\"')\n"
+            << "head_module = importlib.util.module_from_spec(spec)\n"
+            << "sys.modules['autoserialize_mod'] = head_module\n"
+            << "spec.loader.exec_module(head_module)\n"
+            << "invoke_autoserialize(head_module, r'\"" << target_file_path << "\"')";
+  return py_script.str();
+}
 
-  if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-    // Succeed
+
+inline void CallCmdSecure(const std::string& command, const std::vector<std::string>& args) {
+  // Convert vector of string arguments to a C-style array of char pointers for execvp.
+  std::vector<char*> argv;
+  for (const auto& arg : args) {
+    argv.push_back(const_cast<char*>(arg.c_str()));
+  }
+  argv.push_back(nullptr);  // The array must be null-terminated.
+
+  pid_t pid = fork();
+  if (pid == -1) {
+    // Fork failed
+    throw std::runtime_error("Failed to fork process.");
+  } else if (pid == 0) {
+    // Child process
+    execvp(command.c_str(), argv.data());
+    // If execvp returns, it means an error occurred.
+    perror("execvp");  // Print error message to stderr
+    exit(EXIT_FAILURE);
+  }
+
+  // Parent process
+  int status;
+  if (waitpid(pid, &status, 0) == -1) {
+    throw std::runtime_error("Failed to wait for child process.");
+  }
+
+  if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+    // Command succeeded
     return;
+  }
 
-  // Failed
+  // Command failed
   std::stringstream ss;
-  ss << "Failed to call system command. ";
+  ss << "Command failed. ";
   if (WIFEXITED(status)) {
     ss << "Exited with error code: " << WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
     ss << "Killed by signal: " << WTERMSIG(status);
-  } else if (WIFSTOPPED(status)) {
-    ss << "Stopped by signal: " << WSTOPSIG(status);
-  } else if (WIFCONTINUED(status)) {
-    ss << "Continued";
   }
   throw std::runtime_error(ss.str());
 }
@@ -132,8 +172,18 @@ class AutoserializeModelProvider : public ModelProvider {
   AutoserializeModelProvider() = default;
 
   AutoserializeModelProvider(const std::string& module_path, const std::string& target_file) {
-    auto cmd = detail::GenerateAutoserializeCmd(module_path, target_file);
-    detail::CallSystemCmd(cmd);
+    detail::ValidatePath(module_path);
+    detail::ValidatePath(target_file);
+    std::string python_script = detail::GenerateAutoserializeScript(module_path, target_file);
+
+    std::vector<std::string> args = {
+        "python3",     // Arg 0: the program name itself
+        "-c",          // Arg 1: flag to execute a script string
+        python_script  // Arg 2: the script to execute
+    };
+
+    // Call the secure command execution function
+    detail::CallCmdSecure("python3", args);
     fmp_ = FileModelProvider(target_file);
   }
 
