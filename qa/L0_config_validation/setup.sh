@@ -42,9 +42,7 @@ cp pipeline_cpu.py model_repository/model4_cpu_invalid_missing_output/1/dali.py
 echo "model4_cpu_invalid_missing_output ready"
 
 mkdir -p model_repository/model5_invalid_default_model_filename/1
-cp pipeline_cpu.py model_repository/model5_invalid_default_model_filename/1/dali.py
 echo "model5_invalid_default_model_filename ready"
 
 mkdir -p model_repository/model6_invalid_default_model_filename/1
-cp pipeline_cpu.py model_repository/model6_invalid_default_model_filename/1/dali.py
 echo "model6_invalid_default_model_filename ready"
