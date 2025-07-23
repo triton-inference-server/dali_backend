@@ -152,6 +152,7 @@ class AutoserializeModelProvider : public ModelProvider {
 
   AutoserializeModelProvider(const std::string& module_path, const std::string& target_file) {
     detail::ValidatePath(module_path);
+    detail::ValidatePath(target_file);
     auto cmd = detail::GenerateAutoserializeCmd(module_path, target_file);
     detail::CallSystemCmd(cmd);
     fmp_ = FileModelProvider(target_file);
