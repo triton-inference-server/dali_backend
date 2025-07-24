@@ -62,11 +62,11 @@ def test_loading(url):
   print('model4_cpu_invalid_missing_output OK')
 
   assert_error(client.load_model, 'model5_invalid_default_model_filename',
-               contains="contains forbidden character: '''")
+               contains="contains an invalid character: '''")
   print('model5_invalid_default_model_filename OK')
 
   assert_error(client.load_model, 'model6_invalid_default_model_filename',
-               contains="Invalid '..' sequence found in model path:")
+               contains="contains an invalid character: '/'")
   print('model6_invalid_default_model_filename OK')
 
 def parse_args():

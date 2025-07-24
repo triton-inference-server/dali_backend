@@ -112,7 +112,7 @@ namespace detail {
 
 inline constexpr bool is_char_filename_allowed(char c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
-         c == '.';
+         c == '.' || c == '-';
 }
 
 inline constexpr bool is_char_path_allowed(char c) {
@@ -124,8 +124,9 @@ inline constexpr bool is_char_path_allowed(char c) {
 inline void ValidateFilename(std::string_view path) {
   for (char c : path) {
     if (!detail::is_char_filename_allowed(c)) {
-      throw std::runtime_error("Model file path '" + std::string(path) +
-                               "' contains forbidden character: '" + std::string(1, c) + "'");
+      throw std::runtime_error("Model file name '" + std::string(path) +
+                               "' contains an invalid character: '" + std::string(1, c) + "'" +
+                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -");
     }
   }
 }
@@ -133,8 +134,9 @@ inline void ValidateFilename(std::string_view path) {
 inline void ValidateAbsPath(std::string_view path) {
   for (char c : path) {
     if (!detail::is_char_path_allowed(c)) {
-      throw std::runtime_error("Model file path '" + std::string(path) +
-                               "' contains forbidden character: '" + std::string(1, c) + "'");
+      throw std::runtime_error("File path '" + std::string(path) +
+                               "' contains an invalid character: '" + std::string(1, c) + "'" +
+                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -, /");
     }
   }
 
