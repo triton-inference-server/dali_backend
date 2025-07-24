@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2025 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -132,6 +132,7 @@ class AutoserializeModelProvider : public ModelProvider {
   AutoserializeModelProvider() = default;
 
   AutoserializeModelProvider(const std::string& module_path, const std::string& target_file) {
+    ValidateAbsPath(target_file);
     auto cmd = detail::GenerateAutoserializeCmd(module_path, target_file);
     detail::CallSystemCmd(cmd);
     fmp_ = FileModelProvider(target_file);

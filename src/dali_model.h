@@ -141,9 +141,15 @@ class DaliModel : public ::triton::backend::BackendModel {
 
     std::string model_path = make_string(model_repo_path, sep, version_, sep);
 
+    auto model_filename = GetModelFilename();
+    ValidateFilename(model_filename);
+
     std::stringstream default_model, fallback_model;
-    default_model << model_path << GetModelFilename();
+    default_model << model_path << model_filename;
     fallback_model << model_path << fallback_model_filename_;
+
+    ValidateAbsPath(default_model.str());
+    ValidateAbsPath(fallback_model.str());
 
     ReadParams();
 

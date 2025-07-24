@@ -108,6 +108,44 @@ inline std::string tmp_model_file() {
   return std::string(templat);
 }
 
+namespace detail {
+
+inline constexpr bool is_char_filename_allowed(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
+         c == '.' || c == '-';
+}
+
+inline constexpr bool is_char_path_allowed(char c) {
+  return is_char_filename_allowed(c) || c == '/';
+}
+
+}  // namespace detail
+
+inline void ValidateFilename(std::string_view path) {
+  for (char c : path) {
+    if (!detail::is_char_filename_allowed(c)) {
+      throw std::runtime_error("Model file name '" + std::string(path) +
+                               "' contains an invalid character: '" + std::string(1, c) + "'" +
+                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -");
+    }
+  }
+}
+
+inline void ValidateAbsPath(std::string_view path) {
+  for (char c : path) {
+    if (!detail::is_char_path_allowed(c)) {
+      throw std::runtime_error("File path '" + std::string(path) +
+                               "' contains an invalid character: '" + std::string(1, c) + "'" +
+                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -, /");
+    }
+  }
+
+  if (path.find("..") != std::string_view::npos) {
+    throw std::runtime_error("Invalid '..' sequence found in model path: '" + std::string(path) +
+                             "'");
+  }
+}
+
 }}}  // namespace triton::backend::dali
 
 #endif  // DALI_BACKEND_UTILS_UTILS_H_

@@ -1,6 +1,6 @@
 # The MIT License (MIT)
 #
-# Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -61,7 +61,13 @@ def test_loading(url):
                         'Pipeline outputs: 2')
   print('model4_cpu_invalid_missing_output OK')
 
+  assert_error(client.load_model, 'model5_invalid_default_model_filename',
+               contains="contains an invalid character: '''")
+  print('model5_invalid_default_model_filename OK')
 
+  assert_error(client.load_model, 'model6_invalid_default_model_filename',
+               contains="contains an invalid character: '/'")
+  print('model6_invalid_default_model_filename OK')
 
 def parse_args():
     parser = argparse.ArgumentParser()
