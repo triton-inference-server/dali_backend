@@ -84,25 +84,6 @@ class FileModelProvider : public ModelProvider {
 
 namespace detail {
 
-constexpr bool is_char_allowed(char c) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '/' ||
-         c == '.' || c == '_';
-}
-
-inline void ValidatePath(std::string_view path) {
-  for (char c : path) {
-    if (!is_char_allowed(c)) {
-      throw std::runtime_error("Model file path '" + std::string(path) +
-                               "' contains forbidden character: '" + std::string(1, c) + "'");
-    }
-  }
-
-  if (path.find("..") != std::string_view::npos) {
-    throw std::runtime_error("Invalid '..' sequence found in model path: '" + std::string(path) +
-                             "'");
-  }
-}
-
 inline std::string GenerateAutoserializeCmd(const std::string& module_path,
                                             const std::string& target_file_path) {
   std::stringstream cmd;
@@ -151,8 +132,7 @@ class AutoserializeModelProvider : public ModelProvider {
   AutoserializeModelProvider() = default;
 
   AutoserializeModelProvider(const std::string& module_path, const std::string& target_file) {
-    detail::ValidatePath(module_path);
-    detail::ValidatePath(target_file);
+    ValidateAbsPath(target_file);
     auto cmd = detail::GenerateAutoserializeCmd(module_path, target_file);
     detail::CallSystemCmd(cmd);
     fmp_ = FileModelProvider(target_file);
