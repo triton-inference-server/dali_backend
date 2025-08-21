@@ -31,7 +31,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # TODO: Extend
 def type_to_string(dtype):
-  if dtype == np.half:
+  if dtype == np.uint8:
+    return "UINT8"
+  elif dtype == np.half:
     return "FP16"
   if dtype == np.single:
     return "FP32"
@@ -53,8 +55,7 @@ def grouper(n, iterable):
             return
         yield chunk
 
-
-class TestClient:
+class TritonClient:
   def __init__(self, model_name: str, input_names: Sequence[str], output_names: Sequence[str],
                url, concurrency=1, verbose=False):
     self.client = t_client.InferenceServerClient(url=url, verbose=verbose)
@@ -70,6 +71,7 @@ class TestClient:
     return inp
 
   def test_infer(self, data, it):
+    print('len data', len(data))
     assert(len(data) == len(self.input_names))
     if (len(data) > 1):
       for b in data:
@@ -79,6 +81,11 @@ class TestClient:
     res = self.client.infer(model_name=self.model_name, inputs=inputs, outputs=outputs)
     res_data = [res.as_numpy(name) for name in self.output_names]
     return it, data, res_data
+
+class TestClient(TritonClient):
+  def __init__(self, model_name: str, input_names: Sequence[str], output_names: Sequence[str],
+               url, concurrency=1, verbose=False):
+    TritonClient.__init__(self, model_name, input_names, output_names, url, concurrency, verbose)              
 
   def run_tests(self, data, compare_to, n_infers=-1, eps=1e-7):
     generator = data if n_infers < 1 else islice(cycle(data), n_infers)
@@ -100,3 +107,26 @@ class TestClient:
               print("Mean err", (out - ref_out).mean())
               assert False
           print('PASS iteration:', it)
+
+
+class ClassificationClient(TritonClient):
+  def __init__(self, model_name: str, input_names: Sequence[str], output_names: Sequence[str],
+               url, concurrency=1, verbose=False):
+    TritonClient.__init__(self, model_name, input_names, output_names, url, concurrency, verbose)
+
+  def test_accuracy(self, data_labeled, n_infers=-1):
+    generator = data_labeled if n_infers < 1 else islice(cycle(data_labeled), n_infers)
+    correct = 0
+    incorrect = 0
+    for pack in grouper(self.concurrency, enumerate(generator)):
+      with ThreadPoolExecutor(max_workers=self.concurrency) as executor:
+          results_f = [executor.submit(lambda d, i: (self.test_infer(d, i), label), [data], it) for it, (data, label) in pack]
+          for future in as_completed(results_f):
+            (it, data, results), label = future.result()
+            print(results[0])
+            print(label)
+            # if results == label:
+            #   correct += 1
+            # else:
+            #   incorrect += 1
+    return correct, incorrect
