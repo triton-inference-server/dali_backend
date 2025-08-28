@@ -26,7 +26,7 @@
 # the whole tritonserver, start from here.
 # -------------------------------------------------- #
 
-ARG TRITON_VERSION=25.06
+ARG TRITON_VERSION=25.08
 ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 FROM ${BASE_IMAGE} as builder
 
@@ -55,14 +55,9 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 WORKDIR /opt
 
 # CMake
-RUN CMAKE_VERSION=3.18 && \
-    CMAKE_BUILD=3.18.6 && \
-    wget -nv https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_BUILD}.tar.gz && \
-    tar -xf cmake-${CMAKE_BUILD}.tar.gz && \
-    cd cmake-${CMAKE_BUILD} && \
-    ./bootstrap --parallel=$(grep ^processor /proc/cpuinfo | wc -l) -- -DCMAKE_USE_OPENSSL=OFF && \
-    make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
-    rm -rf /cmake-${CMAKE_BUILD}
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.8/cmake-3.31.8-linux-$(uname -p).sh && \
+    bash cmake-*.sh --skip-license --prefix=/usr && \
+    rm cmake-*.sh
 
 WORKDIR /dali
 
@@ -74,7 +69,7 @@ ARG DALI_DOWNLOAD_VERSION
 ARG DALI_DOWNLOAD_EXTRA_OPTIONS
 
 COPY . .
-ARG TRITON_BACKEND_API_VERSION="r22.07"
+ARG TRITON_BACKEND_API_VERSION="r25.08"
 
 RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
     cmake                                                                             \
