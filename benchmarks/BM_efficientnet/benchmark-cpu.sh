@@ -64,6 +64,6 @@ echo "... should be enough."
 
 popd || exit 1
 
-docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:25.04-py3-sdk bash run-benchmarks-cpu.sh $2
+docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:25.08-py3-sdk bash run-benchmarks-cpu.sh $2
 
 docker kill ${SERVER_CONTAINER_NAME}
