@@ -1,0 +1,102 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2020-2022 NVIDIA CORPORATION
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# -------------------------------------------------- #
+# This Docker image presents an out-of-source build.
+# If you want a release build of dali_backend
+# inside the tritonserver and you don't want to build
+# the whole tritonserver, start from here.
+# -------------------------------------------------- #
+
+ARG TRITON_VERSION=25.04
+ARG BASE_IMAGE=nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3-igpu
+FROM ${BASE_IMAGE} as builder
+
+RUN apt-key adv --fetch-keys \
+    # Manually update the keys to NVIDIA repository because they are outdated in the base image
+    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update                                && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa         && \
+    apt-get update                                && \
+    apt-get install -y         \
+              curl             \
+              libssl-dev       \
+              zip              \
+              wget             \
+              build-essential  \
+              autoconf         \
+              autogen          \
+              unzip            \
+              libboost-all-dev \
+              rapidjson-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    (apt-get remove -y python3-pip || echo "pip not installed from apt")
+
+# pip version in apt packages is ancient - we need to update it
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+
+WORKDIR /opt
+
+# CMake
+RUN CMAKE_VERSION=3.18 && \
+    CMAKE_BUILD=3.18.6 && \
+    wget -nv https://cmake.org/files/v${CMAKE_VERSION}/cmake-${CMAKE_BUILD}.tar.gz && \
+    tar -xf cmake-${CMAKE_BUILD}.tar.gz && \
+    cd cmake-${CMAKE_BUILD} && \
+    ./bootstrap --parallel=$(grep ^processor /proc/cpuinfo | wc -l) -- -DCMAKE_USE_OPENSSL=ON && \
+    make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install && \
+    rm -rf /cmake-${CMAKE_BUILD}
+
+WORKDIR /dali
+
+RUN rm -rf /opt/tritonserver/backends/dali
+
+ARG DALI_DOWNLOAD_EXTRA_INDEX_URL
+ARG DALI_DOWNLOAD_PKG_NAME
+ARG DALI_DOWNLOAD_VERSION
+ARG DALI_DOWNLOAD_EXTRA_OPTIONS
+ARG CUDAToolkit_VERSION_MAJOR=12
+
+COPY . .
+ARG TRITON_BACKEND_API_VERSION="r22.07"
+
+RUN set -ex && mkdir build_in_ci && cd build_in_ci &&                                 \
+    cmake                                                                             \
+      -D CMAKE_INSTALL_PREFIX=/opt/tritonserver                                       \
+      -D CMAKE_BUILD_TYPE=Release                                                     \
+      -D TRITON_BACKEND_API_VERSION=${TRITON_BACKEND_API_VERSION}                     \
+      ${DALI_DOWNLOAD_PKG_NAME:+                                                      \
+        -D DALI_DOWNLOAD_PKG_NAME=${DALI_DOWNLOAD_PKG_NAME}}                          \
+      ${DALI_DOWNLOAD_EXTRA_INDEX_URL:+                                               \
+        -D DALI_EXTRA_INDEX_URL=${DALI_DOWNLOAD_EXTRA_INDEX_URL}}                     \
+      -D DALI_VERSION=${DALI_DOWNLOAD_VERSION}                                        \
+      -D DALI_DOWNLOAD_EXTRA_OPTIONS="${DALI_DOWNLOAD_EXTRA_OPTIONS}"                 \
+      -D CUDAToolkit_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}                       \
+      .. &&                                                                           \
+    make -j"$(grep ^processor /proc/cpuinfo | wc -l)" install
+
+ENV LD_LIBRARY_PATH=/opt/tritonserver/lib:${LD_LIBRARY_PATH}
+ENV PYTHONPATH=/opt/tritonserver/backends/dali/wheel/dali
+
+WORKDIR /opt/tritonserver
+
+RUN rm -rf /dali
