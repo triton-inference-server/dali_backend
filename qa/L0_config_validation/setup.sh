@@ -2,7 +2,7 @@
 
 # The MIT License (MIT)
 #
-# Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES
+# Copyright (c) 2022-2025 NVIDIA CORPORATION & AFFILIATES
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the "Software"), to deal in
@@ -40,3 +40,9 @@ echo "model3_cpu_valid ready"
 mkdir -p model_repository/model4_cpu_invalid_missing_output/1
 cp pipeline_cpu.py model_repository/model4_cpu_invalid_missing_output/1/dali.py
 echo "model4_cpu_invalid_missing_output ready"
+
+mkdir -p model_repository/model5_invalid_default_model_filename/1
+echo "model5_invalid_default_model_filename ready"
+
+mkdir -p model_repository/model6_invalid_default_model_filename/1
+echo "model6_invalid_default_model_filename ready"
