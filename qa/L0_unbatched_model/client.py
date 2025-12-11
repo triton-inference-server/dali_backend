@@ -22,13 +22,6 @@
 import numpy as np
 from dali_backend.test_utils.client import TestClient
 import argparse
-import nvidia.dali.fn as fn
-import nvidia.dali as dali
-import multiprocessing as mp
-import nvidia.dali.experimental.eager as eager
-from glob import glob
-from os import environ
-from itertools import cycle
 
 def parse_args():
     parser = argparse.ArgumentParser()
