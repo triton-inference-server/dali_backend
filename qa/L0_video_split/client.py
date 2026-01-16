@@ -42,7 +42,7 @@ def input_gen(batch_size):
     batch = []
     for _ in range(batch_size):
       batch.append(np.fromfile(next(filenames), dtype=np.uint8))
-    yield [np.stack(ndd.pad(ndd.Batch(batch)).tensors)]
+    yield [np.array(ndd.as_tensor(ndd.pad(ndd.as_batch(batch))))]
 
 
 FRAMES_PER_SEQUENCE = 5
