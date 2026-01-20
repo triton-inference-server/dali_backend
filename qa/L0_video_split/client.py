@@ -25,7 +25,7 @@ import argparse
 import nvidia.dali.fn as fn
 import nvidia.dali as dali
 import multiprocessing as mp
-import nvidia.dali.experimental.eager as eager
+import nvidia.dali.experimental.dynamic as ndd
 from glob import glob
 from os import environ
 from itertools import cycle
@@ -42,7 +42,7 @@ def input_gen(batch_size):
     batch = []
     for _ in range(batch_size):
       batch.append(np.fromfile(next(filenames), dtype=np.uint8))
-    yield [eager.pad(batch).as_array()]
+    yield [np.array(ndd.as_tensor(ndd.pad(ndd.as_batch(batch))))]
 
 
 FRAMES_PER_SEQUENCE = 5
