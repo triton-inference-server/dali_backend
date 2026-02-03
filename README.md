@@ -13,7 +13,7 @@ This library can then be easily integrated into different deep learning training
 regardless of used deep learning framework.
 
 To find out more about DALI please refer to our [main page](https://developer.nvidia.com/DALI).
-[Getting started](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting%20started.html#Getting-started)
+[Getting started](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting_started.html)
 and [Tutorials](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/index.html)
 will guide you through your first steps and [Supported operations](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/supported_ops.html)
 will help you put together GPU-powered data processing pipelines.
@@ -24,7 +24,7 @@ Feel free to post an issue here or in DALI's [github repository](https://github.
 ## How to use?
 
 1. DALI data pipeline is expressed within Triton as a
-[Model](https://github.com/triton-inference-server/server/blob/master/docs/architecture.md#models-and-schedulers).
+[Model](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#models-and-schedulers).
 To create such Model, you have to put together a [DALI
 Pipeline](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/examples/getting%20started.html#Pipeline)
 in Python. Then, you have to serialize it (by calling the
@@ -44,7 +44,7 @@ resizing pipeline:
             return images
 
 1. Model file shall be incorporated in Triton's [Model
-Repository](https://github.com/triton-inference-server/server/blob/master/docs/model_repository.md).
+Repository](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_repository.md).
 Here's the example:
 
         model_repository
