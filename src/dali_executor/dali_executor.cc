@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -91,7 +91,7 @@ IDescr DaliExecutor::ScheduleInputCopy(const IDescr& input) {
         [stream, descriptor, dst, buf](int) {
           MemCopy(descriptor.device, dst, buf.device, buf.data, buf.size, stream);
         },
-        buf.size, true);
+        buf.size);
     dst += buf.size;
   }
   return IDescr{input.meta, {descriptor}};
@@ -134,23 +134,24 @@ bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
 }
 
 
-static bool streq(const char * lhs, const char * rhs) {
+static bool streq(const char* lhs, const char* rhs) {
   return strcmp(lhs, rhs) == 0;
 }
 
 
 bool DaliExecutor::IsInputConsumed() {
-  for (auto &name : input_names_) {
+  for (auto& name : input_names_) {
     auto trace = pipeline_.TryGetOperatorTrace(name, "depleted");
     if (!trace.has_value()) {
-      throw std::logic_error(make_string("DALI internal error: \"depleted\" trace not found for input \"" ,
-                                         name ,"\". It must be defined by all input operators."));
+      throw std::logic_error(
+          make_string("DALI internal error: \"depleted\" trace not found for input \"", name,
+                      "\". It must be defined by all input operators."));
     }
     if (streq(trace->c_str(), "true")) {
       return true;
     }
   }
-  for (auto &name : input_names_) {
+  for (auto& name : input_names_) {
     auto trace = pipeline_.TryGetOperatorTrace(name, "next_output_data_id");
     if (trace.has_value() && *trace != request_id_.str()) {
       return true;
