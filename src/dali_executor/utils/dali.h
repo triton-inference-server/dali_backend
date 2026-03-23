@@ -52,7 +52,13 @@ using ::dali::make_string;
 using ::dali::span;
 using ::dali::TensorListShape;
 using ::dali::TensorShape;
+#if __has_include(<dali/pipeline/util/thread_pool_interface.h>)
+// DALI 2.1+: ThreadPool is an abstract interface; use the concrete OldThreadPool
+using ThreadPool = ::dali::OldThreadPool;
+#else
+// DALI 2.0 and earlier: ThreadPool is already a concrete class
 using ::dali::ThreadPool;
+#endif
 using ::dali::UniqueHandle;
 using ::dali::volume;
 using ::dali::CPU_ONLY_DEVICE_ID;
