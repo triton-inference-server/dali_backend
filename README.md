@@ -13,7 +13,7 @@ This library can then be easily integrated into different deep learning training
 regardless of used deep learning framework.
 
 To find out more about DALI please refer to our [main page](https://developer.nvidia.com/DALI).
-[Getting started](https://docs.nvidia.com/deeplearning/dali/main-user-guide/docs/examples/getting_started/index.html)
+[Getting started](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting_started)
 and [Tutorials](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/index.html)
 will guide you through your first steps and [Supported operations](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/supported_ops.html)
 will help you put together GPU-powered data processing pipelines.
