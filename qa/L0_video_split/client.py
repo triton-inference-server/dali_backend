@@ -37,6 +37,8 @@ def input_gen(batch_size):
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
   filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+  # av1 is supported only by Ampere+ GPUs, dissable for now
+  filenames = filter(lambda filename: 'av1' not in filename, filenames)
   filenames = cycle(filenames)
   while True:
     batch = []

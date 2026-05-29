@@ -24,7 +24,7 @@ from functools import partial
 from itertools import cycle
 import numpy as np
 import queue
-from os import environ
+from os import environ, path
 from glob import glob
 import argparse
 
@@ -51,10 +51,16 @@ def get_dali_extra_path():
   return environ['DALI_EXTRA_PATH']
 
 
-def input_gen():
+def input_gen(device="cpu"):
   filenames = glob(f'{get_dali_extra_path()}/db/video/[cv]fr/*.mp4')
   filenames = filter(lambda filename: 'mpeg4' not in filename, filenames)
   filenames = filter(lambda filename: 'hevc' not in filename, filenames)
+  filenames = filter(lambda filename: "av1" not in filename, filenames)
+  if device == 'cpu':
+    # h264 (the unsuffixed test_{1,2}.mp4 in cfr/ and vfr/) is not supported by the CPU operator
+    filenames = filter(
+        lambda filename: path.basename(filename) not in {"test_1.mp4", "test_2.mp4"}, filenames
+    )
   for filename in filenames:
     yield np.fromfile(filename, dtype=np.uint8)
 
@@ -87,7 +93,7 @@ if __name__ == '__main__':
     with t_client.InferenceServerClient(url=args.url) as triton_client:
         triton_client.start_stream(callback=partial(callback, user_data))
 
-        for req_id, input_data in zip(range(args.n_iters), cycle(input_gen())):
+        for req_id, input_data in zip(range(args.n_iters), cycle(input_gen(args.device))):
             inp = t_client.InferInput('INPUT', [1, input_data.shape[0]], 'UINT8')
             inp.set_data_from_numpy(input_data.reshape((1, -1)))
 
