@@ -4,7 +4,7 @@ This example presents, how to approach GPU-accelerated video processing in Trito
 
 ### First steps
 
-1. If you do not know yet what DALI is, please refer to [DALI's getting started guide](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting_started.html#Overview)
+1. If you do not know yet what DALI is, please refer to [DALI's getting started guide](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/getting_started)
 1. If you are not yet familiar with the idea of using DALI within Triton, please refer to the
 [How to use?](https://github.com/triton-inference-server/dali_backend#how-to-use) guide and
 [Identity example](https://github.com/triton-inference-server/dali_backend/tree/main/docs/examples/identity).
