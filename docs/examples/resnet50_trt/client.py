@@ -22,7 +22,7 @@
 import os, sys
 import numpy as np
 import json
-import tritongrpcclient
+import tritonclient.grpc as tritongrpcclient
 import argparse
 import time
 

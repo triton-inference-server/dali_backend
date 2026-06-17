@@ -24,7 +24,7 @@
 import argparse, os, sys
 import numpy as np
 from numpy.random import randint
-import tritongrpcclient
+import tritonclient.grpc as tritongrpcclient
 from PIL import Image
 import math
 
