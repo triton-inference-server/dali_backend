@@ -65,10 +65,9 @@ void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_
   if (data_id) {
     daliSetExternalInputDataId(&handle_, name, data_id);
   }
-  const char *layout = daliGetExternalInputLayout(&handle_, name);
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
   daliSetExternalInput(&handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
-                       sample_ndims, layout, flags);
+                       sample_ndims, nullptr, flags);
 }
 
 
