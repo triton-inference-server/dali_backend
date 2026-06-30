@@ -25,6 +25,7 @@ import argparse, os, sys
 import numpy as np
 from numpy.random import randint
 import tritonclient.grpc as tritongrpcclient
+from tritonclient.utils import InferenceServerException
 from PIL import Image
 import math
 
@@ -73,7 +74,7 @@ def main():
         for ver in versions:
             try:
                 ready = triton_client.is_model_ready(name, str(ver))
-            except Exception:
+            except InferenceServerException:
                 # Newer tritonclient raises NOT_FOUND instead of returning False
                 ready = False
             if ready:
