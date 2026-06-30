@@ -66,7 +66,12 @@ def main():
 
     for name, versions in models_loaded.items():
         for ver in versions:
-            if not triton_client.is_model_ready(name, str(ver)):
+            try:
+                ready = triton_client.is_model_ready(name, str(ver))
+            except InferenceServerException:
+                # Newer tritonclient raises NOT_FOUND instead of returning False
+                ready = False
+            if not ready:
                 print("FAILED: Model {} version {} not ready".format(name, ver))
                 sys.exit(1)
 
