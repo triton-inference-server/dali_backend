@@ -24,7 +24,8 @@
 import argparse, os, sys
 import numpy as np
 from numpy.random import randint
-import tritongrpcclient
+import tritonclient.grpc as tritongrpcclient
+from tritonclient.utils import InferenceServerException
 from PIL import Image
 import math
 
@@ -65,13 +66,23 @@ def main():
 
     for name, versions in models_loaded.items():
         for ver in versions:
-            if not triton_client.is_model_ready(name, str(ver)):
+            try:
+                ready = triton_client.is_model_ready(name, str(ver))
+            except InferenceServerException:
+                # Newer tritonclient raises NOT_FOUND instead of returning False
+                ready = False
+            if not ready:
                 print("FAILED: Model {} version {} not ready".format(name, ver))
                 sys.exit(1)
 
     for name, versions in models_not_loaded.items():
         for ver in versions:
-            if triton_client.is_model_ready(name, str(ver)):
+            try:
+                ready = triton_client.is_model_ready(name, str(ver))
+            except InferenceServerException:
+                # Newer tritonclient raises NOT_FOUND instead of returning False
+                ready = False
+            if ready:
                 print("FAILED: Model {} version {} incorrectly loaded".format(name, ver))
                 sys.exit(1)
 
