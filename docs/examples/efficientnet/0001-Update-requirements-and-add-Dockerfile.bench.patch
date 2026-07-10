@@ -33,8 +33,7 @@ index 12c2c63b..27e7273c 100644
  git+https://github.com/NVIDIA/dllogger@v1.0.0#egg=dllogger
 -pynvml==11.0.0
 +pynvml==12.0.0
-+grpcio>=1.67.0,<1.68  # the generated code in tritonclient.grpc grpc_service_pb2_grpc.py depends on grpcio>=1.67.0
++grpcio>=1.81.1
 +triton-model-navigator
--- 
+--
 2.34.1
-
