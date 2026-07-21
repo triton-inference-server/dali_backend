@@ -22,7 +22,7 @@ to a `fn.experimental.decoders.video()` or `fn.experimental.inputs.video()` oper
 must be a whole video file - including the header. The following is the canonical way to read
 the video file into byte-buffer, which can be further passed to a DALI pipeline:
 
-    decoded_video = np.fromfile(video_file_path, dtype=np.uin8)
+    decoded_video = np.fromfile(video_file_path, dtype=np.uint8)
 
 ## The example
 
