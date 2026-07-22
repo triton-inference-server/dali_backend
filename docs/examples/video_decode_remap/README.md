@@ -18,11 +18,11 @@ happens automatically under the hood. On the other hand, in DALI user explicitly
 gaining greater control over the process, for example to accelerate this operation using GPU.
 
 It's no different in video case, although currently we face a constraint that every sample passed
-to a `fn.experimental.decoders.video()` or `fn.experimental.inputs.video()` operator 
-must be a whole video file - including the header. The following is the canonical way to read 
+to a `fn.experimental.decoders.video()` or `fn.experimental.inputs.video()` operator
+must be a whole video file - including the header. The following is the canonical way to read
 the video file into byte-buffer, which can be further passed to a DALI pipeline:
 
-    decoded_video = np.fromfile(video_file_path, dtype=np.uin8)
+    decoded_video = np.fromfile(video_file_path, dtype=np.uint8)
 
 ## The example
 
@@ -34,7 +34,7 @@ please refer to `dali.py` file. You can also notice, that we used two greatly co
 [autoserialization](https://github.com/triton-inference-server/dali_backend#autoserialization)
 and [autoconfig](https://github.com/triton-inference-server/dali_backend#configuration-auto-complete).
 Explaining these is beyond the scope of this tutorial, please refer to corresponding documentation.
-    
+
 ### `remap.npz`
 
 In general, removing the distortion in an image consists of a few steps:
@@ -59,22 +59,22 @@ specify the path to video data manually.
 
 Running the example requires two steps:
 #### Step 1: Run the `tritonserver` instance (we'll do it on `localhost`):
-    
+
     MODEL_REPO="<path to dali_backend repository>/docs/examples/video_decode_remap/model_repository" && \
-    docker run -it --rm --shm-size=1g --ulimit memlock=-1 --gpus all --ulimit stack=67108864 -p8000:8000 -p8001:8001 -p8002:8002 -v $MODEL_REPO:/models tritonserver:22.12-py3 tritonserver --model-repository /models
+    docker run -it --rm --shm-size=1g --ulimit memlock=-1 --gpus all --ulimit stack=67108864 -p8000:8000 -p8001:8001 -p8002:8002 -v $MODEL_REPO:/models tritonserver:26.06-py3 tritonserver --model-repository /models
 
 #### Step 2: Run the client
 Please note that in addition to the command below, the user has to ensure the test data is visible
 inside the docker container. Simplest way to do this would be to copy it to the `$CLIENT_PATH/data`.
 
     CLIENT_PATH="<path to dali_backend repository>/docs/examples/video_decode_remap" && \
-    docker run -it -v $CLIENT_PATH:/client tritonserver:22.12-py3-sdk python /client/client.py
+    docker run -it -v $CLIENT_PATH:/client tritonserver:26.06-py3-sdk python /client/client.py
 
 
 ## Remember
 
 As always with DALI Backend, remember that `dali.fn.external_source`'s `name` parameter must match
-with the input name provided in the `config.pbtxt` file. Additionally, when using Autoconfig, 
+with the input name provided in the `config.pbtxt` file. Additionally, when using Autoconfig,
 the last operator in the pipeline shall have the `name` parameter set and match the name of the output
 in the client.
 
