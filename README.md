@@ -24,61 +24,46 @@ Feel free to post an issue here or in DALI's [github repository](https://github.
 ## How to use?
 
 1. DALI data pipeline is expressed within Triton as a
-[Model](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#models-and-schedulers).
+[Model](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md).
 To create such Model, you have to put together a [DALI
-Pipeline](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/examples/getting%20started.html#Pipeline)
+Pipeline](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/pipeline_api_overview.html)
 in Python. Then, you have to serialize it (by calling the
-[Pipeline.serialize](https://docs.nvidia.com/deeplearning/dali/master-user-guide/docs/pipeline.html#nvidia.dali.pipeline.Pipeline.serialize)
-method) or use the [Autoserialization](#Autoserialization) to generate a Model file. As an example, we'll use simple
-resizing pipeline:
+[Pipeline.serialize](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/pipeline.html#nvidia.dali.Pipeline.serialize)
+method) or use [Autoserialization](#autoserialization) to define it in Python. The following
+resizing pipeline uses autoserialization and supplies the metadata Triton needs to complete
+the model configuration:
 
         import nvidia.dali as dali
+        import nvidia.dali.types as types
         from nvidia.dali.plugin.triton import autoserialize
 
-        @autoserialize 
-        @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0)
+        @autoserialize
+        @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0, output_dtype=[types.UINT8], output_ndim=[3])
         def pipe():
-            images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
+            images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0", dtype=types.UINT8, ndim=1)
             images = dali.fn.image_decoder(images, device="mixed")
             images = dali.fn.resize(images, resize_x=224, resize_y=224)
             return images
 
-1. Model file shall be incorporated in Triton's [Model
+1. The pipeline definition shall be incorporated in Triton's [Model
 Repository](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_repository.md).
 Here's the example:
 
         model_repository
         └── dali
             ├── 1
-            │   └── model.dali
+            │   └── dali.py
             └── config.pbtxt
 
-1. As it's typical in Triton, your DALI Model file shall be named `model.dali`.
-You can override this name in the model configuration, by setting `default_model_filename` option.
-Here's the whole `config.pbtxt` we use for the `ResizePipeline` example:
+1. With the default autoserialization layout, name the Python pipeline definition `dali.py`.
+Here's the whole `config.pbtxt` we use for the resizing example:
 
         name: "dali"
         backend: "dali"
-        max_batch_size: 256
-        input [
-        {
-            name: "DALI_INPUT_0"
-            data_type: TYPE_UINT8
-            dims: [ -1 ]
-        }
-        ]
 
-        output [
-        {
-            name: "DALI_OUTPUT_0"
-            data_type: TYPE_UINT8
-            dims: [ 224, 224, 3 ]
-        }
-        ]
-
-You can omit writing most of the configuration file if you specify information about the
-inputs, outputs and max batch size in the pipeline definition.
-Refer to [Configuration auto-complete](#Configuration-auto-complete) for the details about this feature.
+Triton completes `max_batch_size`, `input`, and `output` from the pipeline metadata shown above.
+Refer to [Configuration auto-complete](#configuration-auto-complete) for details and partial
+configuration examples.
 
 ## Configuration auto-complete
 
@@ -89,8 +74,8 @@ and does not need to be repeated in the configuration file. Below you can see ho
 configuration info in the Python pipeline definition:
 
     import nvidia.dali as dali
-    from nvidia.dali.plugin.triton import autoserialize
     import nvidia.dali.types as types
+    from nvidia.dali.plugin.triton import autoserialize
 
     @autoserialize
     @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0, output_dtype=[types.UINT8], output_ndim=[3])
