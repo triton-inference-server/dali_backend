@@ -29,7 +29,8 @@ To create such Model, you have to put together a [DALI
 Pipeline](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/pipeline_api_overview.html)
 in Python. Then, you have to serialize it (by calling the
 [Pipeline.serialize](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/pipeline.html#nvidia.dali.Pipeline.serialize)
-method) or use [Autoserialization](#autoserialization) to define it in Python. The following
+method). For a manual serialization example, see the [multi-input example](docs/examples/multi_input/README.md).
+Alternatively, use [Autoserialization](#autoserialization) to define it in Python. The following
 resizing pipeline uses autoserialization and supplies the metadata Triton needs to complete
 the model configuration:
 
