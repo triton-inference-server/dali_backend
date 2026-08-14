@@ -30,18 +30,36 @@ import math
 
 np.random.seed(100019)
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action="store_true", required=False, default=False,
-                        help='Enable verbose output')
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server URL. Default is localhost:8001.')
-    parser.add_argument('--batch_size', type=int, required=False, default=1,
-                        help='Batch size')
-    parser.add_argument('--n_iter', type=int, required=False, default=-1,
-                        help='Number of iterations , with `batch_size` size')
-    parser.add_argument('--model_name', type=str, required=False, default="dali_multi_input",
-                        help='Model name')
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "-u",
+        "--url",
+        type=str,
+        required=False,
+        default="localhost:8001",
+        help="Inference server URL. Default is localhost:8001.",
+    )
+    parser.add_argument("--batch_size", type=int, required=False, default=1, help="Batch size")
+    parser.add_argument(
+        "--n_iter",
+        type=int,
+        required=False,
+        default=-1,
+        help="Number of iterations , with `batch_size` size",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=False, default="dali_multi_input", help="Model name"
+    )
     return parser.parse_args()
 
 
@@ -75,7 +93,9 @@ def batcher(dataset, max_batch_size, n_iterations=-1):
 def main():
     FLAGS = parse_args()
     try:
-        triton_client = tritonclient.grpc.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose)
+        triton_client = tritonclient.grpc.InferenceServerClient(
+            url=FLAGS.url, verbose=FLAGS.verbose
+        )
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit(1)
@@ -83,8 +103,10 @@ def main():
     model_name = FLAGS.model_name
     model_version = -1
 
-    input_data = [randint(0, 255, size=randint(100), dtype='uint8') for _ in
-                  range(randint(100) * FLAGS.batch_size)]
+    input_data = [
+        randint(0, 255, size=randint(100), dtype="uint8")
+        for _ in range(randint(100) * FLAGS.batch_size)
+    ]
     input_data = array_from_list(input_data)
 
     # Infer
@@ -106,15 +128,18 @@ def main():
         # Initialize the data
         input_shape[0] = batch_size
         scalars = randint(0, 1024, size=(batch_size, 1), dtype=np.int32)
-        inputs = [tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in
-                  input_names]
+        inputs = [
+            tritonclient.grpc.InferInput(iname, input_shape, "UINT8") for iname in input_names
+        ]
         scalar_input = tritonclient.grpc.InferInput(scalars_name, [batch_size, 1], "INT32")
         for inp in inputs:
             inp.set_data_from_numpy(np.copy(batch))
         scalar_input.set_data_from_numpy(scalars)
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name, inputs=[*inputs, scalar_input], outputs=outputs)
+        results = triton_client.infer(
+            model_name=model_name, inputs=[*inputs, scalar_input], outputs=outputs
+        )
 
         # Get the output arrays from the results
         for oname in output_names:
@@ -122,8 +147,9 @@ def main():
             output_data = results.as_numpy(oname)
             print("Output mean after backend processing:", np.mean(output_data))
             print("Output shape: ", np.shape(output_data))
-            expected = np.multiply(batch, 1 if oname is "DALI_unchanged" else scalars,
-                                   dtype=np.int32)
+            expected = np.multiply(
+                batch, 1 if oname == "DALI_unchanged" else scalars, dtype=np.int32
+            )
             if not np.allclose(output_data, expected):
                 print("Pre/post average does not match")
                 sys.exit(1)
@@ -136,5 +162,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
