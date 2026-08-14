@@ -2,7 +2,6 @@
 cmake-build*
 /.venv
 /.ruff_cache
-/.pytest_cache
 /.vscode
 *.so
 .idea
