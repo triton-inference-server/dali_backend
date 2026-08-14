@@ -1,0 +1,94 @@
+default_stages: [pre-commit, pre-push]
+
+exclude: |-
+  (?x)^(
+    extern/|
+    benchmarks/dali_vs_python/BM_jasper/model_repository/jasper_python/1/features\.py$|
+    docs/examples/efficientnet/0001-Update-requirements-and-add-Dockerfile\.bench\.patch$|
+    src/utils/cmake_config\.h$
+  )
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        exclude: ^cmake/dalienv\.yml\.in$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff-check
+        name: ruff check
+      - id: ruff-format
+        name: ruff format (check)
+        args: [--check]
+      - id: ruff-check
+        alias: ruff-check-fix
+        name: ruff check (fix)
+        args: [--fix]
+        stages: [manual]
+      - id: ruff-format
+        alias: ruff-format-fix
+        name: ruff format (fix)
+        stages: [manual]
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.6
+    hooks:
+      - id: clang-format
+        name: clang-format (check)
+        args: [--dry-run, --Werror, --fallback-style=none, --style=file]
+        files: ^src/.*\.(cc|h)$
+      - id: clang-format
+        alias: clang-format-fix
+        name: clang-format (fix)
+        args: [-i, --fallback-style=none, --style=file]
+        files: ^src/.*\.(cc|h)$
+        stages: [manual]
+
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+        name: cmake-format (check)
+        args: [--check]
+      - id: cmake-format
+        alias: cmake-format-fix
+        name: cmake-format (fix)
+        args: [--in-place]
+        stages: [manual]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--shell=bash, --severity=error]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
+    hooks:
+      - id: shfmt
+        name: shfmt (check)
+        args: [-d, -i, "2", -ci]
+      - id: shfmt
+        alias: shfmt-fix
+        name: shfmt (fix)
+        args: [-w, -i, "2", -ci]
+        stages: [manual]
+
+  - repo: local
+    hooks:
+      - id: text-format
+        name: text format (check)
+        entry: python3 tools/check_text.py check
+        language: system
+        types: [text]
+      - id: text-format-fix
+        name: text format (fix)
+        entry: python3 tools/check_text.py fix
+        language: system
+        types: [text]
+        stages: [manual]

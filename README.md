@@ -35,7 +35,7 @@ resizing pipeline:
         import nvidia.dali as dali
         from nvidia.dali.plugin.triton import autoserialize
 
-        @autoserialize 
+        @autoserialize
         @dali.pipeline_def(batch_size=256, num_threads=4, device_id=0)
         def pipe():
             images = dali.fn.external_source(device="cpu", name="DALI_INPUT_0")
@@ -221,3 +221,8 @@ Building DALI Backend is really straightforward. One thing to remember is to clo
 
 The building process will generate `unittest` executable.
 You can use it to run unit tests for DALI Backend
+
+## Development
+
+See [Development checks](docs/development.md) for the pinned formatting and linting tools,
+their file scope, and local check and fix commands.
