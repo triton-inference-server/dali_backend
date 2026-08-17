@@ -56,8 +56,3 @@ The following paths are excluded from all hooks:
 
 The hooks are filtered by file type, so Python checks run only for Python files and clang-format
 runs only for C++ source and headers under `src/`.
-
-## Continuous integration
-
-No CI lint gate is installed because GitHub Actions are disabled for this repository. Adding the
-same checks to the separate internal GitLab CI project requires an independently authorized change.
