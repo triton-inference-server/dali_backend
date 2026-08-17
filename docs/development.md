@@ -1,10 +1,11 @@
 # Development checks
 
 The repository uses [pre-commit](https://pre-commit.com/) as a versioned runner for Python linting
-and Python/C++ formatting. Install the pinned runner in a virtual environment:
+and Python/C++ formatting. Install the pinned runner with Python 3.10 or newer in a virtual
+environment:
 
 ```shell
-python3.10 -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --requirement requirements-lint.txt
 pre-commit install --hook-type pre-commit --hook-type pre-push
