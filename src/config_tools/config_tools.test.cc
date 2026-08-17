@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -703,6 +703,45 @@ TEST_CASE("Read MBS from pb txt") {
       another_string_field: "multiple literals" #interruption }
        "with \"quote\""}
     )");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  // TRI-1490: an unterminated quoted string made skip_string() advance `end`
+  // to (or past) text.size() and then call remove_prefix(end + 1) with
+  // end + 1 > size(). string_view::remove_prefix does size_ -= n with no bounds
+  // check, so size_ underflowed to ~SIZE_MAX and the parser read off the end of
+  // the buffer. These inputs must be parsed safely instead of crashing.
+  SECTION("Unterminated string") {
+    std::string_view pb_txt(R"(name: "unterminated_model_name)");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("Unterminated string with trailing backslash") {
+    // The escape handling (`if (text[end] == '\\') ++end;`) can push `end` one
+    // step further, so remove_prefix(end + 1) overshoots by two.
+    std::string_view pb_txt("name: \"\\");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("Lone opening quote") {
+    std::string_view pb_txt(R"(")");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("max_batch_size before an unterminated string is still parsed") {
+    std::string_view pb_txt(R"(max_batch_size: 9 name: "unterminated)");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(9));
+  }
+
+  SECTION("Field name followed by comment with no newline") {
+    // skip_ignored consumes the trailing comment and empties the view; without
+    // the empty-view guard the following pb_txt[0] dereferenced a null view.
+    std::string_view pb_txt(R"(max_batch_size #no newline)");
 
     REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
   }

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
 
 #include "src/config_tools/config_tools.h"
 
+#include <algorithm>
 #include <limits>
 
 namespace triton { namespace backend { namespace dali {
@@ -476,7 +477,14 @@ void skip_string(std::string_view &text) {
         ++end;  // escaped character
       ++end;
     }
-    text.remove_prefix(end + 1);
+    // For a well-formed string `end` indexes the closing quote, so we advance
+    // past it with `end + 1`. For an UNTERMINATED string (no closing quote, or
+    // a trailing backslash) `end` can reach or exceed text.size(), and
+    // `end + 1` would then exceed the buffer. std::string_view::remove_prefix
+    // performs no bounds check (it does size_ -= n), so an out-of-range n
+    // underflows size_ to ~SIZE_MAX and the next read walks off the buffer.
+    // Clamp to text.size() to consume the remaining bytes safely instead.
+    text.remove_prefix(std::min(end + 1, text.size()));
     skip_ignored(text);
   }
 }
@@ -531,7 +539,10 @@ std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt) {
     if (pb_txt.substr(0, field_name.size()) == field_name) {
       pb_txt.remove_prefix(field_name.size());
       skip_ignored(pb_txt);
-      if (pb_txt[0] == ':') {
+      // skip_ignored may consume the rest of the buffer (e.g. a trailing
+      // comment with no newline leaves an empty view), so guard against an
+      // empty view before indexing pb_txt[0].
+      if (!pb_txt.empty() && pb_txt[0] == ':') {
         pb_txt.remove_prefix(1);  // remove :
         return parse_int(pb_txt);
       } else {
