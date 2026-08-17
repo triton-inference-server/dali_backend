@@ -707,11 +707,6 @@ TEST_CASE("Read MBS from pb txt") {
     REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
   }
 
-  // TRI-1490: an unterminated quoted string made skip_string() advance `end`
-  // to (or past) text.size() and then call remove_prefix(end + 1) with
-  // end + 1 > size(). string_view::remove_prefix does size_ -= n with no bounds
-  // check, so size_ underflowed to ~SIZE_MAX and the parser read off the end of
-  // the buffer. These inputs must be parsed safely instead of crashing.
   SECTION("Unterminated string") {
     std::string_view pb_txt(R"(name: "unterminated_model_name)");
 
@@ -719,8 +714,6 @@ TEST_CASE("Read MBS from pb txt") {
   }
 
   SECTION("Unterminated string with trailing backslash") {
-    // The escape handling (`if (text[end] == '\\') ++end;`) can push `end` one
-    // step further, so remove_prefix(end + 1) overshoots by two.
     std::string_view pb_txt("name: \"\\");
 
     REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
@@ -739,8 +732,6 @@ TEST_CASE("Read MBS from pb txt") {
   }
 
   SECTION("Field name followed by comment with no newline") {
-    // skip_ignored consumes the trailing comment and empties the view; without
-    // the empty-view guard the following pb_txt[0] dereferenced a null view.
     std::string_view pb_txt(R"(max_batch_size #no newline)");
 
     REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());

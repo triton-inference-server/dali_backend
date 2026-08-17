@@ -477,13 +477,7 @@ void skip_string(std::string_view &text) {
         ++end;  // escaped character
       ++end;
     }
-    // For a well-formed string `end` indexes the closing quote, so we advance
-    // past it with `end + 1`. For an UNTERMINATED string (no closing quote, or
-    // a trailing backslash) `end` can reach or exceed text.size(), and
-    // `end + 1` would then exceed the buffer. std::string_view::remove_prefix
-    // performs no bounds check (it does size_ -= n), so an out-of-range n
-    // underflows size_ to ~SIZE_MAX and the next read walks off the buffer.
-    // Clamp to text.size() to consume the remaining bytes safely instead.
+    // Consume the closing quote, or the remaining input if it is missing.
     text.remove_prefix(std::min(end + 1, text.size()));
     skip_ignored(text);
   }
@@ -539,9 +533,7 @@ std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt) {
     if (pb_txt.substr(0, field_name.size()) == field_name) {
       pb_txt.remove_prefix(field_name.size());
       skip_ignored(pb_txt);
-      // skip_ignored may consume the rest of the buffer (e.g. a trailing
-      // comment with no newline leaves an empty view), so guard against an
-      // empty view before indexing pb_txt[0].
+      // skip_ignored may consume the entire remaining input.
       if (!pb_txt.empty() && pb_txt[0] == ':') {
         pb_txt.remove_prefix(1);  // remove :
         return parse_int(pb_txt);
