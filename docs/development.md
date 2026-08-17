@@ -59,7 +59,5 @@ runs only for C++ source and headers under `src/`.
 
 ## Continuous integration
 
-The GitHub Actions lint workflow uses the same pinned pre-commit configuration and checks the
-changed range for pull requests and pushes to `main`. The separate internal GitLab CI repository
-does not consume GitHub workflow files; adding the same gate there requires an independently
-authorized CI-repository change.
+No CI lint gate is installed because GitHub Actions are disabled for this repository. Adding the
+same checks to the separate internal GitLab CI project requires an independently authorized change.
