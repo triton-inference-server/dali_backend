@@ -49,6 +49,6 @@ awk -F, '
             }
         }
     }
-    END { exit !(valid && rows == 1 && NF >= 3) }
+    END { exit !(valid && rows == 1 && NF == 13) }
 ' results.txt
 echo "Output Correct"
