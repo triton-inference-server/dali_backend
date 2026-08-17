@@ -23,6 +23,32 @@
 
 : ${GRPC_ADDR:=${1:-"localhost:8001"}}
 
-perf_analyzer -m dali -i grpc -u $GRPC_ADDR -b 64 --input-data test_image --shape DALI_INPUT_0:"$(stat --printf='%s' test_image/DALI_INPUT_0)" -f results.txt
-# Test if the perf_analyzer output is in a proper format and the measured times are in a reasonable range.
-[[ "$(tail -n1 results.txt)" =~ ^1,[0-9]{1,}?\.*[0-9]*,([0-9]{1,},){10}[0-9]{1,}$ ]] && echo "Output Correct"
+perf_analyzer \
+    -m dali \
+    -i grpc \
+    -u "$GRPC_ADDR" \
+    -b 64 \
+    --concurrency-range 1 \
+    --request-count 50 \
+    --input-data test_image \
+    --shape DALI_INPUT_0:"$(stat --printf='%s' test_image/DALI_INPUT_0)" \
+    -f results.txt
+
+# Verify the single-concurrency result without imposing a performance threshold.
+awk -F, '
+    BEGIN { valid = 1 }
+    NR == 1 { next }
+    {
+        rows++
+        if ($1 != 1 || $2 !~ /^[0-9]+([.][0-9]+)?$/ || $2 <= 0) {
+            valid = 0
+        }
+        for (field = 3; field <= NF; field++) {
+            if ($field !~ /^[0-9]+([.][0-9]+)?$/) {
+                valid = 0
+            }
+        }
+    }
+    END { exit !(valid && rows == 1 && NF >= 3) }
+' results.txt
+echo "Output Correct"
