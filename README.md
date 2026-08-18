@@ -207,3 +207,8 @@ Building DALI Backend is really straightforward. One thing to remember is to clo
 
 The building process will generate `unittest` executable.
 You can use it to run unit tests for DALI Backend
+
+## Development
+
+See [Development checks](docs/development.md) for the pinned formatting and linting tools,
+their file scope, and local check and fix commands.
