@@ -30,7 +30,9 @@ def load_video(video_path):
 
 
 def infer_model(named_inputs, args):
-    with ModelClient(f"grpc://{args.url}", "segmentation_bls", init_timeout_s=args.init_timeout_s) as client:
+    with ModelClient(
+        f"grpc://{args.url}", "segmentation_bls", init_timeout_s=args.init_timeout_s
+    ) as client:
         result_data = client.infer_batch(**named_inputs)
 
         original = result_data["original"]
@@ -49,7 +51,8 @@ def infer_model(named_inputs, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        '-u', "--url",
+        "-u",
+        "--url",
         default="localhost",
         help=(
             "Url to Triton server (ex. grpc://localhost:8001)."
@@ -85,7 +88,9 @@ def main():
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s")
+    logging.basicConfig(
+        level=log_level, format="%(asctime)s - %(levelname)s - %(name)s: %(message)s"
+    )
 
     named_inputs = {
         "encoded": load_video(VIDEO_PATH if args.video_path is None else args.video_path),

@@ -59,9 +59,9 @@ using ThreadPool = ::dali::OldThreadPool;
 // DALI 2.0 and earlier: ThreadPool is already a concrete class
 using ::dali::ThreadPool;
 #endif
+using ::dali::CPU_ONLY_DEVICE_ID;
 using ::dali::UniqueHandle;
 using ::dali::volume;
-using ::dali::CPU_ONLY_DEVICE_ID;
 
 
 inline int64_t dali_type_size(dali_data_type_t type) {

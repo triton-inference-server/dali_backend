@@ -30,8 +30,9 @@ OUT_HEIGHT = 1080
 
 
 @autoserialize
-@dali.pipeline_def(batch_size=3, num_threads=3, device_id=0,
-                   output_dtype=dali.types.UINT8, output_ndim=[4])
+@dali.pipeline_def(
+    batch_size=3, num_threads=3, device_id=0, output_dtype=dali.types.UINT8, output_ndim=[4]
+)
 def pipeline():
     """
     DALI Pipeline, that performs the following processing:
@@ -41,7 +42,7 @@ def pipeline():
     4. OUTPUT - distorted and decoded video.
     """
     # Decode video
-    vid = fn.experimental.inputs.video(name="INPUT", sequence_length=5, device='mixed')
+    vid = fn.experimental.inputs.video(name="INPUT", sequence_length=5, device="mixed")
 
     # Resize to match sizes of Remap parameters. This step is artificial in real life case
     # you most probably do not want to resize the image before removing the distortion.
@@ -54,7 +55,7 @@ def pipeline():
     # Therefore, we have to modify them to have the origin in the top-left corner.
     mapx = mapx - OUT_WIDTH * 0.5
     mapy = mapy - OUT_HEIGHT * 0.5
-    vid = fn.experimental.remap(vid, mapx, mapy, pixel_origin='center')
+    vid = fn.experimental.remap(vid, mapx, mapy, pixel_origin="center")
 
     # Resize, so that the output is smaller.
     vid = fn.resize(vid, resize_x=320, resize_y=240, name="OUTPUT")

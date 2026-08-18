@@ -77,11 +77,7 @@ def main():
         required=False,
         default=DATASETS_DIR,
     )
-    parser.add_argument(
-      '--save',
-      help='Save processed images.',
-      required=False, default=False
-    )
+    parser.add_argument("--save", help="Save processed images.", required=False, default=False)
     parser.add_argument(
         "--target-size",
         help="Size of target image. Format it as <width>,<height>.",
@@ -89,10 +85,10 @@ def main():
         default=",".join(map(str, TARGET_SIZE)),
     )
     parser.add_argument(
-      '--perf-file',
-      required=False,
-      default=None,
-      help='Path to save a file with time measurements.'
+        "--perf-file",
+        required=False,
+        default=None,
+        help="Path to save a file with time measurements.",
     )
     args = parser.parse_args()
 
@@ -133,10 +129,10 @@ def main():
         wnid_to_newidx = {wnid: new_cls for new_cls, wnid in enumerate(available_wnids)}
         labels = [wnid_to_newidx[wnid] for wnid in labels_wnid]
     if args.perf_file is None:
-      perf = False
+        perf = False
     else:
-      times = []
-      perf = True
+        times = []
+        perf = True
     output_dir = datasets_dir / IMAGENET_DIRNAME
     with tarfile.open(image_archive_path, mode="r") as image_archive_file:
         image_rel_paths = sorted(image_archive_file.getnames())
@@ -148,14 +144,14 @@ def main():
             processed_image = _process_image(io.BytesIO(file_data), target_size)
             end = time.perf_counter()
             if perf:
-              times.append(end-start)
+                times.append(end - start)
             if args.save:
-              output_path.parent.mkdir(parents=True, exist_ok=True)
-              processed_image.save(output_path.as_posix())
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                processed_image.save(output_path.as_posix())
 
     if perf:
-      with open(args.perf_file, 'w') as perf_file:
-        print(times, file=perf_file)
+        with open(args.perf_file, "w") as perf_file:
+            print(times, file=perf_file)
 
 
 if __name__ == "__main__":

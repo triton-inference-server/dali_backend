@@ -31,10 +31,21 @@ import queue
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server URL. Default is localhost:8001.')
-    parser.add_argument('--video', type=str, required=False, default=None,
-                        help='Path to a directory, where the video data is located.')
+    parser.add_argument(
+        "-u",
+        "--url",
+        type=str,
+        required=False,
+        default="localhost:8001",
+        help="Inference server URL. Default is localhost:8001.",
+    )
+    parser.add_argument(
+        "--video",
+        type=str,
+        required=False,
+        default=None,
+        help="Path to a directory, where the video data is located.",
+    )
     return parser.parse_args()
 
 
@@ -80,7 +91,7 @@ def main():
 
     # Load test data
     if FLAGS.video is None:
-        dali_extra_path = os.environ['DALI_EXTRA_PATH']
+        dali_extra_path = os.environ["DALI_EXTRA_PATH"]
         filenames = [
             os.path.join(dali_extra_path, "db", "video", "containers", "mkv", "cfr.mkv"),
         ]
@@ -89,7 +100,6 @@ def main():
         filenames = filenames[:input_batch_size]
 
     with tritonclient.grpc.InferenceServerClient(url=FLAGS.url) as triton_client:
-
         model_name = "model.dali"
         model_version = -1
 
@@ -108,9 +118,9 @@ def main():
         assert input_batch_size == input_shape[0], f"{input_batch_size} == {input_shape[0]}"
 
         # Config inputs 1 & 2: undistort (remap) maps
-        npz = np.load('remap.npz')
-        remap_u = [npz['remap_x'] for _ in range(max_batch_size)]
-        remap_v = [npz['remap_y'] for _ in range(max_batch_size)]
+        npz = np.load("remap.npz")
+        remap_u = [npz["remap_x"] for _ in range(max_batch_size)]
+        remap_v = [npz["remap_y"] for _ in range(max_batch_size)]
         remap_u = array_from_list(remap_u)
         remap_v = array_from_list(remap_v)
         map_shape = list(remap_u.shape)
@@ -127,8 +137,9 @@ def main():
         inputs[2].set_data_from_numpy(remap_v)
 
         request_id = "0"
-        triton_client.async_stream_infer(model_name=model_name, inputs=inputs, request_id=request_id,
-                                         outputs=outputs)
+        triton_client.async_stream_infer(
+            model_name=model_name, inputs=inputs, request_id=request_id, outputs=outputs
+        )
 
         data_item = user_data._completed_requests.get()
         output0_data = data_item.as_numpy("OUTPUT")
@@ -138,5 +149,5 @@ def main():
         print(output0_data.shape)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

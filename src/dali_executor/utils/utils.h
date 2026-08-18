@@ -154,7 +154,7 @@ struct TimeRange {
   static const uint32_t kPantyPink = 0xBD8BC3;
 
 
-  explicit TimeRange(const std::string& name, const uint32_t rgb = kPantyPink) {
+  explicit TimeRange(const std::string &name, const uint32_t rgb = kPantyPink) {
     nvtxEventAttributes_t att = {};
     att.version = NVTX_VERSION;
     att.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;

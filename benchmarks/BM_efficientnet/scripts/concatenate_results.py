@@ -27,7 +27,13 @@ import pandas as pd
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--reports-path', type=str, required=True, help='Path to the directory with the reports')
+    parser.add_argument(
+        "-p",
+        "--reports-path",
+        type=str,
+        required=True,
+        help="Path to the directory with the reports",
+    )
     return parser.parse_args()
 
 
@@ -36,15 +42,15 @@ def list_reports(reports_path):
 
 
 def parse_batch_size(report_file_name):
-    return int(re.search(r'bs\d+', report_file_name).group()[2:])
+    return int(re.search(r"bs\d+", report_file_name).group()[2:])
 
 
 def validate_report_file_name(report_file_name):
-    return re.match(r'report-bs\d+-c\d+\.csv', report_file_name) is not None
+    return re.match(r"report-bs\d+-c\d+\.csv", report_file_name) is not None
 
 
 def insert_batch_size_column(report_csv, batch_size):
-    report_csv.insert(0, 'Batch size', batch_size)
+    report_csv.insert(0, "Batch size", batch_size)
 
 
 def main(reports_path, result_path):
@@ -56,9 +62,9 @@ def main(reports_path, result_path):
         insert_batch_size_column(report, parse_batch_size(rep))
         reports.append(report)
     result = pd.concat(reports)
-    result.to_csv(result_path, sep=',')
+    result.to_csv(result_path, sep=",")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
-    main(args.reports_path, f'{args.reports_path}/combined.csv')
+    main(args.reports_path, f"{args.reports_path}/combined.csv")

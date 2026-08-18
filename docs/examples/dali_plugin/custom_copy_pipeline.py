@@ -22,12 +22,16 @@
 import nvidia.dali as dali
 import nvidia.dali.plugin_manager as plugin_manager
 
-plugin_manager.load_library('./model_repository/libcustomcopy.so')
+plugin_manager.load_library("./model_repository/libcustomcopy.so")
+
 
 def parse_args():
     import argparse
+
     parser = argparse.ArgumentParser(description="Serialize the pipeline and save it to a file")
-    parser.add_argument('file_path', type=str, help='The path where to save the serialized pipeline')
+    parser.add_argument(
+        "file_path", type=str, help="The path where to save the serialized pipeline"
+    )
     return parser.parse_args()
 
 
@@ -42,6 +46,6 @@ def main(filename):
     pipe().serialize(filename=filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
     main(args.file_path)

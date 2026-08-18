@@ -32,29 +32,29 @@ namespace triton { namespace backend { namespace dali {
  */
 std::string to_triton_config(dali_data_type_t type) {
   switch (type) {
-    case DALI_UINT8   :
+    case DALI_UINT8:
       return "TYPE_UINT8";
-    case DALI_UINT16  :
+    case DALI_UINT16:
       return "TYPE_UINT16";
-    case DALI_UINT32  :
+    case DALI_UINT32:
       return "TYPE_UINT32";
-    case DALI_UINT64  :
+    case DALI_UINT64:
       return "TYPE_UINT64";
-    case DALI_INT8    :
+    case DALI_INT8:
       return "TYPE_INT8";
-    case DALI_INT16   :
+    case DALI_INT16:
       return "TYPE_INT16";
-    case DALI_INT32   :
+    case DALI_INT32:
       return "TYPE_INT32";
-    case DALI_INT64   :
+    case DALI_INT64:
       return "TYPE_INT64";
-    case DALI_FLOAT16 :
+    case DALI_FLOAT16:
       return "TYPE_FP16";
-    case DALI_FLOAT   :
+    case DALI_FLOAT:
       return "TYPE_FP32";
-    case DALI_FLOAT64 :
+    case DALI_FLOAT64:
       return "TYPE_FP64";
-    case DALI_BOOL    :
+    case DALI_BOOL:
       return "TYPE_BOOL";
     default:
       return "TYPE_INVALID";
@@ -64,8 +64,9 @@ std::string to_triton_config(dali_data_type_t type) {
 
 void SetShapeArray(TritonJson::Value &array, const std::vector<int64_t> &dims) {
   TRITON_CALL(array.AssertType(TritonJson::ValueType::ARRAY));
-  ENFORCE(array.ArraySize() <= dims.size(), "SetShapeArray expects the initial array size to be "
-                                            "smaller or equal the number of dimensions.");
+  ENFORCE(array.ArraySize() <= dims.size(),
+          "SetShapeArray expects the initial array size to be "
+          "smaller or equal the number of dimensions.");
   size_t i = 0;
   const auto arr_size = array.ArraySize();
   for (; i < arr_size; ++i) {
@@ -108,14 +109,15 @@ std::vector<int64_t> ReadShape(TritonJson::Value &dims_array) {
 }
 
 
-std::vector<int64_t> MatchShapes(const std::string &name,
-                                 const std::vector<int64_t> &config_shape,
+std::vector<int64_t> MatchShapes(const std::string &name, const std::vector<int64_t> &config_shape,
                                  const std::vector<int64_t> &pipeline_shape) {
   if (config_shape.size() != pipeline_shape.size()) {
-    throw TritonError::InvalidArg(make_string("Mismatch in number of dimensions for \"", name, "\"\n"
-                                  "Number of dimensions defined in config: ", config_shape.size(),
-                                  "\nNumber of dimensions defined in pipeline: ",
-                                  pipeline_shape.size()));
+    throw TritonError::InvalidArg(
+        make_string("Mismatch in number of dimensions for \"", name,
+                    "\"\n"
+                    "Number of dimensions defined in config: ",
+                    config_shape.size(),
+                    "\nNumber of dimensions defined in pipeline: ", pipeline_shape.size()));
   }
   std::vector<int64_t> result(config_shape.size());
   for (size_t i = 0; i < result.size(); ++i) {
@@ -123,10 +125,9 @@ std::vector<int64_t> MatchShapes(const std::string &name,
       if (config_shape[i] == -1 || pipeline_shape[i] == -1) {
         result[i] = std::max(config_shape[i], pipeline_shape[i]);
       } else {
-        throw TritonError::InvalidArg(
-          make_string("Mismath in dims for ", name, "\nDims defined in config: ",
-                      vec_to_string(config_shape), "\nDims defined in pipeline: ",
-                      vec_to_string(pipeline_shape)));
+        throw TritonError::InvalidArg(make_string(
+            "Mismath in dims for ", name, "\nDims defined in config: ", vec_to_string(config_shape),
+            "\nDims defined in pipeline: ", vec_to_string(pipeline_shape)));
       }
     } else {
       result[i] = config_shape[i];
@@ -136,9 +137,9 @@ std::vector<int64_t> MatchShapes(const std::string &name,
 }
 
 
-template <bool allow_missing>
+template<bool allow_missing>
 std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                              dali_data_type_t dtype) {
+                               dali_data_type_t dtype) {
   TritonJson::Value dtype_obj(TritonJson::ValueType::OBJECT);
   if (io_object.Find("data_type", &dtype_obj)) {
     std::string found_dtype;
@@ -146,10 +147,13 @@ std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &
     if (found_dtype != "TYPE_INVALID") {
       if (dtype != DALI_NO_TYPE) {
         if (found_dtype != to_triton_config(dtype)) {
-          throw TritonError::InvalidArg(make_string(
-            "Mismatch of data_type config for \"", name, "\".\n"
-            "Data type defined in config: ", found_dtype, "\n"
-            "Data type defined in pipeline: ", to_triton_config(dtype)));
+          throw TritonError::InvalidArg(make_string("Mismatch of data_type config for \"", name,
+                                                    "\".\n"
+                                                    "Data type defined in config: ",
+                                                    found_dtype,
+                                                    "\n"
+                                                    "Data type defined in pipeline: ",
+                                                    to_triton_config(dtype)));
         }
       }
       return found_dtype;
@@ -169,7 +173,7 @@ std::string AutofillDtypeConfig(TritonJson::Value &io_object, const std::string 
 
 
 void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                        dali_data_type_t dtype) {
+                         dali_data_type_t dtype) {
   ProcessDtypeConfig<false>(io_object, name, dtype);
 }
 
@@ -187,7 +191,7 @@ void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io
   TRITON_CALL(config_io.MemberAsString("name", &name));
   TritonJson::Value config_dims_obj;
   std::vector<int64_t> model_io_shape =
-    batched_model ? _model_io_shape : add_batch_dim(_model_io_shape);
+      batched_model ? _model_io_shape : add_batch_dim(_model_io_shape);
   if (config_io.Find("dims", &config_dims_obj)) {
     auto config_dims = ReadShape(config_dims_obj);
     if (config_dims.size() > 0) {
@@ -205,8 +209,7 @@ void AutofillShapeConfig(TritonJson::Value &config, TritonJson::Value &config_io
 
 
 void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
-                         const std::optional<std::vector<int64_t>> &shape,
-                         bool batched_model) {
+                         const std::optional<std::vector<int64_t>> &shape, bool batched_model) {
   TritonJson::Value dims_obj;
   TritonError error{io_object.MemberAsArray("dims", &dims_obj)};
   if (error) {
@@ -214,12 +217,10 @@ void ValidateShapeConfig(TritonJson::Value &io_object, const std::string &name,
   }
 
   if (shape) {
-    std::vector<int64_t> model_io_shape =
-    batched_model ? *shape : add_batch_dim(*shape);
+    std::vector<int64_t> model_io_shape = batched_model ? *shape : add_batch_dim(*shape);
     auto config_shape = ReadShape(dims_obj);
     MatchShapes(name, config_shape, model_io_shape);
   }
-
 }
 
 
@@ -245,8 +246,7 @@ void AutofillIOConfig(TritonJson::Value &config, TritonJson::Value &config_io,
 }
 
 
-void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
-                      bool batched_model) {
+void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config, bool batched_model) {
   TRITON_CALL(io_object.AssertType(common::TritonJson::ValueType::OBJECT));
   std::string name;
   io_object.MemberAsString("name", &name);
@@ -256,14 +256,14 @@ void ValidateIOConfig(TritonJson::Value &io_object, const IOConfig &io_config,
 
 
 void ValidateAgainstTooManyInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_configs) {
-   for (size_t i = 0; i < ins.ArraySize(); ++i) {
+  for (size_t i = 0; i < ins.ArraySize(); ++i) {
     TritonJson::Value io_object(TritonJson::ValueType::OBJECT);
     ins.IndexAsObject(i, &io_object);
     std::string name;
     if (io_object.MemberAsString("name", &name) != TRITONJSON_STATUSSUCCESS) {
       throw TritonError::InvalidArg(
-        make_string("The input at index ", i,
-                    " in the model configuration does not contain a `name` field."));
+          make_string("The input at index ", i,
+                      " in the model configuration does not contain a `name` field."));
     }
 
     bool in_present = std::any_of(in_configs.begin(), in_configs.end(),
@@ -280,7 +280,7 @@ void AutofillInputsConfig(TritonJson::Value &config, TritonJson::Value &config_i
                           const std::vector<IOConfig> &model_ins, bool batched_model) {
   TRITON_CALL(config_ins.AssertType(common::TritonJson::ValueType::ARRAY));
   ValidateAgainstTooManyInputs(config_ins, model_ins);
-  for (const auto &model_in: model_ins) {
+  for (const auto &model_in : model_ins) {
     TritonJson::Value config_in(config, TritonJson::ValueType::OBJECT);
     auto found = FindObjectByName(config_ins, model_in.name, &config_in);
     AutofillIOConfig(config, config_in, model_in, batched_model);
@@ -299,10 +299,10 @@ void AutofillOutputsConfig(TritonJson::Value &config, TritonJson::Value &config_
   TRITON_CALL(config_outs.AssertType(common::TritonJson::ValueType::ARRAY));
   if (config_outs.ArraySize() > model_outs.size()) {
     throw TritonError::InvalidArg(
-      make_string("The number of outputs specified in the DALI pipeline and the configuration"
-                  " file do not match."
-                  "\nModel config outputs: ", config_outs.ArraySize(),
-                  "\nPipeline outputs: ", model_outs.size()));
+        make_string("The number of outputs specified in the DALI pipeline and the configuration"
+                    " file do not match."
+                    "\nModel config outputs: ",
+                    config_outs.ArraySize(), "\nPipeline outputs: ", model_outs.size()));
   }
 
   size_t i = 0;
@@ -368,12 +368,12 @@ void ValidateInputs(TritonJson::Value &ins, const std::vector<IOConfig> &in_conf
                     bool batched_model) {
   TRITON_CALL(ins.AssertType(common::TritonJson::ValueType::ARRAY));
   ValidateAgainstTooManyInputs(ins, in_configs);
-  for (const auto &in_config: in_configs) {
+  for (const auto &in_config : in_configs) {
     TritonJson::Value in_object(TritonJson::ValueType::OBJECT);
     auto ind = FindObjectByName(ins, in_config.name, &in_object);
     if (!ind) {
       throw TritonError::InvalidArg(
-        make_string("Missing config for \"", in_config.name, "\" input."));
+          make_string("Missing config for \"", in_config.name, "\" input."));
     }
     ValidateIOConfig(in_object, in_config, batched_model);
   }
@@ -385,10 +385,10 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
   TRITON_CALL(outs.AssertType(common::TritonJson::ValueType::ARRAY));
   if (outs.ArraySize() != out_configs.size()) {
     throw TritonError::InvalidArg(
-      make_string("The number of outputs specified in the DALI pipeline and the "
-                  "configuration file do not match."
-                  "\nModel config outputs: ", outs.ArraySize(),
-                  "\nPipeline outputs: ", out_configs.size()));
+        make_string("The number of outputs specified in the DALI pipeline and the "
+                    "configuration file do not match."
+                    "\nModel config outputs: ",
+                    outs.ArraySize(), "\nPipeline outputs: ", out_configs.size()));
   }
   for (size_t i = 0; i < out_configs.size(); ++i) {
     TritonJson::Value out_object;
@@ -396,8 +396,8 @@ void ValidateOutputs(TritonJson::Value &outs, const std::vector<IOConfig> &out_c
     std::string name;
     if (out_object.MemberAsString("name", &name) != TRITONJSON_STATUSSUCCESS) {
       throw TritonError::InvalidArg(
-        make_string("The output at index ", i,
-                    " in the model configuration does not contain a `name` field."));
+          make_string("The output at index ", i,
+                      " in the model configuration does not contain a `name` field."));
     }
     ValidateIOConfig(out_object, out_configs[i], batched_model);
   }
@@ -442,7 +442,8 @@ bool is_sep(char c) {
 
 void skip_whitespace(std::string_view &text) {
   size_t i = 0;
-  while (i < text.size() && is_whitespace(text[i])) ++i;
+  while (i < text.size() && is_whitespace(text[i]))
+    ++i;
   text.remove_prefix(i);
 }
 
@@ -452,7 +453,7 @@ void skip_line(std::string_view &text) {
   if (pos == text.npos) {
     text = std::string_view();
   } else {
-    text.remove_prefix(pos+1);
+    text.remove_prefix(pos + 1);
   }
 }
 
@@ -460,7 +461,7 @@ void skip_line(std::string_view &text) {
 void skip_ignored(std::string_view &text) {
   skip_whitespace(text);
   while (!text.empty() && text[0] == '#') {
-    skip_line(text); // remove comment
+    skip_line(text);  // remove comment
     skip_whitespace(text);
   }
 }
@@ -471,7 +472,8 @@ void skip_string(std::string_view &text) {
   while (!text.empty() && text[0] == '\"') {
     size_t end = 1;
     while (end < text.size() && text[end] != '\"') {
-      if (text[end] == '\\') ++end; // escaped character
+      if (text[end] == '\\')
+        ++end;  // escaped character
       ++end;
     }
     text.remove_prefix(end + 1);
@@ -481,14 +483,17 @@ void skip_string(std::string_view &text) {
 
 
 void skip_complex(std::string_view &text, char bra, char ket) {
-  if (text.empty()) return;
+  if (text.empty())
+    return;
   size_t open_bracket = 0;
   do {
     if (text[0] == '\"') {
       skip_string(text);
     } else {
-      if (text[0] == bra) ++open_bracket;
-      else if (text[0] == ket) --open_bracket;
+      if (text[0] == bra)
+        ++open_bracket;
+      else if (text[0] == ket)
+        --open_bracket;
       text.remove_prefix(1);
     }
     skip_ignored(text);
@@ -498,7 +503,8 @@ void skip_complex(std::string_view &text, char bra, char ket) {
 
 std::optional<int64_t> parse_int(std::string_view &text) {
   skip_ignored(text);
-  if (text.empty()) return {};
+  if (text.empty())
+    return {};
   bool negative = false;
   if (text[0] == '-') {
     negative = true;
@@ -506,7 +512,8 @@ std::optional<int64_t> parse_int(std::string_view &text) {
     skip_ignored(text);
   }
   size_t end = 0;
-  while (end < text.size() && !(is_whitespace(text[end]) || is_sep(text[end]))) ++end;
+  while (end < text.size() && !(is_whitespace(text[end]) || is_sep(text[end])))
+    ++end;
   try {
     std::string value(text.substr(0, end));
     int64_t v = std::stoll(value, nullptr, 0);
@@ -525,7 +532,7 @@ std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt) {
       pb_txt.remove_prefix(field_name.size());
       skip_ignored(pb_txt);
       if (pb_txt[0] == ':') {
-        pb_txt.remove_prefix(1); // remove :
+        pb_txt.remove_prefix(1);  // remove :
         return parse_int(pb_txt);
       } else {
         // scalar field name has to be followed by a colon

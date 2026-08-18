@@ -237,7 +237,9 @@ TRITONSERVER_Error* TRITONBACKEND_ModelInstanceExecute(TRITONBACKEND_ModelInstan
 
   try {
     dali_instance->Execute(requests);
-  } catch (TritonError& err) { return err.release(); }
+  } catch (TritonError& err) {
+    return err.release();
+  }
 
   return nullptr;
 }

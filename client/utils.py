@@ -70,7 +70,7 @@ def batcher(dataset, batch_size_provider, n_iterations=-1):
                 return
 
         if curr_sample + batch_size < dataset_size:
-            yield dataset[curr_sample: curr_sample + batch_size]
+            yield dataset[curr_sample : curr_sample + batch_size]
         else:
             # Get as many samples from this revolution of the dataset as possible,
             # then repeat the dataset as many revolutions as needed
@@ -79,9 +79,7 @@ def batcher(dataset, batch_size_provider, n_iterations=-1):
             n_rep = (batch_size - suffix) // dataset_size
             prefix = batch_size - (suffix + dataset_size * n_rep)
             yield np.concatenate(
-                (dataset[curr_sample:],
-                 np.repeat(dataset, repeats=n_rep, axis=0),
-                 dataset[:prefix])
+                (dataset[curr_sample:], np.repeat(dataset, repeats=n_rep, axis=0), dataset[:prefix])
             )
         curr_sample = (curr_sample + batch_size) % dataset_size
         iter_idx += 1

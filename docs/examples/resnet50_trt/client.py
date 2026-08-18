@@ -35,33 +35,40 @@ def load_image(img_path: str):
     DALI performs image decoding, therefore this way the processing
     can be fully offloaded to the GPU.
     """
-    return np.fromfile(img_path, dtype='uint8')
+    return np.fromfile(img_path, dtype="uint8")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name",
-                        type=str, required=False,
-                        default="ensemble_dali_resnet50",
-                        help="Model name")
-    parser.add_argument("--image",
-                        type=str,
-                        required=True,
-                        help="Path to the image")
-    parser.add_argument("--url",
-                        type=str,
-                        required=False,
-                        default="localhost:8001",
-                        help="Inference server URL. Default is localhost:8001.")
-    parser.add_argument('-v', "--verbose",
-                        action="store_true",
-                        required=False,
-                        default=False,
-                        help='Enable verbose output')
-    parser.add_argument("--label_file",
-                        type=str,
-                        default="./model_repository/resnet50_trt/labels.txt",
-                        help="Path to the file with text representation of available labels")
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        required=False,
+        default="ensemble_dali_resnet50",
+        help="Model name",
+    )
+    parser.add_argument("--image", type=str, required=True, help="Path to the image")
+    parser.add_argument(
+        "--url",
+        type=str,
+        required=False,
+        default="localhost:8001",
+        help="Inference server URL. Default is localhost:8001.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "--label_file",
+        type=str,
+        default="./model_repository/resnet50_trt/labels.txt",
+        help="Path to the file with text representation of available labels",
+    )
     args = parser.parse_args()
 
     try:
@@ -86,9 +93,7 @@ if __name__ == "__main__":
     inputs[0].set_data_from_numpy(image_data)
     start_time = time.time()
     # Test with outputs
-    results = triton_client.infer(model_name=args.model_name,
-                                  inputs=inputs,
-                                  outputs=outputs)
+    results = triton_client.infer(model_name=args.model_name, inputs=inputs, outputs=outputs)
     latency = time.time() - start_time
 
     output0_data = results.as_numpy(output_name)

@@ -29,9 +29,9 @@ def _interleave_lists(*lists):
     Returns:
         iterator over interleaved list
     """
-    assert all(
-        (len(lists[0]) == len(test_l) for test_l in lists)
-    ), "All lists have to have the same length"
+    assert all((len(lists[0]) == len(test_l) for test_l in lists)), (
+        "All lists have to have the same length"
+    )
     return itertools.chain(*zip(*lists))
 
 
@@ -44,27 +44,27 @@ def _tuples2list(tuples: list):
 
 @dali.pipeline_def
 def dali_asr_pipeline(
-        train_pipeline,  # True if training, False if validation
-        file_root,
-        file_list,
-        sample_rate,
-        silence_threshold,
-        resample_range,
-        discrete_resample_range,
-        window_size,
-        window_stride,
-        nfeatures,
-        nfft,
-        frame_splicing_factor,
-        dither_coeff,
-        pad_align,
-        preemph_coeff,
-        do_spectrogram_masking=False,
-        cutouts_generator=None,
-        shard_id=0,
-        n_shards=1,
-        preprocessing_device="gpu",
-        is_triton_pipeline=False,
+    train_pipeline,  # True if training, False if validation
+    file_root,
+    file_list,
+    sample_rate,
+    silence_threshold,
+    resample_range,
+    discrete_resample_range,
+    window_size,
+    window_stride,
+    nfeatures,
+    nfft,
+    frame_splicing_factor,
+    dither_coeff,
+    pad_align,
+    preemph_coeff,
+    do_spectrogram_masking=False,
+    cutouts_generator=None,
+    shard_id=0,
+    n_shards=1,
+    preprocessing_device="gpu",
+    is_triton_pipeline=False,
 ):
     do_remove_silence = silence_threshold is not None
 
@@ -91,9 +91,7 @@ def dali_asr_pipeline(
             values = [resample_range[0], 1.0, resample_range[1]]
             speed_perturbation_coeffs = fn.random.uniform(device="cpu", values=values)
         else:
-            speed_perturbation_coeffs = fn.random.uniform(
-                device="cpu", range=resample_range
-            )
+            speed_perturbation_coeffs = fn.random.uniform(device="cpu", range=resample_range)
 
     if train_pipeline and speed_perturbation_coeffs is not None:
         dec_sample_rate_arg = speed_perturbation_coeffs * sample_rate
@@ -126,9 +124,7 @@ def dali_asr_pipeline(
         window_step=window_stride * sample_rate,
     )
 
-    mel_spec = fn.mel_filter_bank(
-        spec, sample_rate=sample_rate, nfilter=nfeatures, normalize=True
-    )
+    mel_spec = fn.mel_filter_bank(spec, sample_rate=sample_rate, nfilter=nfeatures, normalize=True)
 
     log_features = fn.to_decibels(
         mel_spec, multiplier=np.log(10), reference=1.0, cutoff_db=math.log(1e-20)
@@ -142,9 +138,7 @@ def dali_asr_pipeline(
     log_features = fn.pad(log_features, axes=[1], fill_value=0, align=pad_align, shape=(-1,))
 
     if train_pipeline and do_spectrogram_masking:
-        anchors, shapes = fn.external_source(
-            source=cutouts_generator, num_outputs=2, cycle=True
-        )
+        anchors, shapes = fn.external_source(source=cutouts_generator, num_outputs=2, cycle=True)
         log_features = fn.erase(
             log_features,
             anchor=anchors,
@@ -171,14 +165,14 @@ def serialize_dali_pipeline(filepath):
         silence_threshold=-60,
         resample_range=None,
         discrete_resample_range=None,
-        window_size=.02,
-        window_stride=.01,
+        window_size=0.02,
+        window_stride=0.01,
         nfeatures=64,
         nfft=512,
         frame_splicing_factor=1,
         dither_coeff=1e-5,
         pad_align=16,
-        preemph_coeff=.97,
+        preemph_coeff=0.97,
         preprocessing_device="gpu",
         is_triton_pipeline=True,
         batch_size=1,
@@ -188,5 +182,5 @@ def serialize_dali_pipeline(filepath):
     p.serialize(filename=filepath)
 
 
-if __name__ == '__main__':
-    serialize_dali_pipeline('1/model.dali')
+if __name__ == "__main__":
+    serialize_dali_pipeline("1/model.dali")

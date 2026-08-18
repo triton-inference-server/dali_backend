@@ -60,7 +60,8 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
       BackendModelInstance(model, triton_model_instance), dali_model_(model) {
     auto serialized_pipeline = dali_model_->GetModelProvider().GetModel();
     auto max_batch_size = dali_model_->MaxBatchSize();
-    if (max_batch_size < 1) max_batch_size = -1;
+    if (max_batch_size < 1)
+      max_batch_size = -1;
     auto num_threads = dali_model_->GetModelParamters().GetNumThreads();
     DaliPipeline pipeline(serialized_pipeline, max_batch_size, num_threads, GetDaliDeviceId());
     dali_executor_ = std::make_unique<DaliExecutor>(std::move(pipeline));
@@ -95,7 +96,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   ProcessingMeta ProcessRequests(const std::vector<TritonRequest>& requests,
                                  const std::vector<TritonResponse>& responses);
 
-  TimeInterval ProcessRequest(const TritonRequest &request);
+  TimeInterval ProcessRequest(const TritonRequest& request);
 
   /**
    * @brief Generate descriptors of inputs provided by given \p requests
@@ -104,7 +105,7 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
   InputsInfo GenerateInputs(const std::vector<TritonRequest>& requests);
 
 
-  std::vector<IDescr> GenerateInputs(const TritonRequest &request);
+  std::vector<IDescr> GenerateInputs(const TritonRequest& request);
 
   int32_t GetDaliDeviceId() {
     return !CudaStream() ? CPU_ONLY_DEVICE_ID : device_id_;
@@ -121,13 +122,13 @@ class DaliModelInstance : public ::triton::backend::BackendModelInstance {
                                       const std::vector<int>& batch_sizes,
                                       const std::vector<OutputInfo>& outputs_info);
 
-  std::vector<ODescr> AllocateOutputs(const TritonRequest &request, const TritonResponse &response,
+  std::vector<ODescr> AllocateOutputs(const TritonRequest& request, const TritonResponse& response,
                                       const std::vector<OutputInfo>& outputs_info);
 
 
   void ExecuteBatched(const std::vector<TritonRequest>& requests);
 
-  void ExecuteUnbatched(const std::vector<TritonRequest> &requests);
+  void ExecuteUnbatched(const std::vector<TritonRequest>& requests);
 
   std::unique_ptr<DaliExecutor> dali_executor_;
   DaliModel* dali_model_;

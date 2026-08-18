@@ -99,11 +99,9 @@ TEST_CASE("Split string") {
 
 TEST_CASE("Split outer dim") {
   int bs = 3;
-  std::vector<std::vector<int64_t>> sample_shapes{
-    std::vector<int64_t>{1, 1, 2, 3},
-    std::vector<int64_t>{2, 2, 3, 1},
-    std::vector<int64_t>{3, 3, 2, 1}
-  };
+  std::vector<std::vector<int64_t>> sample_shapes{std::vector<int64_t>{1, 1, 2, 3},
+                                                  std::vector<int64_t>{2, 2, 3, 1},
+                                                  std::vector<int64_t>{3, 3, 2, 1}};
   TensorListShape<> tlist_shape(sample_shapes);
   auto split = split_outer_dim(tlist_shape);
 
