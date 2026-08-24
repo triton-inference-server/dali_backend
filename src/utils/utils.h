@@ -23,10 +23,10 @@
 #ifndef DALI_BACKEND_UTILS_UTILS_H_
 #define DALI_BACKEND_UTILS_UTILS_H_
 
-#include <string>
-#include <sstream>
-#include <vector>
 #include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <unistd.h>
 
@@ -77,14 +77,14 @@ template<>
 inline bool from_string<bool>(const std::string& str) {
   std::string t = str;
   // Convert to lower case.
-  std::transform(t.begin(), t.end(), t.begin(), [](auto c){ return std::tolower(c); });
+  std::transform(t.begin(), t.end(), t.begin(), [](auto c) { return std::tolower(c); });
 
   return str == "true";
 }
 
-template <typename T>
-std::string vec_to_string(const std::vector<T> &vec, const std::string &lbracket = "{",
-                          const std::string &rbracket = "}", const std::string &delim = ", ") {
+template<typename T>
+std::string vec_to_string(const std::vector<T>& vec, const std::string& lbracket = "{",
+                          const std::string& rbracket = "}", const std::string& delim = ", ") {
   std::stringstream ss;
   ss << lbracket;
   auto it = vec.begin();
@@ -126,7 +126,7 @@ inline void ValidateFilename(std::string_view path) {
     if (!detail::is_char_filename_allowed(c)) {
       throw std::runtime_error("Model file name '" + std::string(path) +
                                "' contains an invalid character: '" + std::string(1, c) + "'" +
-                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -");
+                               "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -");
     }
   }
 }
@@ -136,7 +136,7 @@ inline void ValidateAbsPath(std::string_view path) {
     if (!detail::is_char_path_allowed(c)) {
       throw std::runtime_error("File path '" + std::string(path) +
                                "' contains an invalid character: '" + std::string(1, c) + "'" +
-                              "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -, /");
+                               "\nAllowed characters are: a-z, A-Z, 0-9, _, ., -, /");
     }
   }
 

@@ -30,7 +30,8 @@ namespace triton { namespace backend { namespace dali { namespace test {
 
 using Catch::Matchers::Contains;
 
-static void CheckIOConfigEquals(TritonJson::Value &io, IOConfig io_config, bool compare_names = true) {
+static void CheckIOConfigEquals(TritonJson::Value &io, IOConfig io_config,
+                                bool compare_names = true) {
   CHECK(io.AssertType(TritonJson::ValueType::OBJECT) == TRITONJSON_STATUSSUCCESS);
 
   if (compare_names) {
@@ -86,9 +87,8 @@ TEST_CASE("IO config validation") {
   TritonJson::Value io_config;
   TRITON_CALL(io_config.Parse(std::string(R"json({
     "name": "io0",
-    "dims": )json") +
-    (batched_model ? "[3, 2, 1]," : "[-1, 3, 2, 1],") +
-    R"json("data_type": "TYPE_FP32"
+    "dims": )json") + (batched_model ? "[3, 2, 1]," : "[-1, 3, 2, 1],") +
+                              R"json("data_type": "TYPE_FP32"
   })json"));
 
   SECTION("Matching config") {
@@ -99,23 +99,26 @@ TEST_CASE("IO config validation") {
 
   SECTION("Mismatching dtype") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_INT32, {{3, 2, 1}}), batched_model),
-      Contains("Data type defined in config: TYPE_FP32") &&
-      Contains("Data type defined in pipeline: TYPE_INT32"));
+        ValidateIOConfig(io_config, IOConfig("io0", DALI_INT32, {{3, 2, 1}}), batched_model),
+        Contains("Data type defined in config: TYPE_FP32") &&
+            Contains("Data type defined in pipeline: TYPE_INT32"));
   }
 
   SECTION("Mismatching ndims") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{-1, -1, -1, -1}}), batched_model),
-      Contains(make_string("Number of dimensions defined in config: ", batched_model ? 3 : 4)) &&
-      Contains(make_string("Number of dimensions defined in pipeline: ", batched_model ? 4 : 5)));
+        ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{-1, -1, -1, -1}}), batched_model),
+        Contains(make_string("Number of dimensions defined in config: ", batched_model ? 3 : 4)) &&
+            Contains(
+                make_string("Number of dimensions defined in pipeline: ", batched_model ? 4 : 5)));
   }
 
   SECTION("Mismatching shapes") {
     REQUIRE_THROWS_WITH(
-      ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 2}}), batched_model),
-      Contains(make_string("Dims defined in config: {", batched_model ? "" : "-1, ", "3, 2, 1}")) &&
-      Contains(make_string("Dims defined in pipeline: {", batched_model ? "" : "-1, ", "3, 2, 2}")));
+        ValidateIOConfig(io_config, IOConfig("io0", DALI_FLOAT, {{3, 2, 2}}), batched_model),
+        Contains(
+            make_string("Dims defined in config: {", batched_model ? "" : "-1, ", "3, 2, 1}")) &&
+            Contains(make_string("Dims defined in pipeline: {", batched_model ? "" : "-1, ",
+                                 "3, 2, 2}")));
   }
 }
 
@@ -136,22 +139,17 @@ TEST_CASE("Inputs validation") {
   ])json"));
 
   SECTION("Correct config") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("i2", DALI_FLOAT16, {{1, 1}})
-    };
+    std::vector<IOConfig> ios_config = {IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+                                        IOConfig("i2", DALI_FLOAT16, {{1, 1}})};
     ValidateInputs(ios, ios_config);
   }
 
   SECTION("Missing input") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("i2", DALI_FLOAT16, {{1, 1}}),
-      IOConfig("i3", DALI_UINT16, {{1}})
-    };
+    std::vector<IOConfig> ios_config = {IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+                                        IOConfig("i2", DALI_FLOAT16, {{1, 1}}),
+                                        IOConfig("i3", DALI_UINT16, {{1}})};
 
-    REQUIRE_THROWS_WITH(ValidateInputs(ios, ios_config),
-                        Contains("Missing config for \"i3\""));
+    REQUIRE_THROWS_WITH(ValidateInputs(ios, ios_config), Contains("Missing config for \"i3\""));
   }
 }
 
@@ -172,19 +170,15 @@ TEST_CASE("Outputs validation") {
   ])json"));
 
   SECTION("Correct config") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}})
-    };
+    std::vector<IOConfig> ios_config = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+                                        IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}})};
     ValidateOutputs(ios, ios_config);
   }
 
   SECTION("Missing output") {
-    std::vector<IOConfig> ios_config = {
-      IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}}),
-      IOConfig("Pipe_o3", DALI_UINT16, {{1}})
-    };
+    std::vector<IOConfig> ios_config = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+                                        IOConfig("Pipe_o2", DALI_FLOAT16, {{1, 1}}),
+                                        IOConfig("Pipe_o3", DALI_UINT16, {{1}})};
 
     REQUIRE_THROWS_WITH(ValidateOutputs(ios, ios_config),
                         Contains("The number of outputs specified in the DALI pipeline and the"
@@ -282,21 +276,18 @@ TEST_CASE("Inputs auto-config") {
   ])json"));
 
   SECTION("Inputs auto-config") {
-    std::vector<IOConfig> model_ins = {
-      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
-      IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
-      IOConfig("i3", DALI_UINT16, {{4}})
-    };
+    std::vector<IOConfig> model_ins = {IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+                                       IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
+                                       IOConfig("i3", DALI_UINT16, {{4}})};
 
     AutofillInputsConfig(ios, ios, model_ins);
 
-    for (auto &model_in: model_ins) {
+    for (auto &model_in : model_ins) {
       TritonJson::Value inp_object;
       REQUIRE(FindObjectByName(ios, model_in.name, &inp_object));
       bool ragged_batches;
-      REQUIRE(
-        inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
-      );
+      REQUIRE(inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) ==
+              TRITONJSON_STATUSSUCCESS);
       REQUIRE(ragged_batches);
       CheckIOConfigEquals(inp_object, model_in);
     }
@@ -305,9 +296,9 @@ TEST_CASE("Inputs auto-config") {
 
   SECTION("Inputs auto-config, reordered") {
     std::vector<IOConfig> model_ins = {
-      IOConfig("i0", DALI_INT32, {{-1, -1}}),
-      IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
-      IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
+        IOConfig("i0", DALI_INT32, {{-1, -1}}),
+        IOConfig("i2", DALI_FLOAT16, {{5, 5}}),
+        IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}),
     };
 
     AutofillInputsConfig(ios, ios, model_ins);
@@ -316,23 +307,20 @@ TEST_CASE("Inputs auto-config") {
     TritonJson::Value inp_object;
     REQUIRE(ios.IndexAsObject(0, &inp_object) == TRITONJSON_STATUSSUCCESS);
     bool ragged_batches;
-    REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
-    );
+    REQUIRE(inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) ==
+            TRITONJSON_STATUSSUCCESS);
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i1", DALI_FLOAT, {{3, 2, 3}}));
 
     REQUIRE(ios.IndexAsObject(1, &inp_object) == TRITONJSON_STATUSSUCCESS);
-    REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
-    );
+    REQUIRE(inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) ==
+            TRITONJSON_STATUSSUCCESS);
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i2", DALI_FLOAT16, {{5, 5}}));
 
     REQUIRE(ios.IndexAsObject(2, &inp_object) == TRITONJSON_STATUSSUCCESS);
-    REQUIRE(
-      inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) == TRITONJSON_STATUSSUCCESS
-    );
+    REQUIRE(inp_object.MemberAsBool("allow_ragged_batch", &ragged_batches) ==
+            TRITONJSON_STATUSSUCCESS);
     REQUIRE(ragged_batches);
     CheckIOConfigEquals(inp_object, IOConfig("i0", DALI_INT32, {{-1, -1}}));
   }
@@ -353,11 +341,9 @@ TEST_CASE("Outputs auto-config") {
   }
   ])json"));
 
-  std::vector<IOConfig> model_outs = {
-    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
-    IOConfig("Pipe_o2", DALI_FLOAT16, {{5, 5}}),
-    IOConfig("Pipe_o3", DALI_UINT16, {{4}})
-  };
+  std::vector<IOConfig> model_outs = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+                                      IOConfig("Pipe_o2", DALI_FLOAT16, {{5, 5}}),
+                                      IOConfig("Pipe_o3", DALI_UINT16, {{4}})};
 
 
   SECTION("Outputs auto-config") {
@@ -403,16 +389,12 @@ TEST_CASE("Autofill config") {
     ]
   })json"));
 
-  std::vector<IOConfig> model_ins = {
-    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
-    IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
-    IOConfig("i3", DALI_INT32, {{1, 1, 1}})
-  };
+  std::vector<IOConfig> model_ins = {IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
+                                     IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
+                                     IOConfig("i3", DALI_INT32, {{1, 1, 1}})};
 
-  std::vector<IOConfig> model_outs = {
-    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
-    IOConfig("o2", DALI_INT32, {{-1, -1}})
-  };
+  std::vector<IOConfig> model_outs = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+                                      IOConfig("o2", DALI_INT32, {{-1, -1}})};
 
   std::string expected_config = R"json({
     "input": [
@@ -501,16 +483,12 @@ TEST_CASE("Autofill config [unbatched]") {
     ]
   })json"));
 
-  std::vector<IOConfig> model_ins = {
-    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
-    IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
-    IOConfig("i3", DALI_INT32, {{1, 1, 1}})
-  };
+  std::vector<IOConfig> model_ins = {IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}}),
+                                     IOConfig("i2", DALI_NO_TYPE, {{-1, 3, 3}}),
+                                     IOConfig("i3", DALI_INT32, {{1, 1, 1}})};
 
-  std::vector<IOConfig> model_outs = {
-    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
-    IOConfig("o2", DALI_INT32, {{-1, -1}})
-  };
+  std::vector<IOConfig> model_outs = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}}),
+                                      IOConfig("o2", DALI_INT32, {{-1, -1}})};
 
   std::string expected_config = R"json({
     "input": [
@@ -580,13 +558,9 @@ TEST_CASE("Autofill config [unbatched]") {
 
 
 TEST_CASE("Validate config") {
-  std::vector<IOConfig> ins_config = {
-    IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}})
-  };
+  std::vector<IOConfig> ins_config = {IOConfig("i1", DALI_FLOAT16, {{3, 2, 1}})};
 
-  std::vector<IOConfig> outs_config = {
-    IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}})
-  };
+  std::vector<IOConfig> outs_config = {IOConfig("Pipe_o1", DALI_FLOAT, {{3, 2, 3}})};
 
   SECTION("correct config") {
     TritonJson::Value config(TritonJson::ValueType::OBJECT);

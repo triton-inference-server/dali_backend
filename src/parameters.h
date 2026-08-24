@@ -80,19 +80,19 @@ class ModelParameters {
 
 class BackendParameters {
  public:
-   explicit BackendParameters(const std::string& backend_config_json) {
-     FromConfigJson(backend_config_json);
-   }
+  explicit BackendParameters(const std::string& backend_config_json) {
+    FromConfigJson(backend_config_json);
+  }
 
-   explicit BackendParameters(TRITONBACKEND_Backend* backend) {
-     FromBackend(backend);
-   }
+  explicit BackendParameters(TRITONBACKEND_Backend* backend) {
+    FromBackend(backend);
+  }
 
-   explicit BackendParameters(TRITONBACKEND_Model* model) {
-     TRITONBACKEND_Backend* backend;
-     TRITON_CALL_GUARD(TRITONBACKEND_ModelBackend(model, &backend));
-     FromBackend(backend);
-   }
+  explicit BackendParameters(TRITONBACKEND_Model* model) {
+    TRITONBACKEND_Backend* backend;
+    TRITON_CALL_GUARD(TRITONBACKEND_ModelBackend(model, &backend));
+    FromBackend(backend);
+  }
 
   /**
    * Return a value of a parameter with a given `key`
@@ -130,7 +130,8 @@ class BackendParameters {
     TRITON_CALL_GUARD(TRITONBACKEND_BackendConfig(backend, &backend_config_message));
     const char* buffer;
     size_t byte_size;
-    TRITON_CALL_GUARD(TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
+    TRITON_CALL_GUARD(
+        TRITONSERVER_MessageSerializeToJson(backend_config_message, &buffer, &byte_size));
     LOG_MESSAGE(TRITONSERVER_LOG_INFO, (std::string("backend configuration:\n") + buffer).c_str());
     auto backend_config_json = make_string(buffer);
     FromConfigJson(backend_config_json);

@@ -24,9 +24,9 @@
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 #include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/dali.h"
@@ -119,13 +119,14 @@ class DaliPipeline {
 
   void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
                 dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims,
-                const char *data_id, bool force_no_copy = true);
+                const char* data_id, bool force_no_copy = true);
 
   void SetInput(const void* ptr, const char* name, device_type_t source_device,
                 dali_data_type_t data_type, TensorListShape<> input_shape,
                 std::optional<std::string_view> data_id = {}, bool force_no_copy = true);
 
-  void SetInput(const IDescr& io_descr, std::optional<std::string_view> data_id = {}, bool force_no_copy = true);
+  void SetInput(const IDescr& io_descr, std::optional<std::string_view> data_id = {},
+                bool force_no_copy = true);
 
   void PutOutput(void* destination, int output_idx, device_type_t destination_device);
 
@@ -137,12 +138,12 @@ class DaliPipeline {
   /**
    * @brief Get declared expected shape of the input with a given name.
    */
-  std::optional<std::vector<int64_t>> GetInputShape(const std::string &name);
+  std::optional<std::vector<int64_t>> GetInputShape(const std::string& name);
 
   /**
    * @brief Get declared exptect data type of the input with a given name.
    */
-  dali_data_type_t GetInputType(const std::string &name);
+  dali_data_type_t GetInputType(const std::string& name);
 
   /**
    * @brief Get name of the pipeline output with a given id.
@@ -230,7 +231,8 @@ class DaliPipeline {
 
 
   void ReleasePipeline() {
-    if (!handle_) return;
+    if (!handle_)
+      return;
     daliDeletePipeline(&handle_);
     handle_ = nullptr;
   }

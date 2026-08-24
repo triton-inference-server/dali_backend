@@ -15,6 +15,7 @@
 import logging
 
 import json
+
 # import nvtx  # pytype: disable=import-error
 import torch  # pytype: disable=import-error
 from torchvision.models import segmentation as segmentation_models  # pytype: disable=import-error
@@ -27,6 +28,7 @@ class SegmentationPyTorch:
     Excerpt from CV-CUDA segmentation example:
     https://github.com/CVCUDA/CV-CUDA/blob/release_v0.3.x/samples/segmentation/python/model_inference.py
     """
+
     def __init__(self, seg_class_name, device_id):
         self.logger = logging.getLogger(__name__)
         self.device_id = device_id
@@ -76,17 +78,15 @@ class SegmentationPyTorch:
 
 class TritonPythonModel:
     def __init__(self):
-        self.segmentation_model=SegmentationPyTorch(
+        self.segmentation_model = SegmentationPyTorch(
             seg_class_name="__background__",
             device_id=0,
         )
 
     def initialize(self, args):
-        self.model_config = model_config = json.loads(args['model_config'])
+        self.model_config = model_config = json.loads(args["model_config"])
         output0_config = pb_utils.get_output_config_by_name(model_config, "probabilities")
-        self.output_dtype = pb_utils.triton_string_to_numpy(output0_config['data_type'])
-
-
+        self.output_dtype = pb_utils.triton_string_to_numpy(output0_config["data_type"])
 
     def execute(self, requests):
         responses = []

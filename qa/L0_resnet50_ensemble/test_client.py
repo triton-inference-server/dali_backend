@@ -29,24 +29,52 @@ from PIL import Image
 
 np.random.seed(100019)
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action="store_true", required=False, default=False,
-                        help='Enable verbose output')
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server URL. Default is localhost:8001.')
-    parser.add_argument('--batch_size', type=int, required=False, default=1,
-                        help='Batch size')
-    parser.add_argument('--n_iter', type=int, required=False, default=-1,
-                        help='Number of iterations , with `batch_size` size')
-    parser.add_argument('--model_name', type=str, required=False, default="dali_backend",
-                        help='Model name')
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "-u",
+        "--url",
+        type=str,
+        required=False,
+        default="localhost:8001",
+        help="Inference server URL. Default is localhost:8001.",
+    )
+    parser.add_argument("--batch_size", type=int, required=False, default=1, help="Batch size")
+    parser.add_argument(
+        "--n_iter",
+        type=int,
+        required=False,
+        default=-1,
+        help="Number of iterations , with `batch_size` size",
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=False, default="dali_backend", help="Model name"
+    )
     img_group = parser.add_mutually_exclusive_group()
-    img_group.add_argument('--img', type=str, required=False, default=None,
-                           help='Run a img dali pipeline. Arg: path to the image.')
-    img_group.add_argument('--img_dir', type=str, required=False, default=None,
-                           help='Directory, with images that will be broken down into batches and inferred. '
-                                'The directory must contain only images and single labels.txt file')
+    img_group.add_argument(
+        "--img",
+        type=str,
+        required=False,
+        default=None,
+        help="Run a img dali pipeline. Arg: path to the image.",
+    )
+    img_group.add_argument(
+        "--img_dir",
+        type=str,
+        required=False,
+        default=None,
+        help="Directory, with images that will be broken down into batches and inferred. "
+        "The directory must contain only images and single labels.txt file",
+    )
     return parser.parse_args()
 
 
@@ -64,11 +92,14 @@ def load_images(dir_path: str):
     """
     images = []
     labels = []
-    labels_fname = 'labels.txt'
+    labels_fname = "labels.txt"
 
     # Traverses directory for files (not dirs) and returns full paths to them
-    path_generator = (os.path.join(dir_path, f) for f in os.listdir(dir_path) if
-                      os.path.isfile(os.path.join(dir_path, f)) and f != labels_fname)
+    path_generator = (
+        os.path.join(dir_path, f)
+        for f in os.listdir(dir_path)
+        if os.path.isfile(os.path.join(dir_path, f)) and f != labels_fname
+    )
     img_paths = [dir_path] if os.path.isfile(dir_path) else list(path_generator)
 
     # File to dictionary
@@ -141,9 +172,7 @@ def main():
         inputs[0].set_data_from_numpy(batch)
 
         # Test with outputs
-        results = triton_client.infer(model_name=model_name,
-                                      inputs=inputs,
-                                      outputs=outputs)
+        results = triton_client.infer(model_name=model_name, inputs=inputs, outputs=outputs)
 
         # Get the output arrays from the results
         output0_data = results.as_numpy(output_name)
@@ -151,7 +180,7 @@ def main():
         maxs = np.argmax(output0_data, axis=1)
         for i in range(len(maxs)):
             print("Sample ", i, " - label: ", maxs[i], " ~ ", output0_data[i, maxs[i]])
-            assert(maxs[i] == labels[img_idx])
+            assert maxs[i] == labels[img_idx]
             print("pass")
             img_idx += 1
 
@@ -161,5 +190,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -22,7 +22,9 @@ LOGGER = logging.getLogger("depoly_on_triton")
 
 
 def get_model():
-    efficientnet = torch.hub.load('/DeepLearningExamples', 'nvidia_efficientnet_b0', pretrained=True, source='local')
+    efficientnet = torch.hub.load(
+        "/DeepLearningExamples", "nvidia_efficientnet_b0", pretrained=True, source="local"
+    )
     efficientnet.eval().cuda()
     return efficientnet
 
@@ -38,11 +40,13 @@ def _get_args():
         help="Model repository for Triton deployment.",
         required=False,
     )
+    parser.add_argument("-v", "--verbose", help="Verbose logs.", action="store_true", default=False)
     parser.add_argument(
-        "-v", "--verbose", help="Verbose logs.", action="store_true", default=False
-    )
-    parser.add_argument(
-        "-b", "--batch-size", help="Maximum batch size for the inference scenario.", required=True, type=int,
+        "-b",
+        "--batch-size",
+        help="Maximum batch size for the inference scenario.",
+        required=True,
+        type=int,
     )
     args = parser.parse_args()
 

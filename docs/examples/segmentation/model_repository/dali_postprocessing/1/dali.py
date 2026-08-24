@@ -26,7 +26,9 @@ import nvidia.dali.types as types
 
 
 @autoserialize
-@pipeline_def(batch_size=256, num_threads=4, device_id=0, output_ndim=[3], output_dtype=[types.UINT8])
+@pipeline_def(
+    batch_size=256, num_threads=4, device_id=0, output_ndim=[3], output_dtype=[types.UINT8]
+)
 def dali_postprocessing_pipe(class_idx=0, prob_threshold=0.6):
     """
     DALI post-processing pipeline definition
@@ -45,6 +47,8 @@ def dali_postprocessing_pipe(class_idx=0, prob_threshold=0.6):
     prob = fn.external_source(device="gpu", name="probabilities")
     prob = fn.reshape(prob, layout="CHW")  # No reshape performed, only setting the layout
     prob = fn.expand_dims(prob[class_idx], axes=[2], new_axis_names="C")
-    prob = fn.resize(prob, resize_x=width, resize_y=height, interp_type=types.DALIInterpType.INTERP_NN)
+    prob = fn.resize(
+        prob, resize_x=width, resize_y=height, interp_type=types.DALIInterpType.INTERP_NN
+    )
     mask = fn.cast(prob > prob_threshold, dtype=types.UINT8)
     return image * mask

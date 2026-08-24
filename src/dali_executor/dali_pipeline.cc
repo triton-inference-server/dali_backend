@@ -55,7 +55,7 @@ std::vector<TensorListShape<>> DaliPipeline::GetOutputShapes() {
 
 void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_t source_device,
                             dali_data_type_t data_type, span<const int64_t> inputs_shapes,
-                            int sample_ndims, const char *data_id, bool force_no_copy) {
+                            int sample_ndims, const char* data_id, bool force_no_copy) {
   ENFORCE(inputs_shapes.size() % sample_ndims == 0, "Incorrect inputs shapes or sample ndims");
   int batch_size = inputs_shapes.size() / sample_ndims;
   unsigned int flags = DALI_ext_default;
@@ -65,7 +65,7 @@ void DaliPipeline::SetInput(const void* data_ptr, const char* name, device_type_
   if (data_id) {
     daliSetExternalInputDataId(&handle_, name, data_id);
   }
-  const char *layout = daliGetExternalInputLayout(&handle_, name);
+  const char* layout = daliGetExternalInputLayout(&handle_, name);
   daliSetExternalInputBatchSize(&handle_, name, batch_size);
   daliSetExternalInput(&handle_, name, source_device, data_ptr, data_type, inputs_shapes.data(),
                        sample_ndims, layout, flags);
@@ -84,8 +84,8 @@ void DaliPipeline::SetInput(const IDescr& io_descr, std::optional<std::string_vi
   ENFORCE(io_descr.buffers.size() == 1, "DALI pipeline input has to be a single chunk of memory");
   auto meta = io_descr.meta;
   auto buffer = io_descr.buffers[0];
-  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape,
-           data_id, force_no_copy);
+  SetInput(buffer.data, meta.name.c_str(), buffer.device, meta.type, meta.shape, data_id,
+           force_no_copy);
 }
 
 void DaliPipeline::SyncStream() {
@@ -110,7 +110,7 @@ std::vector<std::string> DaliPipeline::ListInputs() {
   return result;
 }
 
-std::optional<std::vector<int64_t>> DaliPipeline::GetInputShape(const std::string &name) {
+std::optional<std::vector<int64_t>> DaliPipeline::GetInputShape(const std::string& name) {
   int ndim = daliGetExternalInputNdim(&handle_, name.c_str());
   if (ndim >= 0) {
     return std::vector<int64_t>(ndim, -1);
@@ -119,7 +119,7 @@ std::optional<std::vector<int64_t>> DaliPipeline::GetInputShape(const std::strin
   }
 }
 
-dali_data_type_t DaliPipeline::GetInputType(const std::string &name) {
+dali_data_type_t DaliPipeline::GetInputType(const std::string& name) {
   return daliGetExternalInputType(&handle_, name.c_str());
 }
 

@@ -354,7 +354,8 @@ class DaliModel : public ::triton::backend::BackendModel {
     } catch (const DALIException& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                   make_string("DALI autoconfig -- failed to instantiate pipeline on device ",
-                  device_id, ": ", e.what()).c_str());
+                              device_id, ": ", e.what())
+                      .c_str());
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, CPU_ONLY_DEVICE_ID);
     }
   }

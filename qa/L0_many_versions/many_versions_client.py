@@ -32,12 +32,23 @@ import math
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--verbose', action="store_true", required=False, default=False,
-                        help='Enable verbose output')
-    parser.add_argument('-u', '--url', type=str, required=False, default='localhost:8001',
-                        help='Inference server URL. Default is localhost:8001.')
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Enable verbose output",
+    )
+    parser.add_argument(
+        "-u",
+        "--url",
+        type=str,
+        required=False,
+        default="localhost:8001",
+        help="Inference server URL. Default is localhost:8001.",
+    )
     return parser.parse_args()
-
 
 
 def main():
@@ -49,8 +60,11 @@ def main():
         sys.exit(1)
 
     if not (triton_client.is_server_live() or triton_client.is_server_ready()):
-        print("Error connecting to server: Server live {}. Server ready {}.".format(
-            triton_client.is_server_live(), triton_client.is_server_ready()))
+        print(
+            "Error connecting to server: Server live {}. Server ready {}.".format(
+                triton_client.is_server_live(), triton_client.is_server_ready()
+            )
+        )
         sys.exit(1)
 
     models_loaded = {
@@ -87,5 +101,5 @@ def main():
                 sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
