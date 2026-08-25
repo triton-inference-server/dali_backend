@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -703,6 +703,36 @@ TEST_CASE("Read MBS from pb txt") {
       another_string_field: "multiple literals" #interruption }
        "with \"quote\""}
     )");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("Unterminated string") {
+    std::string_view pb_txt(R"(name: "unterminated_model_name)");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("Unterminated string with trailing backslash") {
+    std::string_view pb_txt("name: \"\\");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("Lone opening quote") {
+    std::string_view pb_txt(R"(")");
+
+    REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
+  }
+
+  SECTION("max_batch_size before an unterminated string is still parsed") {
+    std::string_view pb_txt(R"(max_batch_size: 9 name: "unterminated)");
+
+    REQUIRE(ReadMBSFromPBtxt(pb_txt) == std::make_optional(9));
+  }
+
+  SECTION("Field name followed by comment with no newline") {
+    std::string_view pb_txt(R"(max_batch_size #no newline)");
 
     REQUIRE(!ReadMBSFromPBtxt(pb_txt).has_value());
   }

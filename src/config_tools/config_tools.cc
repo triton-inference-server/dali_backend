@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
 
 #include "src/config_tools/config_tools.h"
 
+#include <algorithm>
 #include <limits>
 
 namespace triton { namespace backend { namespace dali {
@@ -476,7 +477,8 @@ void skip_string(std::string_view &text) {
         ++end;  // escaped character
       ++end;
     }
-    text.remove_prefix(end + 1);
+    // Consume the closing quote, or the remaining input if it is missing.
+    text.remove_prefix(std::min(end + 1, text.size()));
     skip_ignored(text);
   }
 }
@@ -531,7 +533,8 @@ std::optional<int64_t> ReadMBSFromPBtxt(std::string_view pb_txt) {
     if (pb_txt.substr(0, field_name.size()) == field_name) {
       pb_txt.remove_prefix(field_name.size());
       skip_ignored(pb_txt);
-      if (pb_txt[0] == ':') {
+      // skip_ignored may consume the entire remaining input.
+      if (!pb_txt.empty() && pb_txt[0] == ':') {
         pb_txt.remove_prefix(1);  // remove :
         return parse_int(pb_txt);
       } else {
