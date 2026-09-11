@@ -75,7 +75,7 @@ add_library(
         $<$<NOT:$<BOOL:${TRITON_DALI_SKIP_DOWNLOAD}>>:dali_whl>
 )
 
-set_property(TARGET dali_executor PROPERTY CXX_STANDARD 17)
+set_property(TARGET dali_executor PROPERTY CXX_STANDARD 20)
 target_include_directories(dali_executor PUBLIC BEFORE
         ${tritondalibackend_SOURCE_DIR}
         ${DALI_INCLUDE_DIR})

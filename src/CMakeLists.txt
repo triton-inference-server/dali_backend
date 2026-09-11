@@ -44,7 +44,7 @@ target_link_libraries(
         dali_executor
 )
 
-set_target_properties(triton-dali-backend-utils PROPERTIES CXX_STANDARD 17)
+set_target_properties(triton-dali-backend-utils PROPERTIES CXX_STANDARD 20)
 
 
 add_library(
@@ -97,7 +97,7 @@ set_target_properties(
             BUILD_WITH_INSTALL_RPATH TRUE
             INSTALL_RPATH_USE_LINK_PATH FALSE
             INSTALL_RPATH "${DALI_NV_INSTALL_PATH}"
-            CXX_STANDARD 17
+            CXX_STANDARD 20
 )
 
 set(
@@ -119,4 +119,4 @@ target_link_libraries(
         ${CMAKE_DL_LIBS}
 )
 
-set_target_properties(unittests PROPERTIES CXX_STANDARD 17)
+set_target_properties(unittests PROPERTIES CXX_STANDARD 20)
