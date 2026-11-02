@@ -102,6 +102,8 @@ RUN if [ "${INSTALL_TESTS}" = "ON" ]; then \
       mkdir -p /opt/tritonserver/test/dali && \
       cp /dali/build_in_ci/src/unittests \
          /dali/build_in_ci/_deps/repo-core-build/libtritonserver.so \
-         /opt/tritonserver/test/dali/; \
+         /opt/tritonserver/test/dali/ && \
+      install -m 755 /dali/docker/run_unittests.sh \
+         /opt/tritonserver/test/dali/run_unittests.sh; \
     fi && \
     rm -rf /dali
