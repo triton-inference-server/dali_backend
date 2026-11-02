@@ -96,4 +96,12 @@ ENV PYTHONPATH=/opt/tritonserver/backends/dali/wheel/dali
 
 WORKDIR /opt/tritonserver
 
-RUN rm -rf /dali
+# CI can run the already-built unit tests alongside the identity integration test.
+ARG INSTALL_TESTS=OFF
+RUN if [ "${INSTALL_TESTS}" = "ON" ]; then \
+      mkdir -p /opt/tritonserver/test/dali && \
+      cp /dali/build_in_ci/src/unittests \
+         /dali/build_in_ci/_deps/repo-core-build/libtritonserver.so \
+         /opt/tritonserver/test/dali/; \
+    fi && \
+    rm -rf /dali
