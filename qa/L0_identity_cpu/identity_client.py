@@ -27,6 +27,8 @@ from numpy.random import randint
 import tritonclient.grpc as tritongrpcclient
 from PIL import Image
 import math
+import queue
+import time
 
 np.random.seed(100019)
 
@@ -58,8 +60,13 @@ def parse_args():
         help="Number of iterations , with `batch_size` size",
     )
     parser.add_argument(
-        "--model_name", type=str, required=False, default="dali_identity_cpu", help="Model name"
+        "--model_name",
+        type=str,
+        required=False,
+        default="dali_identity_cpu",
+        help="Model name",
     )
+    parser.add_argument("--dynamic_batching", action="store_true")
     return parser.parse_args()
 
 
@@ -90,6 +97,54 @@ def batcher(dataset, max_batch_size, n_iterations=-1):
         data_idx += batch_size
 
 
+def test_dynamic_batching(client, model_name):
+    def counts():
+        stats = client.get_inference_statistics(model_name=model_name).model_stats[0]
+        return stats.inference_count, stats.execution_count
+
+    expected_samples, expected_executions = counts()
+    # One request containing two samples, then two requests combined into one execution.
+    for request_count in (1, 2):
+        completed = queue.Queue()
+        batches = (
+            [np.arange(32, dtype=np.uint8).reshape(2, 16)]
+            if request_count == 1
+            else [
+                np.full((1, 16), 17, dtype=np.uint8),
+                np.full((1, 16), 93, dtype=np.uint8),
+            ]
+        )
+        for index, batch in enumerate(batches):
+            inp = tritongrpcclient.InferInput("DALI_INPUT_0", batch.shape, "UINT8")
+            inp.set_data_from_numpy(batch)
+            client.async_infer(
+                model_name=model_name,
+                inputs=[inp],
+                callback=lambda result, error, index=index: completed.put((index, result, error)),
+                client_timeout=30,
+            )
+        for _ in batches:
+            index, result, error = completed.get(timeout=30)
+            if error is not None:
+                raise error
+            np.testing.assert_array_equal(result.as_numpy("DALI_OUTPUT_0"), batches[index])
+
+        expected_samples += 2
+        expected_executions += 1
+        # The server may finish recording statistics just after sending the response.
+        deadline = time.monotonic() + 5
+        actual = counts()
+        while actual[0] < expected_samples and time.monotonic() < deadline:
+            time.sleep(0.05)
+            actual = counts()
+        if actual != (expected_samples, expected_executions):
+            raise AssertionError(
+                f"Expected {expected_samples} samples in {expected_executions} executions, "
+                f"got {actual}; concurrent requests must be dynamically batched"
+            )
+        print(f"CPU identity passed with {request_count} request(s) in one execution")
+
+
 def main():
     FLAGS = parse_args()
     try:
@@ -97,6 +152,10 @@ def main():
     except Exception as e:
         print("channel creation failed: " + str(e))
         sys.exit(1)
+
+    if FLAGS.dynamic_batching:
+        test_dynamic_batching(triton_client, FLAGS.model_name)
+        return
 
     if not (
         triton_client.is_server_live()
