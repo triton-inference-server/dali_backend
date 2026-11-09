@@ -21,6 +21,9 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TRITON_VERSION=$(cat "${SCRIPT_DIR}/../../../TRITON_VERSION")
+
 mkdir -p model_repository/efficientnet_ensemble_gpu/1
 mkdir -p model_repository/efficientnet_ensemble_cpu/1
 
@@ -41,7 +44,7 @@ pushd DeepLearningExamples || exit 1
 RANDOM_STRING=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
 echo "Random container name: $RANDOM_STRING"
 
-docker build -t convnets -f Dockerfile.bench .
+docker build -t convnets --build-arg FROM_IMAGE_NAME="nvcr.io/nvidia/pytorch:${TRITON_VERSION}-py3" -f Dockerfile.bench .
 docker run --shm-size 8g --gpus all --name $RANDOM_STRING convnets python deploy_on_triton.py --model-name efficientnet-b0 --model-repository /model_repository --batch-size "$1"
 
 popd || exit 1
