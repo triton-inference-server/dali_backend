@@ -1,3 +1,4 @@
-FROM nvcr.io/nvidia/tritonserver:26.10-py3
+ARG TRITON_VERSION
+FROM nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3
 
 RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu129

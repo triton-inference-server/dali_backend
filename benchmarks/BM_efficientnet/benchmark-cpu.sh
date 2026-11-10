@@ -27,6 +27,8 @@ source setup.sh
 
 pushd ../.. || exit 1 # Repo's root directory
 
+TRITON_VERSION=$(cat TRITON_VERSION)
+
 pushd docs/examples/efficientnet || exit 1
 
 is_number_re='^[0-9]+$'
@@ -52,7 +54,7 @@ CPU_IMGE_NAME="tritonserver_torchvision"
 
 pushd benchmarks/BM_efficientnet || exit 1
 
-docker build -t $CPU_IMGE_NAME -f Dockerfile.torch .
+docker build -t $CPU_IMGE_NAME --build-arg TRITON_VERSION="$TRITON_VERSION" -f Dockerfile.torch .
 
 popd || exit 1
 
@@ -64,6 +66,6 @@ echo "... should be enough."
 
 popd || exit 1
 
-docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:26.10-py3-sdk bash run-benchmarks-cpu.sh $2
+docker run -t --rm --name ${CLIENT_CONTAINER_NAME} --net host -v $(pwd):/bench -w /bench nvcr.io/nvidia/tritonserver:${TRITON_VERSION}-py3-sdk bash run-benchmarks-cpu.sh $2
 
 docker kill ${SERVER_CONTAINER_NAME}
