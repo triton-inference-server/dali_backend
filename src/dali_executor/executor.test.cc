@@ -58,6 +58,43 @@ void coalesced_compare(const std::vector<OBufferDescr> &obuffers,
   }
 }
 
+TEST_CASE("CPU pipeline with chunked input and output", "[cpu]") {
+  std::string pipeline_s((const char *)pipelines::cpu_scale_pipeline_str,
+                         sizeof(pipelines::cpu_scale_pipeline_str));
+  DaliPipeline pipeline(pipeline_s, 4, 2, CPU_ONLY_DEVICE_ID);
+  DaliExecutor executor(std::move(pipeline));
+  // Multiple buffers represent separate requests combined by Triton's batcher.
+  int input_chunks = GENERATE(1, 2);
+  int output_chunks = GENERATE(1, 2);
+  TensorListShape<> sample_shape(1, 2);
+  sample_shape.set_tensor_shape(0, TensorShape<>(2, 3));
+  std::vector<TensorListShape<>> shapes(input_chunks, sample_shape);
+  std::vector<std::vector<float>> input_buffers;
+  float value = 0;
+  auto input = RandomInput(input_buffers, "INPUT0", shapes, [&]() { return ++value; });
+  auto output = executor.Run({input});
+  REQUIRE(output.size() == 1);
+  REQUIRE(output[0].shape == input.meta.shape);
+  REQUIRE(output[0].device == CPU);
+
+  size_t elements = input.meta.shape.num_elements();
+  std::vector<IOBuffer<CPU>> output_buffers(output_chunks);
+  ODescr outdesc;
+  for (auto &buffer : output_buffers) {
+    buffer.resize(elements * sizeof(float) / output_chunks);
+    outdesc.buffers.push_back(buffer.get_descr());
+  }
+  executor.PutOutputs({outdesc});
+  size_t index = 0;
+  for (auto &buffer : output_buffers) {
+    auto descr = buffer.get_descr();
+    const auto *data = reinterpret_cast<const float *>(descr.data);
+    for (size_t i = 0; i < descr.size / sizeof(float); ++i) {
+      REQUIRE(data[i] == 2 * ++index);
+    }
+  }
+}
+
 TEST_CASE("Scaling Pipeline") {
   std::string pipeline_s((const char *)pipelines::scale_pipeline_str,
                          pipelines::scale_pipeline_len);
