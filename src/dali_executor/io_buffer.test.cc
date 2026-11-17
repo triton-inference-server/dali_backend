@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION
+// Copyright (c) 2021-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 
 namespace triton { namespace backend { namespace dali { namespace test {
 
-template<device_type_t Dev>
+template<StorageDevice Dev>
 void test_buffer(IOBuffer<Dev> &buffer) {
   const uint8_t N = 10;
   const size_t size = N * (N + 1) / 2;
@@ -37,13 +37,13 @@ void test_buffer(IOBuffer<Dev> &buffer) {
   char *dst = reinterpret_cast<char *>(descriptor.data);
   for (uint8_t i = 1; i <= N; ++i) {
     std::vector<uint8_t> chunk(i, i);
-    MemCopy(Dev, dst, device_type_t::CPU, chunk.data(), i);
+    MemCopy(Dev, dst, StorageDevice::CPU, chunk.data(), i);
     dst += i;
   }
   // validation
   std::vector<uint8_t> result(size);
   REQUIRE(descriptor.device == Dev);
-  MemCopy(device_type_t::CPU, result.data(), Dev, descriptor.data, size);
+  MemCopy(StorageDevice::CPU, result.data(), Dev, descriptor.data, size);
   size_t it = 0;
   for (uint8_t i = 1; i <= N; ++i) {
     for (uint8_t j = 0; j < i; ++j) {
@@ -54,7 +54,7 @@ void test_buffer(IOBuffer<Dev> &buffer) {
 }
 
 TEST_CASE("IOBuffer<CPU> extend & copy") {
-  IOBuffer<device_type_t::CPU> buffer;
+  IOBuffer<StorageDevice::CPU> buffer;
 
   SECTION("Copy") {
     test_buffer(buffer);
@@ -62,7 +62,7 @@ TEST_CASE("IOBuffer<CPU> extend & copy") {
 }
 
 TEST_CASE("IOBuffer<GPU> extend & copy") {
-  IOBuffer<device_type_t::GPU> buffer;
+  IOBuffer<StorageDevice::GPU> buffer;
 
   SECTION("Copy") {
     test_buffer(buffer);

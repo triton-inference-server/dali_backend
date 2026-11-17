@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ class DaliModel : public ::triton::backend::BackendModel {
   virtual ~DaliModel() {
     bool last_loaded_model = --loaded_models_count_ == 0;
     if (last_loaded_model && ShouldReleaseBuffersAfterUnload()) {
-      ReleaseUnusedMemory();
+      DaliPipeline::ReleaseUnusedMemory();
     }
     assert(loaded_models_count_ >= 0);
   };
@@ -351,7 +351,7 @@ class DaliModel : public ::triton::backend::BackendModel {
     const std::string& serialized_pipeline = GetModelProvider().GetModel();
     try {
       return DaliPipeline(serialized_pipeline, config_max_batch_size, 1, device_id);
-    } catch (const DALIException& e) {
+    } catch (const DaliCApiError& e) {
       LOG_MESSAGE(TRITONSERVER_LOG_VERBOSE,
                   make_string("DALI autoconfig -- failed to instantiate pipeline on device ",
                               device_id, ": ", e.what())

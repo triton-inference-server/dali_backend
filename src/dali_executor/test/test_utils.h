@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,31 +32,31 @@
 namespace triton { namespace backend { namespace dali { namespace test {
 
 template<typename T>
-constexpr dali_data_type_t dali_data_type() {
+constexpr daliDataType_t dali_data_type() {
   if (std::is_same<T, uint8_t>::value) {
-    return dali_data_type_t::DALI_UINT8;
+    return daliDataType_t::DALI_UINT8;
   } else if (std::is_same<T, uint16_t>::value) {
-    return dali_data_type_t::DALI_UINT16;
+    return daliDataType_t::DALI_UINT16;
   } else if (std::is_same<T, uint32_t>::value) {
-    return dali_data_type_t::DALI_UINT32;
+    return daliDataType_t::DALI_UINT32;
   } else if (std::is_same<T, uint64_t>::value) {
-    return dali_data_type_t::DALI_UINT64;
+    return daliDataType_t::DALI_UINT64;
   } else if (std::is_same<T, int8_t>::value) {
-    return dali_data_type_t::DALI_INT8;
+    return daliDataType_t::DALI_INT8;
   } else if (std::is_same<T, int16_t>::value) {
-    return dali_data_type_t::DALI_INT16;
+    return daliDataType_t::DALI_INT16;
   } else if (std::is_same<T, int32_t>::value) {
-    return dali_data_type_t::DALI_INT32;
+    return daliDataType_t::DALI_INT32;
   } else if (std::is_same<T, int64_t>::value) {
-    return dali_data_type_t::DALI_INT64;
+    return daliDataType_t::DALI_INT64;
   } else if (std::is_same<T, float>::value) {
-    return dali_data_type_t::DALI_FLOAT;
+    return daliDataType_t::DALI_FLOAT;
   } else if (std::is_same<T, double>::value) {
-    return dali_data_type_t::DALI_FLOAT64;
+    return daliDataType_t::DALI_FLOAT64;
   } else if (std::is_same<T, bool>::value) {
-    return dali_data_type_t::DALI_BOOL;
+    return daliDataType_t::DALI_BOOL;
   } else {
-    return dali_data_type_t::DALI_NO_TYPE;
+    return daliDataType_t::DALI_NO_TYPE;
   }
 }
 
@@ -86,7 +86,7 @@ IDescr RandomInput(std::vector<std::vector<T>>& buffers, const std::string& name
     IBufferDescr buf_dscr;
     buf_dscr.data = buffer.data();
     buf_dscr.size = sizeof(T) * buffer.size();
-    buf_dscr.device = device_type_t::CPU;
+    buf_dscr.device = StorageDevice::CPU;
     buf_descs.push_back(buf_dscr);
   }
   IDescr dscr;

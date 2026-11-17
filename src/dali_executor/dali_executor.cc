@@ -52,9 +52,9 @@ void DaliExecutor::SetupInputs(const std::vector<IDescr>& inputs) {
 }
 
 
-IOBufferI* DaliExecutor::GetInputBuffer(const std::string& name, device_type_t device) {
+IOBufferI* DaliExecutor::GetInputBuffer(const std::string& name, StorageDevice device) {
   IOBufferI* buffer;
-  if (device == device_type_t::CPU) {
+  if (device == StorageDevice::CPU) {
     buffer = &cpu_buffers_[name + "_inp"];
   } else {
     buffer = &gpu_buffers_[name + "_inp"];
@@ -63,9 +63,9 @@ IOBufferI* DaliExecutor::GetInputBuffer(const std::string& name, device_type_t d
 }
 
 
-IOBufferI* DaliExecutor::GetOutputBuffer(const std::string& name, device_type_t device) {
+IOBufferI* DaliExecutor::GetOutputBuffer(const std::string& name, StorageDevice device) {
   IOBufferI* buffer;
-  if (device == device_type_t::CPU) {
+  if (device == StorageDevice::CPU) {
     buffer = &cpu_buffers_[name + "_out"];
   } else {
     buffer = &gpu_buffers_[name + "_out"];
@@ -127,9 +127,9 @@ void DaliExecutor::WaitForCopies() {
 }
 
 
-bool DaliExecutor::IsNoCopy(device_type_t es_device, const IDescr& input) {
+bool DaliExecutor::IsNoCopy(StorageDevice es_device, const IDescr& input) {
   return input.buffers.size() == 1 && input.buffers[0].device == es_device &&
-         (input.buffers[0].device == device_type_t::CPU ||
+         (input.buffers[0].device == StorageDevice::CPU ||
           input.buffers[0].device_id == pipeline_.DeviceId());
 }
 

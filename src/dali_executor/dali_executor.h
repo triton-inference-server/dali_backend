@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,8 +37,8 @@ namespace triton::backend::dali {
 
 struct OutputInfo {
   TensorListShape<> shape;
-  dali_data_type_t type;
-  device_type_t device;
+  daliDataType_t type;
+  StorageDevice device;
 };
 
 class DaliExecutor {
@@ -91,7 +91,7 @@ class DaliExecutor {
   /**
    * @brief Check if an input can be used without a copy.
    */
-  bool IsNoCopy(device_type_t es_device, const IDescr& input);
+  bool IsNoCopy(StorageDevice es_device, const IDescr& input);
 
   int GetNumThreads() {
     auto n_threads = pipeline_.NumThreadsArg();
@@ -101,12 +101,12 @@ class DaliExecutor {
   /**
    * @brief Get an intermediate buffer located on the \p device for an input with a given \p name
    */
-  IOBufferI* GetInputBuffer(const std::string& name, device_type_t device);
+  IOBufferI* GetInputBuffer(const std::string& name, StorageDevice device);
 
   /**
    * @brief Get an intermediate buffer located on the \p device for an output with a given \p name
    */
-  IOBufferI* GetOutputBuffer(const std::string& name, device_type_t device);
+  IOBufferI* GetOutputBuffer(const std::string& name, StorageDevice device);
 
   /**
    * @brief Checks if current input has been consumed by current iteration.
@@ -120,8 +120,8 @@ class DaliExecutor {
 
   DaliPipeline pipeline_;
   ThreadPool thread_pool_;
-  std::map<std::string, IOBuffer<CPU>> cpu_buffers_;
-  std::map<std::string, IOBuffer<GPU>> gpu_buffers_;
+  std::map<std::string, IOBuffer<StorageDevice::CPU>> cpu_buffers_;
+  std::map<std::string, IOBuffer<StorageDevice::GPU>> gpu_buffers_;
   bool inputs_consumed_ = true;
   std::vector<std::string> input_names_;
   RequestId<uint64_t> request_id_;

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,16 @@ namespace triton { namespace backend { namespace dali {
 
 struct DaliBackendException : public std::runtime_error {
   explicit DaliBackendException(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+/**
+ * @brief An error reported by a call to the DALI C API.
+ *
+ * DaliPipeline is the only place where the C API is called; it translates the errors reported
+ * by DALI into this type, so the rest of the backend doesn't depend on how DALI reports them.
+ */
+struct DaliCApiError : public DaliBackendException {
+  explicit DaliCApiError(const std::string& msg) : DaliBackendException(msg) {}
 };
 
 #define ENFORCE(predicate, message) \

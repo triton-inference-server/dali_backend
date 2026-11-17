@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION
+// Copyright (c) 2021-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@
 namespace triton { namespace backend { namespace dali {
 
 
-void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+void MemCopy(StorageDevice dst_dev, void *dst, StorageDevice src_dev, const void *src, size_t size,
              cudaStream_t stream = 0);
 
 class IOBufferI {
@@ -44,7 +44,7 @@ class IOBufferI {
    * @brief Get device type of the allocated memory.
    * @return Device type.
    */
-  virtual device_type_t device_type() const = 0;
+  virtual StorageDevice device_type() const = 0;
 
   /**
    * @brief Get an immutable descriptor of the buffer.
@@ -64,15 +64,15 @@ class IOBufferI {
   IOBufferI() {}
 };
 
-template<typename T, device_type_t Dev>
-using buffer_t = std::conditional_t<Dev == device_type_t::CPU, std::vector<T>, DeviceBuffer<T>>;
+template<typename T, StorageDevice Dev>
+using buffer_t = std::conditional_t<Dev == StorageDevice::CPU, std::vector<T>, DeviceBuffer<T>>;
 
-template<device_type_t Dev>
+template<StorageDevice Dev>
 class IOBuffer : public IOBufferI {
  public:
   explicit IOBuffer(size_t size = 0) : buffer_() {
     resize(size);
-    if (Dev == device_type_t::GPU) {
+    if (Dev == StorageDevice::GPU) {
       CUDA_CALL_GUARD(cudaGetDevice(&device_id_));
     }
   }
@@ -81,7 +81,7 @@ class IOBuffer : public IOBufferI {
     buffer_.resize(size);
   }
 
-  device_type_t device_type() const override {
+  StorageDevice device_type() const override {
     return Dev;
   }
 

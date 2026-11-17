@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,6 @@
 #ifndef DALI_BACKEND_UTILS_TRITON_H_
 #define DALI_BACKEND_UTILS_TRITON_H_
 
-#include <dali/c_api.h>
-
 #include "src/dali_executor/io_descriptor.h"
 #include "src/dali_executor/utils/utils.h"
 #include "triton/backend/backend_model.h"
@@ -42,42 +40,51 @@ namespace triton { namespace backend { namespace dali {
 
 
 /**
- * @brief Converts TRITONSERVER_DataType to dali_data_type_t
+ * @brief Converts TRITONSERVER_DataType to daliDataType_t
  */
-inline dali_data_type_t to_dali(TRITONSERVER_DataType t) {
+inline daliDataType_t to_dali(TRITONSERVER_DataType t) {
   assert(t >= 0 && t <= 13);
-  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
+  // Use the trick, that TRITONSERVER_DataType and daliDataType_t
   // types have more-or-less the same order, with few exceptions
   if (t == 0)
-    return static_cast<dali_data_type_t>(-1);
+    return static_cast<daliDataType_t>(-1);
   if (t == 1)
-    return static_cast<dali_data_type_t>(11);
+    return static_cast<daliDataType_t>(11);
   if (t == 13)
-    return static_cast<dali_data_type_t>(0);
-  return static_cast<dali_data_type_t>(t - 2);
+    return static_cast<daliDataType_t>(0);
+  return static_cast<daliDataType_t>(t - 2);
 }
 
 /**
- * @brief Converts TRITONSERVER_MemoryType to DALI device_type_t
+ * @brief Converts TRITONSERVER_MemoryType to StorageDevice
+ *
+ * Pinned host memory maps to StorageDevice::CPU; use is_pinned to tell it apart.
  */
-inline device_type_t to_dali(TRITONSERVER_MemoryType t) {
+inline StorageDevice to_dali(TRITONSERVER_MemoryType t) {
   switch (t) {
     case TRITONSERVER_MEMORY_CPU:
     case TRITONSERVER_MEMORY_CPU_PINNED:
-      return device_type_t::CPU;
+      return StorageDevice::CPU;
     case TRITONSERVER_MEMORY_GPU:
-      return device_type_t::GPU;
+      return StorageDevice::GPU;
     default:
       throw std::invalid_argument("Unknown memory type");
   }
 }
 
 /**
- * @brief Converts dali_data_type_t to TRITONSERVER_DataType
+ * @brief Checks whether TRITONSERVER_MemoryType denotes pinned (page-locked) host memory
  */
-inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
+inline bool is_pinned(TRITONSERVER_MemoryType t) {
+  return t == TRITONSERVER_MEMORY_CPU_PINNED;
+}
+
+/**
+ * @brief Converts daliDataType_t to TRITONSERVER_DataType
+ */
+inline TRITONSERVER_DataType to_triton(daliDataType_t t) {
   assert(-1 <= t && t <= 11);
-  // Use the trick, that TRITONSERVER_DataType and dali_data_type_t
+  // Use the trick, that TRITONSERVER_DataType and daliDataType_t
   // types have more-or-less the same order, with few exceptions
   if (t == -1)
     return static_cast<TRITONSERVER_DataType>(0);
@@ -87,13 +94,13 @@ inline TRITONSERVER_DataType to_triton(dali_data_type_t t) {
 }
 
 /**
- * @brief Converts device_type_t to TRITONSERVER_MemoryType
+ * @brief Converts StorageDevice to TRITONSERVER_MemoryType
  */
-inline TRITONSERVER_MemoryType to_triton(device_type_t dev) {
+inline TRITONSERVER_MemoryType to_triton(StorageDevice dev) {
   switch (dev) {
-    case CPU:
+    case StorageDevice::CPU:
       return TRITONSERVER_MEMORY_CPU_PINNED;
-    case GPU:
+    case StorageDevice::GPU:
       return TRITONSERVER_MEMORY_GPU;
     default:
       throw std::invalid_argument("Unknown memory type");
@@ -197,11 +204,11 @@ class TritonInput {
   /**
    * @brief Request an input buffer.
    * @param idx Input index.
-   * @param device_type_t Preferred device type.
+   * @param device Preferred device type.
    * @param device_id Preferred device id.
    * @return Input buffer descriptor.
    */
-  IBufferDescr GetBuffer(uint32_t idx, device_type_t device, int device_id) {
+  IBufferDescr GetBuffer(uint32_t idx, StorageDevice device, int device_id) {
     const void *data;
     size_t size;
     TRITONSERVER_MemoryType mem_type = to_triton(device);
@@ -210,6 +217,7 @@ class TritonInput {
     IBufferDescr descr;
     descr.device = to_dali(mem_type);
     descr.device_id = mem_type_id;
+    descr.pinned = is_pinned(mem_type);
     descr.data = data;
     descr.size = size;
     return descr;
@@ -304,7 +312,7 @@ class TritonOutput {
   TritonOutput(TRITONBACKEND_Output *handle, uint64_t buffer_size) :
       handle_(handle), buffer_size_(buffer_size) {}
 
-  OBufferDescr AllocateBuffer(device_type_t preferred_device, int preferred_device_id) const {
+  OBufferDescr AllocateBuffer(StorageDevice preferred_device, int preferred_device_id) const {
     int64_t memid = preferred_device_id;
     TRITONSERVER_MemoryType memtype = to_triton(preferred_device);
     OBufferDescr buffer{};
@@ -312,6 +320,7 @@ class TritonOutput {
     TRITON_CALL(TRITONBACKEND_OutputBuffer(handle_, &buffer.data, buffer.size, &memtype, &memid));
     buffer.device = to_dali(memtype);
     buffer.device_id = memid;
+    buffer.pinned = is_pinned(memtype);
     return buffer;
   }
 

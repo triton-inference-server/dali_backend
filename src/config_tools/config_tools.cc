@@ -31,7 +31,7 @@ namespace triton { namespace backend { namespace dali {
 /**
  * @brief convert DALI data type to type string used in Triton model config
  */
-std::string to_triton_config(dali_data_type_t type) {
+std::string to_triton_config(daliDataType_t type) {
   switch (type) {
     case DALI_UINT8:
       return "TYPE_UINT8";
@@ -140,7 +140,7 @@ std::vector<int64_t> MatchShapes(const std::string &name, const std::vector<int6
 
 template<bool allow_missing>
 std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                               dali_data_type_t dtype) {
+                               daliDataType_t dtype) {
   TritonJson::Value dtype_obj(TritonJson::ValueType::OBJECT);
   if (io_object.Find("data_type", &dtype_obj)) {
     std::string found_dtype;
@@ -168,13 +168,13 @@ std::string ProcessDtypeConfig(TritonJson::Value &io_object, const std::string &
 
 
 std::string AutofillDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                                dali_data_type_t dtype) {
+                                daliDataType_t dtype) {
   return ProcessDtypeConfig<true>(io_object, name, dtype);
 }
 
 
 void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                         dali_data_type_t dtype) {
+                         daliDataType_t dtype) {
   ProcessDtypeConfig<false>(io_object, name, dtype);
 }
 
