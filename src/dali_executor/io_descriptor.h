@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION
+// Copyright (c) 2021-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +31,20 @@ namespace triton { namespace backend { namespace dali {
 
 template<typename T>
 struct BufferDescr {
-  device_type_t device{};
+  StorageDevice device{};
   int device_id = 0;
+  /** Whether host memory is pinned (page-locked). Meaningful only for StorageDevice::CPU. */
+  bool pinned = false;
   T *data = nullptr;
   size_t size = 0;
 
   template<typename S, typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, S>::value>>
   BufferDescr(BufferDescr<S> other) :
-      device(other.device), device_id(other.device_id), data(other.data), size(other.size) {}
+      device(other.device),
+      device_id(other.device_id),
+      pinned(other.pinned),
+      data(other.data),
+      size(other.size) {}
 
   BufferDescr(){};
 };
@@ -48,7 +54,7 @@ using OBufferDescr = BufferDescr<void>;
 
 struct IOMeta {
   std::string name{};
-  dali_data_type_t type{};
+  daliDataType_t type{};
   TensorListShape<> shape{};
 
   IOMeta(const IOMeta &other) : name(other.name), type(other.type), shape(other.shape) {}

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2022-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2022-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,12 +35,12 @@ using triton::common::TritonJson;
 
 struct IOConfig {
   std::string name;
-  dali_data_type_t dtype;
+  daliDataType_t dtype;
   std::optional<std::vector<int64_t>> shape;
 
   IOConfig() = default;
 
-  explicit IOConfig(const std::string &name, dali_data_type_t dtype = DALI_NO_TYPE,
+  explicit IOConfig(const std::string &name, daliDataType_t dtype = DALI_NO_TYPE,
                     std::optional<std::vector<int64_t>> shape = {}) :
       name(name), dtype(dtype), shape(shape) {}
 };
@@ -48,7 +48,7 @@ struct IOConfig {
 /**
  * @brief Convert DALI data type to type string used in Triton model config
  */
-std::string to_triton_config(dali_data_type_t type);
+std::string to_triton_config(daliDataType_t type);
 
 
 /**
@@ -89,14 +89,14 @@ std::vector<int64_t> MatchShapes(const std::string &name, const std::vector<int6
  * @brief Determine data type to be filled in `config_io` based on provided `dtype`.
  */
 std::string AutofillDtypeConfig(TritonJson::Value &config_io, const std::string &name,
-                                dali_data_type_t dtype);
+                                daliDataType_t dtype);
 
 
 /**
  * @brief Validates data_type field in IO object against provided value.
  */
 void ValidateDtypeConfig(TritonJson::Value &io_object, const std::string &name,
-                         dali_data_type_t dtype);
+                         daliDataType_t dtype);
 
 
 /**

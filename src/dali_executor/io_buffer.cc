@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021 NVIDIA CORPORATION
+// Copyright (c) 2021-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,19 +24,19 @@
 
 namespace triton { namespace backend { namespace dali {
 
-void MemCopy(device_type_t dst_dev, void *dst, device_type_t src_dev, const void *src, size_t size,
+void MemCopy(StorageDevice dst_dev, void *dst, StorageDevice src_dev, const void *src, size_t size,
              cudaStream_t stream) {
   auto src_c = reinterpret_cast<const char *>(src);
   auto dst_c = reinterpret_cast<char *>(dst);
-  if (dst_dev == device_type_t::CPU && src_dev == device_type_t::CPU) {
+  if (dst_dev == StorageDevice::CPU && src_dev == StorageDevice::CPU) {
     // Even a null CUDA stream denotes device ordering in DALI's copy helpers.
     // Host buffers must also work when no CUDA driver is available.
     copyH2H(dst_c, src_c, size, ::dali::AccessOrder::host());
-  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::CPU) {
+  } else if (dst_dev == StorageDevice::GPU && src_dev == StorageDevice::CPU) {
     copyH2D(dst_c, src_c, size, stream);
-  } else if (dst_dev == device_type_t::CPU && src_dev == device_type_t::GPU) {
+  } else if (dst_dev == StorageDevice::CPU && src_dev == StorageDevice::GPU) {
     copyD2H(dst_c, src_c, size, stream);
-  } else if (dst_dev == device_type_t::GPU && src_dev == device_type_t::GPU) {
+  } else if (dst_dev == StorageDevice::GPU && src_dev == StorageDevice::GPU) {
     copyD2D(dst_c, src_c, size, stream);
   }
 }

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020 NVIDIA CORPORATION
+// Copyright (c) 2020-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,6 @@
 #ifndef DALI_BACKEND_UTILS_DALI_H_
 #define DALI_BACKEND_UTILS_DALI_H_
 
-#include <dali/c_api.h>
 #include <dali/core/cuda_stream.h>
 #include <dali/core/dev_buffer.h>
 #include <dali/core/device_guard.h>
@@ -33,8 +32,13 @@
 #include <dali/core/tensor_shape_print.h>
 #include <dali/core/unique_handle.h>
 #include <dali/core/util.h>
-#include <dali/operators.h>
 #include <dali/pipeline/util/thread_pool.h>
+
+#include "src/dali_executor/utils/dali_types.h"
+
+// DALI C++ utilities used throughout the backend.
+// Do not include the DALI C API headers (dali/c_api.h, dali/dali.h) here: the C API is used only
+// in dali_pipeline.cc.
 
 namespace triton { namespace backend { namespace dali {
 
@@ -62,22 +66,6 @@ using ::dali::ThreadPool;
 using ::dali::CPU_ONLY_DEVICE_ID;
 using ::dali::UniqueHandle;
 using ::dali::volume;
-
-
-inline int64_t dali_type_size(dali_data_type_t type) {
-  if (type == DALI_BOOL || type == DALI_UINT8 || type == DALI_INT8)
-    return 1;
-  if (type == DALI_UINT16 || type == DALI_INT16 || type == DALI_FLOAT16)
-    return 2;
-  if (type == DALI_UINT32 || type == DALI_INT32 || type == DALI_FLOAT)
-    return 4;
-  else
-    return 8;
-}
-
-inline void ReleaseUnusedMemory() {
-  daliReleaseUnusedMemory();
-}
 
 }}}  // namespace triton::backend::dali
 

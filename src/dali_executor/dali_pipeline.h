@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2024 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2020-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,12 @@
 #ifndef DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 #define DALI_BACKEND_DALI_EXECUTOR_DALI_PIPELINE_H_
 
-#include <mutex>
+#include <cuda_runtime_api.h>
+
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "src/dali_executor/io_descriptor.h"
@@ -36,99 +39,59 @@
 
 namespace triton { namespace backend { namespace dali {
 
+/**
+ * @brief A DALI pipeline.
+ *
+ * This is the only class that calls the DALI C API, and dali_pipeline.cc is the only file that
+ * includes the C API header. Errors reported by DALI are thrown as DaliCApiError.
+ */
 class DaliPipeline {
  public:
-  DaliPipeline(const DaliPipeline&) = delete;
+  DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
+               int device_id);
 
+  DaliPipeline(const DaliPipeline&) = delete;
 
   DaliPipeline& operator=(const DaliPipeline&) = delete;
 
+  DaliPipeline(DaliPipeline&& dp);
 
-  DaliPipeline(DaliPipeline&& dp) {
-    *this = std::move(dp);
-  }
+  DaliPipeline& operator=(DaliPipeline&& dp);
 
-  DaliPipeline& operator=(DaliPipeline&& dp) {
-    if (this != &dp) {
-      ReleasePipeline();
-      ReleaseStream();
-      serialized_pipeline_ = std::move(dp.serialized_pipeline_);
-      max_batch_size_ = dp.max_batch_size_;
-      num_threads_ = dp.num_threads_;
-      device_id_ = dp.device_id_;
-      handle_ = dp.handle_;
-      output_stream_ = dp.output_stream_;
+  ~DaliPipeline();
 
-      dp.handle_ = nullptr;
-      dp.output_stream_ = nullptr;
-    }
-    return *this;
-  }
+  void Run();
 
-  ~DaliPipeline() {
-    ReleasePipeline();
-    ReleaseStream();
-  }
+  void Output();
 
-  DaliPipeline(const std::string& serialized_pipeline, int max_batch_size, int num_threads,
-               int device_id) :
-      serialized_pipeline_(serialized_pipeline),
-      max_batch_size_(max_batch_size),
-      num_threads_(num_threads),
-      device_id_(device_id) {
-    DeviceGuard dg(device_id_);
-    InitDali();
-    InitStream();
-    CreatePipeline();
-  }
+  int GetBatchSize();
 
-  void Run() {
-    daliOutputRelease(&handle_);
-    daliRun(&handle_);
-  }
-
-  void Output() {
-    daliOutput(&handle_);
-  }
-
-  int GetBatchSize() {
-    return static_cast<int>(daliNumTensors(&handle_, 0));
-  }
-
-  int GetNumOutput() {
-    return static_cast<int>(daliGetNumOutput(&handle_));
-  }
+  int GetNumOutput();
 
   TensorListShape<> GetOutputShapeAt(int output_idx);
 
-  size_t GetOutputNumElements(int output_idx) {
-    return daliNumElements(&handle_, output_idx);
-  }
+  size_t GetOutputNumElements(int output_idx);
 
-  dali_data_type_t GetOutputType(int output_idx) {
-    return daliTypeAt(&handle_, output_idx);
-  }
+  daliDataType_t GetOutputType(int output_idx);
 
-  device_type_t GetOutputDevice(int output_idx) {
-    return daliGetOutputDevice(&handle_, output_idx);
-  }
+  StorageDevice GetOutputDevice(int output_idx);
 
-  device_type_t GetInputDevice(const std::string& name);
+  StorageDevice GetInputDevice(const std::string& name);
 
   std::vector<TensorListShape<>> GetOutputShapes();
 
-  void SetInput(const void* data_ptr, const char* name, device_type_t source_device,
-                dali_data_type_t data_type, span<const int64_t> inputs_shapes, int sample_ndims,
+  void SetInput(const void* data_ptr, const char* name, StorageDevice source_device,
+                daliDataType_t data_type, span<const int64_t> inputs_shapes, int sample_ndims,
                 const char* data_id, bool force_no_copy = true);
 
-  void SetInput(const void* ptr, const char* name, device_type_t source_device,
-                dali_data_type_t data_type, TensorListShape<> input_shape,
+  void SetInput(const void* ptr, const char* name, StorageDevice source_device,
+                daliDataType_t data_type, TensorListShape<> input_shape,
                 std::optional<std::string_view> data_id = {}, bool force_no_copy = true);
 
   void SetInput(const IDescr& io_descr, std::optional<std::string_view> data_id = {},
                 bool force_no_copy = true);
 
-  void PutOutput(void* destination, int output_idx, device_type_t destination_device);
+  void PutOutput(void* destination, int output_idx, StorageDevice destination_device);
 
   /**
    * @brief Get list of external inputs names in the pipeline.
@@ -143,7 +106,7 @@ class DaliPipeline {
   /**
    * @brief Get declared exptect data type of the input with a given name.
    */
-  dali_data_type_t GetInputType(const std::string& name);
+  daliDataType_t GetInputType(const std::string& name);
 
   /**
    * @brief Get name of the pipeline output with a given id.
@@ -158,7 +121,7 @@ class DaliPipeline {
   /**
    * @brief Get declared output data type for the pipeline output with a given id.
    */
-  dali_data_type_t GetDeclaredOutputType(int id);
+  daliDataType_t GetDeclaredOutputType(int id);
 
   /**
    * @brief Get max batch size of the pipeline.
@@ -179,10 +142,7 @@ class DaliPipeline {
     return output_stream_;
   }
 
-  void Reset() {
-    ReleasePipeline();
-    CreatePipeline();
-  }
+  void Reset();
 
 
   int DeviceId() const {
@@ -194,27 +154,18 @@ class DaliPipeline {
     return num_threads_;
   }
 
-  static void LoadPluginLibs(const std::vector<std::string>& plugin_paths) {
-    try {
-      InitDali();
-      for (const auto& path : plugin_paths) {
-        daliLoadLibrary(path.c_str());
-      }
-    } catch (const std::exception& e) {
-      throw DaliBackendException(e.what());
-    } catch (...) {
-      throw DaliBackendException("Unknown error");
-    }
-  }
+  static void LoadPluginLibs(const std::vector<std::string>& plugin_paths);
 
   /**
    * Checks, whether the string contains a formally valid DALI pipeline.
    * @return True, if `serialized_pipeline `is a formally valid DALI pipeline.
    */
-  static bool ValidateDaliPipeline(const std::string& serialized_pipeline) {
-    return 0 == daliIsDeserializable(serialized_pipeline.c_str(), serialized_pipeline.length());
-  }
+  static bool ValidateDaliPipeline(const std::string& serialized_pipeline);
 
+  /**
+   * @brief Release unused memory from DALI's memory pools.
+   */
+  static void ReleaseUnusedMemory();
 
  private:
   /**
@@ -224,50 +175,27 @@ class DaliPipeline {
     return device_id_ < 0;
   }
 
-  void CreatePipeline() {
-    daliCreatePipeline(&handle_, serialized_pipeline_.c_str(), serialized_pipeline_.length(),
-                       max_batch_size_, num_threads_, device_id_, 0, 1, 0, 0, 0);
-  }
+  void CreatePipeline();
 
+  void ReleasePipeline();
 
-  void ReleasePipeline() {
-    if (!handle_)
-      return;
-    daliDeletePipeline(&handle_);
-    handle_ = nullptr;
-  }
+  void ReleaseStream();
 
-  void ReleaseStream() {
-    if (NoGpu())
-      return;
-    if (output_stream_) {
-      CUDA_CALL_GUARD(cudaStreamSynchronize(output_stream_));
-      CUDA_CALL_GUARD(cudaStreamDestroy(output_stream_));
-      output_stream_ = nullptr;
-    }
-  }
+  void InitStream();
 
-  static void InitDali() {
-    std::call_once(dali_initialized_, []() {
-      daliInitialize();
-      daliInitOperators();
-    });
-  }
+  /** Owns the C API pipeline handle. Defined in dali_pipeline.cc. */
+  struct Impl;
 
-  void InitStream() {
-    if (NoGpu())
-      return;
-    CUDA_CALL_GUARD(cudaStreamCreate(&output_stream_));
-  }
+  /** Returns the live pipeline; throws if there is none (e.g. in a moved-from object). */
+  Impl& GetImpl();
 
   std::string serialized_pipeline_{};
   int max_batch_size_ = 0;
   int num_threads_ = 0;
   int device_id_ = 0;
 
-  daliPipelineHandle handle_ = nullptr;
+  std::unique_ptr<Impl> impl_;
   ::cudaStream_t output_stream_ = nullptr;
-  static std::once_flag dali_initialized_;
 };
 
 

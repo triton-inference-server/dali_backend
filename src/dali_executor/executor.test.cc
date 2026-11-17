@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2024 NVIDIA CORPORATION
+// Copyright (c) 2020-2026 NVIDIA CORPORATION
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ void coalesced_compare(const std::vector<OBufferDescr> &obuffers,
       auto descr = obuffers[out_buff_i];
       REQUIRE(descr.size % sizeof(T) == 0);
       obuffer.resize(descr.size / sizeof(T));
-      MemCopy(CPU, obuffer.data(), descr.device, descr.data, descr.size);
+      MemCopy(StorageDevice::CPU, obuffer.data(), descr.device, descr.data, descr.size);
     }
     REQUIRE(obuffer[out_i] == op(ibuffers[inp_buff_i][inp_i]));
     out_i++;
@@ -75,10 +75,10 @@ TEST_CASE("CPU pipeline with chunked input and output", "[cpu]") {
   auto output = executor.Run({input});
   REQUIRE(output.size() == 1);
   REQUIRE(output[0].shape == input.meta.shape);
-  REQUIRE(output[0].device == CPU);
+  REQUIRE(output[0].device == StorageDevice::CPU);
 
   size_t elements = input.meta.shape.num_elements();
-  std::vector<IOBuffer<CPU>> output_buffers(output_chunks);
+  std::vector<IOBuffer<StorageDevice::CPU>> output_buffers(output_chunks);
   ODescr outdesc;
   for (auto &buffer : output_buffers) {
     buffer.resize(elements * sizeof(float) / output_chunks);
@@ -105,7 +105,7 @@ TEST_CASE("Scaling Pipeline") {
   const std::string inp_name = "INPUT0";
   auto scaling_test = [&](const std::vector<int> &batch_sizes,
                           const std::vector<int> &out_batch_sizes,
-                          const std::vector<device_type_t> &out_devs) {
+                          const std::vector<StorageDevice> &out_devs) {
     REQUIRE(std::accumulate(batch_sizes.begin(), batch_sizes.end(), 0) ==
             std::accumulate(out_batch_sizes.begin(), out_batch_sizes.end(), 0));
     REQUIRE(out_devs.size() == out_batch_sizes.size());
@@ -132,10 +132,10 @@ TEST_CASE("Scaling Pipeline") {
         buffer_vol += volume(output[0].shape[ti]) * sizeof(float);
         ti++;
       }
-      if (out_devs[out_i] == device_type_t::CPU) {
-        output_buffers.emplace_back(std::make_unique<IOBuffer<CPU>>(buffer_vol));
+      if (out_devs[out_i] == StorageDevice::CPU) {
+        output_buffers.emplace_back(std::make_unique<IOBuffer<StorageDevice::CPU>>(buffer_vol));
       } else {
-        output_buffers.emplace_back(std::make_unique<IOBuffer<GPU>>(buffer_vol));
+        output_buffers.emplace_back(std::make_unique<IOBuffer<StorageDevice::GPU>>(buffer_vol));
       }
     }
     std::vector<ODescr> output_vec(1);
@@ -148,15 +148,15 @@ TEST_CASE("Scaling Pipeline") {
   };
 
   SECTION("Simple execute") {
-    scaling_test({3, 2, 1}, {6}, {CPU});
-    scaling_test({5}, {5}, {GPU});
+    scaling_test({3, 2, 1}, {6}, {StorageDevice::CPU});
+    scaling_test({5}, {5}, {StorageDevice::GPU});
   }
 
   SECTION("Chunked output") {
-    scaling_test({3, 3}, {3, 3}, {CPU, CPU});
-    scaling_test({6}, {2, 4}, {GPU, GPU});
-    scaling_test({8}, {6, 2}, {CPU, GPU});
-    scaling_test({64}, {32, 16, 16}, {CPU, GPU, GPU});
+    scaling_test({3, 3}, {3, 3}, {StorageDevice::CPU, StorageDevice::CPU});
+    scaling_test({6}, {2, 4}, {StorageDevice::GPU, StorageDevice::GPU});
+    scaling_test({8}, {6, 2}, {StorageDevice::CPU, StorageDevice::GPU});
+    scaling_test({64}, {32, 16, 16}, {StorageDevice::CPU, StorageDevice::GPU, StorageDevice::GPU});
   }
 }
 
@@ -166,13 +166,13 @@ TEST_CASE("RN50 pipeline") {
   DaliExecutor executor(std::move(pipeline));
   IDescr input;
   input.meta.name = "DALI_INPUT_0";
-  input.meta.type = dali_data_type_t::DALI_UINT8;
+  input.meta.type = daliDataType_t::DALI_UINT8;
   input.meta.shape = TensorListShape<1>(1);
   input.meta.shape.set_tensor_shape(0, TensorShape<>(data::jpeg_image_len));
   IBufferDescr ibuffer;
   ibuffer.data = data::jpeg_image_str;
   ibuffer.size = data::jpeg_image_len;
-  ibuffer.device = device_type_t::CPU;
+  ibuffer.device = StorageDevice::CPU;
   input.buffers = {ibuffer};
 
   auto execute_with_image = [&]() {
@@ -184,7 +184,7 @@ TEST_CASE("RN50 pipeline") {
     std::vector<ODescr> output_vec(1);
     auto &outdesc = output_vec[0];
     OBufferDescr obuffer;
-    obuffer.device = device_type_t::CPU;
+    obuffer.device = StorageDevice::CPU;
     obuffer.device_id = 0;
     obuffer.data = output_buffer.data();
     obuffer.size = output_buffer.size() * sizeof(decltype(output_buffer)::value_type);

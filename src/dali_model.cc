@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2024 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ TRITONSERVER_Error* DaliModel::Create(TRITONBACKEND_Model* triton_model, DaliMod
     return nullptr;
   } catch (TritonError& e) {
     return e.release();
-  } catch (DALIException& e) {
+  } catch (DaliCApiError& e) {
     return TritonError::Unknown(make_string("Error while instantiating DALI pipeline: ", e.what()))
         .release();
   } catch (const std::exception& e) {

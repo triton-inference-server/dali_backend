@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2021-2023 NVIDIA CORPORATION & AFFILIATES
+// Copyright (c) 2021-2026 NVIDIA CORPORATION & AFFILIATES
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,10 +36,13 @@ TritonError ErrorHandler() {
   } catch (TritonError& e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
     error = std::move(e);
+  } catch (DaliCApiError& e) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
+    error = TritonError::Unknown(make_string("DALI error: ", e.what()));
   } catch (DaliBackendException& e) {
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
     error = TritonError::Unknown(make_string("DALI Backend error: ", e.what()));
-  } catch (DALIException& e) {
+  } catch (DALIException& e) {  // DALI's C++ utilities: memory, copies, device management
     LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (e.what()));
     error = TritonError::Unknown(make_string("DALI error: ", e.what()));
   } catch (std::runtime_error& e) {
@@ -243,7 +246,7 @@ std::vector<IDescr> DaliModelInstance::GenerateInputs(const TritonRequest& reque
     auto meta = input.Meta();
     auto& idescr = inputs[input_idx];
     for (uint32_t buffer_idx = 0; buffer_idx < input_buffer_count; ++buffer_idx) {
-      auto buffer = input.GetBuffer(buffer_idx, device_type_t::CPU, GetDaliDeviceId());
+      auto buffer = input.GetBuffer(buffer_idx, StorageDevice::CPU, GetDaliDeviceId());
       idescr.buffers.push_back(std::move(buffer));
     }
     idescr.meta = std::move(meta);
